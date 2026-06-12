@@ -8,8 +8,10 @@ import type {
   ShapeSpec,
   StyleSheet,
 } from './types';
+import type { Mood } from './types';
 import { CANVAS } from './types';
 import { getPart } from '../parts/library';
+import { MOOD_OVERLAYS } from '../parts/moods';
 import { PROP_TEMPLATES } from '../props/templates';
 
 /**
@@ -97,7 +99,10 @@ interface PlacedPart {
   group: 'body' | 'head';
 }
 
-function placeParts(recipe: CharacterRecipe, facing: Facing): PlacedPart[] {
+/** Mood overlays paint over the head (z 40) but under hair (z 50). */
+const MOOD_Z = 45;
+
+function placeParts(recipe: CharacterRecipe, facing: Facing, mood: Mood): PlacedPart[] {
   const ids = [
     recipe.parts.body,
     recipe.parts.outfit,
@@ -115,6 +120,14 @@ function placeParts(recipe: CharacterRecipe, facing: Facing): PlacedPart[] {
       variant,
       anchor: ANCHORS[facing][part.anchor],
       group: HEAD_ANCHORS.includes(part.anchor) ? 'head' : 'body',
+    });
+  }
+  const moodShapes = MOOD_OVERLAYS[mood][facing];
+  if (moodShapes && moodShapes.length > 0) {
+    placed.push({
+      variant: { shapes: moodShapes, z: MOOD_Z },
+      anchor: ANCHORS[facing].headCenter,
+      group: 'head',
     });
   }
   return placed.sort((a, b) => a.variant.z - b.variant.z);
@@ -187,9 +200,10 @@ export function composeCharacter(
   style: StyleSheet,
   facing: Facing | 'west',
   pixelSize?: number,
+  mood: Mood = 'normal',
 ): string {
   const actual: Facing = facing === 'west' ? 'east' : facing;
-  const placed = placeParts(recipe, actual);
+  const placed = placeParts(recipe, actual, mood);
   let inner = renderPlaced(placed, actual, style, makeCharacterResolver(recipe));
   if (facing === 'west') {
     inner = `<g transform="translate(${CANVAS} 0) scale(-1 1)">${inner}</g>`;

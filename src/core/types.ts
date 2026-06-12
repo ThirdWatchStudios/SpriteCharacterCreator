@@ -6,6 +6,14 @@ export const FACINGS: Facing[] = ['south', 'east', 'north'];
 export type Slot = 'body' | 'head' | 'hair' | 'outfit' | 'accessory';
 
 /**
+ * The six emotional states from the behavioral pressure model. Moods are
+ * runtime state, not identity — they are face overlays selected at render
+ * time, never stored in a recipe.
+ */
+export type Mood = 'normal' | 'suspicious' | 'curious' | 'defensive' | 'hostile' | 'confused';
+export const MOODS: Mood[] = ['normal', 'suspicious', 'curious', 'defensive', 'hostile', 'confused'];
+
+/**
  * Palette tokens. Parts never hardcode style colors — they reference tokens
  * ('$skin', '$hair', ...) that resolve against a recipe's palette at composite
  * time. Literal hex values are allowed only for style-neutral detail

@@ -1,6 +1,14 @@
 import type { PaletteToken } from '../core/types';
+import { MOODS } from '../core/types';
 import { composeCharacter } from '../core/compositor';
-import { characterAtlas, characterSheetPng, downloadBlob, downloadJson } from '../core/exporter';
+import {
+  characterAtlas,
+  characterSheetPng,
+  downloadBlob,
+  downloadJson,
+  moodAtlas,
+  moodSheetPng,
+} from '../core/exporter';
 import { randomCharacter, rerollPalette } from '../core/random';
 import { partsForSlot } from '../parts/library';
 import { store } from '../state';
@@ -54,19 +62,34 @@ export function renderCharacterPreview(container: HTMLElement): void {
     return;
   }
   const style = store.state.style;
+  const mood = store.ui.previewMood;
 
   const hero = el('div', { className: 'preview-hero checker' });
-  hero.innerHTML = composeCharacter(recipe, style, 'south', 224);
+  hero.innerHTML = composeCharacter(recipe, style, 'south', 224, mood);
+
+  const moodBar = el('div', { className: 'mood-bar' });
+  for (const m of MOODS) {
+    moodBar.append(
+      el(
+        'button',
+        {
+          className: `mood-chip ${m === mood ? 'active' : ''}`,
+          onClick: () => store.mutateUi((ui) => (ui.previewMood = m)),
+        },
+        m,
+      ),
+    );
+  }
 
   const row = el('div', { className: 'facing-row' });
   for (const facing of ['south', 'east', 'north', 'west'] as const) {
     const cell = el('div', { className: 'facing-cell' });
     const img = el('div', { className: 'facing-img checker' });
-    img.innerHTML = composeCharacter(recipe, style, facing, 96);
+    img.innerHTML = composeCharacter(recipe, style, facing, 96, mood);
     cell.append(img, el('span', { className: 'facing-label' }, facing));
     row.append(cell);
   }
-  container.append(hero, row);
+  container.append(hero, moodBar, row);
 }
 
 export function renderCharacterControls(container: HTMLElement): void {
@@ -189,6 +212,16 @@ export function renderCharacterControls(container: HTMLElement): void {
         downloadJson(
           `${recipe.name.toLowerCase().replace(/\s+/g, '-')}-atlas@${store.ui.exportScale}x.json`,
           characterAtlas(recipe, store.state.style, store.ui.exportScale),
+        ),
+      ),
+      button('Mood sheet PNG', async () => {
+        const blob = await moodSheetPng(recipe, store.state.style, store.ui.exportScale);
+        downloadBlob(`${recipe.name.toLowerCase().replace(/\s+/g, '-')}-moods@${store.ui.exportScale}x.png`, blob);
+      }, 'primary'),
+      button('Mood atlas JSON', () =>
+        downloadJson(
+          `${recipe.name.toLowerCase().replace(/\s+/g, '-')}-moods-atlas@${store.ui.exportScale}x.json`,
+          moodAtlas(recipe, store.state.style, store.ui.exportScale),
         ),
       ),
       button('Recipe JSON', () =>

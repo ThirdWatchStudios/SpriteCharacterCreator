@@ -211,6 +211,34 @@ body {
   display: flex;
 }
 
+.mood-bar {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.mood-chip {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 14px;
+  padding: 5px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  text-transform: capitalize;
+}
+
+.mood-chip:hover {
+  color: var(--text);
+}
+
+.mood-chip.active {
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
+  color: var(--text);
+}
+
 .facing-row {
   display: flex;
   gap: 16px;

@@ -137,6 +137,55 @@ export const DEFAULT_PROPS: PropInstance[] = [
     params: { bushiness: 2 },
     palette: { primary: '#639922', secondary: '#3B6D11', accent: '#B04A3A' },
   },
+  {
+    id: 'prop-fridge',
+    name: 'Break room fridge',
+    templateId: 'fridge',
+    params: { height: 78 },
+    palette: { primary: '#DCE6EC', secondary: '#D85A30', accent: '#5F5E5A' },
+  },
+  {
+    id: 'prop-conference-table',
+    name: 'Conference table',
+    templateId: 'conference-table',
+    params: { width: 110, chairs: 2 },
+    palette: { primary: '#6E4A2A', secondary: '#5F5E5A', accent: '#444441' },
+  },
+  {
+    id: 'prop-reception-desk',
+    name: 'Reception desk',
+    templateId: 'reception-desk',
+    params: { width: 88 },
+    palette: { primary: '#3D5A80', secondary: '#E8E4D8', accent: '#EF9F27' },
+  },
+  {
+    id: 'prop-badge-reader',
+    name: 'Badge reader',
+    templateId: 'badge-reader',
+    params: { granted: 1 },
+    palette: { primary: '#444441', secondary: '#D3D1C7', accent: '#97C459' },
+  },
+  {
+    id: 'prop-office-chair',
+    name: 'Office chair',
+    templateId: 'office-chair',
+    params: { backHeight: 30 },
+    palette: { primary: '#444441', secondary: '#888780', accent: '#2C2C2A' },
+  },
+  {
+    id: 'prop-whiteboard',
+    name: 'Whiteboard',
+    templateId: 'whiteboard',
+    params: { width: 64, scribbles: 2 },
+    palette: { primary: '#B4B2A9', secondary: '#F7F4EC', accent: '#D85A30' },
+  },
+  {
+    id: 'prop-filing-cabinet',
+    name: 'Filing cabinet',
+    templateId: 'filing-cabinet',
+    params: { drawers: 3 },
+    palette: { primary: '#7A6C5D', secondary: '#8A8578', accent: '#2C2C2A' },
+  },
 ];
 
 export function defaultProject(): ProjectState {

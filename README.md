@@ -27,9 +27,13 @@ the top bar to move a project between machines or check it into git.
 ## Tabs
 
 - **Characters** — pick body/head/hair/outfit/accessories, tweak the 5-token palette,
-  or hit *+ Random coworker*. Preview shows all four facings.
-- **Props** — parametric office objects (water cooler, printer, desk, coffee machine,
-  plant) with sliders and a 3-token palette.
+  or hit *+ Random coworker*. Preview shows all four facings, with a mood picker for
+  the six emotional states (normal, suspicious, curious, defensive, hostile, confused).
+  Moods are face overlays applied at render time — they are never part of a recipe.
+- **Props** — parametric office objects with sliders and a 3-token palette: water
+  cooler, printer, desk, coffee machine, office plant, break room fridge, conference
+  table, reception desk, badge reader (with granted/denied light), office chair,
+  whiteboard, and filing cabinet.
 - **Style** — the global style sheet: outline width/color/mode, head scale, body width,
   base sprite size, and the palette pools that feed the randomizer. Every control
   restyles all characters and props live.
@@ -39,12 +43,18 @@ the top bar to move a project between machines or check it into git.
 **Export all (zip)** produces:
 
 ```
-characters/<name>/sheet@{1,2,4}x.png   # 4 frames: south, east, north, west
-characters/<name>/atlas@{1,2,4}x.json  # frame rects + pivot
+characters/<name>/sheet@{1,2,4}x.png        # 4 frames: south, east, north, west
+characters/<name>/atlas@{1,2,4}x.json       # frame rects + pivot
+characters/<name>/moods@{1,2,4}x.png        # 6 mood rows x 4 facing columns
+characters/<name>/moods-atlas@{1,2,4}x.json # frames keyed "<mood>_<facing>"
 characters/<name>/recipe.json
 props/<name>/sprite@{1,2,4}x.png
-project.json                           # full regenerable project state
+project.json                                # full regenerable project state
 ```
+
+Mood sheets contain a row per mood in a fixed order (normal, suspicious, curious,
+defensive, hostile, confused). North frames are identical across moods (no face from
+behind) but are emitted anyway so frame indexing stays uniform in the engine.
 
 Sheets follow the RimWorld convention: **no frame animation** — 3 authored facings,
 with west baked as mirrored east for convenience (`meta.westIsMirroredEast`). Movement
@@ -68,5 +78,8 @@ in-game is slide/bob between waypoints plus facing swaps.
   conventions documented at the top of that file. Fills must use `$token` palette
   references — never hardcode style colors.
 - **New prop**: add a `PropTemplate` in `src/props/templates.ts`.
+- **New or adjusted mood**: edit `MOOD_OVERLAYS` in `src/parts/moods.ts` (and the
+  `Mood` union in `src/core/types.ts` if adding one). Overlays are brow/mouth strokes
+  at the headCenter anchor, z 45 (over the head, under hair).
 - **New anchor / facing tweaks**: `ANCHORS` in `src/core/compositor.ts` — parts are
   positioned only via anchors, so moving an anchor moves everything attached to it.

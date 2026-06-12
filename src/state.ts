@@ -1,4 +1,4 @@
-import type { ProjectState } from './core/types';
+import type { Mood, ProjectState } from './core/types';
 import { defaultProject } from './data/defaults';
 
 const STORAGE_KEY = 'sprite-character-creator-v1';
@@ -15,6 +15,8 @@ class Store {
     selectedCharacterId: '',
     selectedPropId: '',
     exportScale: 2,
+    /** Preview-only mood; never stored in recipes. */
+    previewMood: 'normal' as Mood,
   };
   private listeners: Listener[] = [];
 

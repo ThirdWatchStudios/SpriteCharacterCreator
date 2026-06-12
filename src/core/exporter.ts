@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
 import type { CharacterRecipe, ProjectState, PropInstance, StyleSheet } from './types';
+import { MOODS } from './types';
 import { composeCharacter, composeProp } from './compositor';
 
 /** Sheet frame order. West is baked as mirrored east for engine convenience. */
@@ -70,6 +71,56 @@ export function characterAtlas(recipe: CharacterRecipe, style: StyleSheet, scale
   };
 }
 
+/**
+ * Mood sheet: one row per mood (in MOODS order), one column per facing.
+ * North frames are identical across moods (no face from behind) but are still
+ * emitted so frame indexing stays uniform engine-side.
+ */
+export async function moodSheetPng(
+  recipe: CharacterRecipe,
+  style: StyleSheet,
+  scale: number,
+): Promise<Blob> {
+  const size = style.render.baseSize * scale;
+  const canvas = document.createElement('canvas');
+  canvas.width = size * SHEET_FACINGS.length;
+  canvas.height = size * MOODS.length;
+  const ctx = canvas.getContext('2d')!;
+  for (let row = 0; row < MOODS.length; row++) {
+    for (let col = 0; col < SHEET_FACINGS.length; col++) {
+      const svg = composeCharacter(recipe, style, SHEET_FACINGS[col], size, MOODS[row]);
+      const img = await svgToImage(svg);
+      ctx.drawImage(img, col * size, row * size, size, size);
+    }
+  }
+  return canvasToBlob(canvas);
+}
+
+export function moodAtlas(recipe: CharacterRecipe, style: StyleSheet, scale: number) {
+  const size = style.render.baseSize * scale;
+  const frames: Record<string, { x: number; y: number; w: number; h: number }> = {};
+  MOODS.forEach((mood, row) => {
+    SHEET_FACINGS.forEach((facing, col) => {
+      frames[`${mood}_${facing}`] = { x: col * size, y: row * size, w: size, h: size };
+    });
+  });
+  return {
+    name: recipe.name,
+    id: recipe.id,
+    frameSize: size,
+    scale,
+    moods: [...MOODS],
+    facings: [...SHEET_FACINGS],
+    frames,
+    pivot: { x: 0.5, y: 0.09 },
+    meta: {
+      generator: 'sprite-character-creator',
+      westIsMirroredEast: true,
+      northHasNoFace: true,
+    },
+  };
+}
+
 export async function propPng(prop: PropInstance, style: StyleSheet, scale: number): Promise<Blob> {
   const size = style.render.baseSize * scale;
   const svg = composeProp(prop, style, size);
@@ -113,6 +164,8 @@ export async function exportAllZip(project: ProjectState): Promise<Blob> {
     for (const scale of EXPORT_SCALES) {
       dir.file(`sheet@${scale}x.png`, await characterSheetPng(recipe, style, scale));
       dir.file(`atlas@${scale}x.json`, JSON.stringify(characterAtlas(recipe, style, scale), null, 2));
+      dir.file(`moods@${scale}x.png`, await moodSheetPng(recipe, style, scale));
+      dir.file(`moods-atlas@${scale}x.json`, JSON.stringify(moodAtlas(recipe, style, scale), null, 2));
     }
     dir.file('recipe.json', JSON.stringify(recipe, null, 2));
   }
