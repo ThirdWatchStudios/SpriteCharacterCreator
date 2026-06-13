@@ -237,20 +237,22 @@ function isThreshold(scene: SceneState, x: number, y: number): boolean {
 }
 
 /**
- * For wall autotiling, a doorway (threshold) tile counts as a connection so
+ * For wall autotiling, a tile carrying a DOOR counts as a wall connection, so
  * the wall extends an arm up to the door frame instead of retracting to its
- * centre block and leaving a floor gap beside the door.
+ * centre block and leaving a floor gap. Only real doors qualify — NOT every
+ * threshold-shaped gap, or the 2-tile openings between cubicle partition
+ * spines would sprout connector arms and lattice.
  */
-function wallConnects(scene: SceneState, x: number, y: number): boolean {
-  return wallAt(scene, x, y) || isThreshold(scene, x, y);
+function wallConnects(scene: SceneState, doors: Set<string>, x: number, y: number): boolean {
+  return wallAt(scene, x, y) || doors.has(`${x},${y}`);
 }
 
-function wallMask(scene: SceneState, x: number, y: number): number {
+function wallMask(scene: SceneState, doors: Set<string>, x: number, y: number): number {
   return (
-    (wallConnects(scene, x, y - 1) ? 1 : 0) |
-    (wallConnects(scene, x + 1, y) ? 2 : 0) |
-    (wallConnects(scene, x, y + 1) ? 4 : 0) |
-    (wallConnects(scene, x - 1, y) ? 8 : 0)
+    (wallConnects(scene, doors, x, y - 1) ? 1 : 0) |
+    (wallConnects(scene, doors, x + 1, y) ? 2 : 0) |
+    (wallConnects(scene, doors, x, y + 1) ? 4 : 0) |
+    (wallConnects(scene, doors, x - 1, y) ? 8 : 0)
   );
 }
 
@@ -275,6 +277,15 @@ export function composeSceneSvg(scene: SceneState, project: ProjectState, cellPi
   const width = scene.cols * CANVAS;
   const height = scene.rows * CANVAS;
   let body = `<rect width="${width}" height="${height}" fill="#181614"/>`;
+
+  // Tiles carrying a door — walls extend an arm up to these (closes the gap
+  // beside a door) but not to other gaps (keeps cubicle openings clean).
+  const doorTiles = new Set<string>();
+  for (const entity of scene.entities) {
+    if (entity.kind === 'prop' && findProp(project, entity.refId)?.templateId === 'door') {
+      doorTiles.add(`${entity.x},${entity.y}`);
+    }
+  }
 
   // Keep floors inside their wall bounds. Walls sit mid-tile, so every tile
   // near a wall resolves its floor PER QUADRANT: each 64x64 corner of the
@@ -352,7 +363,7 @@ export function composeSceneSvg(scene: SceneState, project: ProjectState, cellPi
   for (let y = 0; y < scene.rows; y++) {
     for (let x = 0; x < scene.cols; x++) {
       const wall = project.walls.find((item) => item.id === scene.wallIds[y][x]);
-      if (wall) body += svgAt(composeWallTile(wall, project.style, wallMask(scene, x, y), CANVAS), x, y);
+      if (wall) body += svgAt(composeWallTile(wall, project.style, wallMask(scene, doorTiles, x, y), CANVAS), x, y);
     }
   }
 

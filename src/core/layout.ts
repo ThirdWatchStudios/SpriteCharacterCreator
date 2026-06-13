@@ -345,19 +345,14 @@ function drawRoomWalls(
   wallLine(scene, COLS - 1, 0, COLS - 1, ROWS - 1, officeWall);
 }
 
-function clearDoorways(scene: SceneState, template: LayoutTemplate, rng: Rng): Array<{ x: number; y: number }> {
+function clearDoorways(scene: SceneState, template: LayoutTemplate): Array<{ x: number; y: number }> {
   const doorways: Array<{ x: number; y: number }> = [];
+  // Single-tile doorways only: every gap gets exactly one door prop, which is
+  // what walls connect to. Widening would clear a second tile with no door,
+  // reopening a floor gap beside it.
   for (const [x, y] of template.doors) {
     clearWall(scene, x, y);
     doorways.push({ x, y });
-    if (!chance(rng, 0.35)) continue;
-    // widen along the wall run, never across it, and never into a junction
-    const widen = (tx: number, ty: number, horizontal: boolean) => {
-      const perpClear = horizontal ? !wallAt(scene, tx, ty - 1) && !wallAt(scene, tx, ty + 1) : !wallAt(scene, tx - 1, ty) && !wallAt(scene, tx + 1, ty);
-      if (wallAt(scene, tx, ty) && perpClear) clearWall(scene, tx, ty);
-    };
-    if (wallAt(scene, x - 1, y) && wallAt(scene, x + 1, y)) widen(x + (chance(rng, 0.5) ? -1 : 1), y, true);
-    else if (wallAt(scene, x, y - 1) && wallAt(scene, x, y + 1)) widen(x, y + (chance(rng, 0.5) ? -1 : 1), false);
   }
   return doorways;
 }
@@ -874,7 +869,7 @@ export function generateOfficeLayout(
   }
 
   drawRoomWalls(scene, rooms, officeWall, glassWall);
-  const doorways = clearDoorways(scene, template, rng);
+  const doorways = clearDoorways(scene, template);
   decorateDoorways(scene, project, doorways, rng);
   decorateRoomWalls(scene, project, rooms, rng);
 
