@@ -286,7 +286,18 @@ More heads, hair, outfits (hoodie, suit jacket, dress), accessories (watch,
 earbuds, clipboard). Carried-item overlays for characters (coffee run, stack
 of papers) — same slot system, anchored at the hands.
 
-### 3.3 Compositor snapshot tests
+### 3.3 Compositor snapshot tests — DONE (2026-06-13)
+Implemented with: `tests/compositor.snapshot.test.ts` (vitest), a `test` /
+`test:update` npm script, and 79 committed golden `.svg` files under
+`tests/__snapshots__/` — cast (8: each member × all facings, plus a 6-mood
+strip), every part (40: each swapped onto a neutral recipe across all facings),
+all 16 autotile masks for each wall set (3), every floor (6), and every prop
+(22). Renders pin DEFAULT_STYLE + an explicit pixel size so a snapshot depends
+only on the compositor and content, never on ambient style; multi-cell renders
+(facings/masks/moods) are laid out into one reviewable grid SVG per subject.
+Pure functions, no RNG/clock, so runs are deterministic. Verified: `npm run
+build` clean, `npm run test` green twice, and a deliberately corrupted snapshot
+fails its test (regression-catching confirmed).
 Golden-file tests (vitest): compose the cast + every part + all 16 wall masks
 against committed SVG snapshots. The north-facing hair bug was exactly the
 class of regression this catches — geometry helpers silently misbehaving for
