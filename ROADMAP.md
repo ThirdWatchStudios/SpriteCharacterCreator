@@ -204,6 +204,15 @@ known-good data, and because the renderer is needed either way:
   `SpriteToolkitOfficeLayout` at runtime (no JSON), rendered by the same
   assembler. Details below.
 
+> **Full integration handoff:** `The-Water-Cooler/SPRITE_INTEGRATION.md` —
+> binding the sprite pipeline to the live sim (generator port, game-view camera,
+> location↔layout + agent↔NPC binding, interaction points, pathfinding, art-loop
+> CLI). Key finding: the sim's `ShortTermSocialStateLabel` enum (Normal/Curious/
+> Suspicious/Defensive/Hostile/Confused) is a 1:1 match with the mood overlays.
+> The sim renders agents as immediate-mode `OnGUI` markers in normalized 0–1
+> space (no GameObjects) — integration is the shift to world-space sprite
+> GameObjects driven by sim state. Start a fresh integration session there.
+
 Port to a deterministic `OfficeLayoutGenerator`:
 - **Room templates** — the shared-edge `RoomSpec` rects per template (adjacent
   rooms must overlap one tile on boundaries — porting note: this is what keeps
@@ -292,6 +301,21 @@ once the game ships dozens of sheets.
 The save format is patched ad-hoc (`??=` defaults). Before the game starts
 consuming project.json, add a `version` bump + explicit migration steps so
 old saves and the game's expectations can't drift apart.
+
+---
+
+## Phase 4 — Engine / content-pack architecture (multi-game reuse)
+
+Full plan in `TOOL_ARCHITECTURE.md`. Turn this from one game's tool into a
+genre-agnostic **sprite engine** + swappable **content packs**. Core problem
+(measured): the engine (`core/*`) directly imports the office content
+(`parts/props/tiles/data`), and the giant files (`layout.ts` 996, `library.ts`
+944, `props/templates.ts` 709) are content tangled with logic. Keystone fix:
+**invert the engine→content dependency** (engine takes a `ContentPack`/registry,
+never imports content), then extract `modern-office` as the first pack (splitting
+those files), lazy-load packs, make the rig (tokens/slots/anchors/facings/canvas/
+moods) pack-declared, and prove it with a second, deliberately-different pack.
+Orthogonal to the Unity integration; keep export contracts stable.
 
 ---
 
