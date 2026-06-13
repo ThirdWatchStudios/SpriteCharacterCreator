@@ -49,10 +49,11 @@ Named, saveable style sheets ("Warm office", "Corporate cold", "High-contrast
 readability") with one-click switching and a side-by-side compare view.
 Cheap to build, and it's the payoff of the style-never-baked-into-parts rule.
 
-### 1.4 Pixelate render mode
-A style knob that re-renders everything chunky (render small, scale up with
-nearest-neighbor). Settles the smooth-vector vs pixel-art question with a
-slider instead of a debate. Touches only the exporter/preview, not parts.
+### 1.4 Pixelate render mode — DONE
+Implemented with: a project-persisted Style → Render pixelation slider, live
+preview hints using crisp SVG edges, and PNG raster exports that render through
+a smaller intermediate canvas before nearest-neighbor upscaling. Touches only
+preview/export behavior; part definitions stay vector-smooth and unchanged.
 
 ---
 

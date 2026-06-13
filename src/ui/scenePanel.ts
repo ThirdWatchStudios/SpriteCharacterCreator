@@ -16,6 +16,7 @@ import { downloadBlob, downloadJson, scenePosterPng } from '../core/exporter';
 import { PROP_TEMPLATES } from '../props/templates';
 import { store } from '../state';
 import { button, clear, el, labeled, select } from './dom';
+import { setPreviewSvg, setScenePreviewSvg } from './renderPreview';
 
 const BRUSHES: Array<{ id: SceneBrush; label: string }> = [
   { id: 'floor', label: 'Floor' },
@@ -57,16 +58,16 @@ function thumbForBrush(brush: SceneBrush, id: string): HTMLElement {
   const thumb = el('span', { className: 'thumb checker' });
   if (brush === 'character') {
     const recipe = store.state.characters.find((item) => item.id === id);
-    if (recipe) thumb.innerHTML = composeCharacter(recipe, store.state.style, 'south', 40, store.ui.sceneMood);
+    if (recipe) setPreviewSvg(thumb, composeCharacter(recipe, store.state.style, 'south', 40, store.ui.sceneMood), store.state.style, 40);
   } else if (brush === 'prop') {
     const prop = store.state.props.find((item) => item.id === id);
-    if (prop) thumb.innerHTML = composeProp(prop, store.state.style, 40);
+    if (prop) setPreviewSvg(thumb, composeProp(prop, store.state.style, 40), store.state.style, 40);
   } else if (brush === 'wall') {
     const wall = store.state.walls.find((item) => item.id === id);
-    if (wall) thumb.innerHTML = composeWallTile(wall, store.state.style, 0b1010, 40);
+    if (wall) setPreviewSvg(thumb, composeWallTile(wall, store.state.style, 0b1010, 40), store.state.style, 40);
   } else {
     const floor = store.state.floors.find((item) => item.id === id);
-    if (floor) thumb.innerHTML = composeFloorTile(floor, store.state.style, 40);
+    if (floor) setPreviewSvg(thumb, composeFloorTile(floor, store.state.style, 40), store.state.style, 40);
   }
   return thumb;
 }
@@ -142,8 +143,15 @@ export function renderScenePreview(container: HTMLElement): void {
   clear(container);
   const current = scene();
   const frame = el('div', { className: 'scene-frame', style: `aspect-ratio: ${current.cols} / ${current.rows};` });
-  const art = el('div', { className: 'scene-art' });
-  art.innerHTML = composeSceneSvg(current, store.state, 64);
+  const art = el('div', { className: `scene-art ${store.state.style.render.pixelScale > 1 ? 'pixelated-preview' : ''}` });
+  setScenePreviewSvg(
+    art,
+    composeSceneSvg(current, store.state, 64),
+    store.state.style,
+    current.cols * 64,
+    current.rows * 64,
+    true,
+  );
 
   const overlay = el('div', {
     className: 'scene-grid',

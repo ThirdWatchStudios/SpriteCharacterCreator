@@ -222,6 +222,15 @@ body {
   background-color: #b8b2a6;
 }
 
+.pixelated-preview svg {
+  shape-rendering: crispEdges;
+  image-rendering: pixelated;
+}
+
+.pixelated-preview img {
+  display: block;
+}
+
 .preview-hero {
   border-radius: 12px;
   border: 1px solid var(--border);

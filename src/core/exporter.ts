@@ -34,6 +34,39 @@ function canvasToBlob(canvas: HTMLCanvasElement): Promise<Blob> {
   });
 }
 
+function renderScale(style: StyleSheet): number {
+  const value = style.render.pixelScale ?? 1;
+  if (!Number.isFinite(value)) return 1;
+  return Math.max(1, Math.min(8, Math.round(value)));
+}
+
+function drawRasterized(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  dx: number,
+  dy: number,
+  dw: number,
+  dh: number,
+  style: StyleSheet,
+): void {
+  const pixelScale = renderScale(style);
+  if (pixelScale <= 1) {
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(img, dx, dy, dw, dh);
+    return;
+  }
+
+  const small = document.createElement('canvas');
+  small.width = Math.max(1, Math.round(dw / pixelScale));
+  small.height = Math.max(1, Math.round(dh / pixelScale));
+  const smallCtx = small.getContext('2d')!;
+  smallCtx.imageSmoothingEnabled = true;
+  smallCtx.drawImage(img, 0, 0, small.width, small.height);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(small, dx, dy, dw, dh);
+  ctx.imageSmoothingEnabled = true;
+}
+
 /** Render a character sprite sheet (south, east, north, west) at the given scale. */
 export async function characterSheetPng(
   recipe: CharacterRecipe,
@@ -48,7 +81,7 @@ export async function characterSheetPng(
   for (let i = 0; i < SHEET_FACINGS.length; i++) {
     const svg = composeCharacter(recipe, style, SHEET_FACINGS[i], size);
     const img = await svgToImage(svg);
-    ctx.drawImage(img, i * size, 0, size, size);
+    drawRasterized(ctx, img, i * size, 0, size, size, style);
   }
   return canvasToBlob(canvas);
 }
@@ -94,7 +127,7 @@ export async function moodSheetPng(
     for (let col = 0; col < SHEET_FACINGS.length; col++) {
       const svg = composeCharacter(recipe, style, SHEET_FACINGS[col], size, MOODS[row]);
       const img = await svgToImage(svg);
-      ctx.drawImage(img, col * size, row * size, size, size);
+      drawRasterized(ctx, img, col * size, row * size, size, size, style);
     }
   }
   return canvasToBlob(canvas);
@@ -137,7 +170,7 @@ export async function wallTilesetPng(wall: TileInstance, style: StyleSheet, scal
   const ctx = canvas.getContext('2d')!;
   for (let mask = 0; mask < 16; mask++) {
     const img = await svgToImage(composeWallTile(wall, style, mask, size));
-    ctx.drawImage(img, (mask % 4) * size, Math.floor(mask / 4) * size, size, size);
+    drawRasterized(ctx, img, (mask % 4) * size, Math.floor(mask / 4) * size, size, size, style);
   }
   return canvasToBlob(canvas);
 }
@@ -175,7 +208,7 @@ export async function floorTilePng(floor: TileInstance, style: StyleSheet, scale
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
-  canvas.getContext('2d')!.drawImage(img, 0, 0, size, size);
+  drawRasterized(canvas.getContext('2d')!, img, 0, 0, size, size, style);
   return canvasToBlob(canvas);
 }
 
@@ -226,7 +259,7 @@ export async function propPng(prop: PropInstance, style: StyleSheet, scale: numb
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
-  canvas.getContext('2d')!.drawImage(img, 0, 0, size, size);
+  drawRasterized(canvas.getContext('2d')!, img, 0, 0, size, size, style);
   return canvasToBlob(canvas);
 }
 
@@ -237,7 +270,7 @@ export async function scenePosterPng(scene: SceneState, project: ProjectState, s
   const canvas = document.createElement('canvas');
   canvas.width = scene.cols * cellSize;
   canvas.height = scene.rows * cellSize;
-  canvas.getContext('2d')!.drawImage(img, 0, 0, canvas.width, canvas.height);
+  drawRasterized(canvas.getContext('2d')!, img, 0, 0, canvas.width, canvas.height, project.style);
   return canvasToBlob(canvas);
 }
 

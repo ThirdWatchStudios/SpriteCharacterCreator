@@ -2,8 +2,9 @@ import type { ProjectState, StylePreset, StyleSheet } from '../core/types';
 import { composeCharacter, composeProp } from '../core/compositor';
 import { composeSceneSvg } from '../core/scene';
 import { DEFAULT_STYLE, DEFAULT_STYLE_PRESETS } from '../data/defaults';
-import { store } from '../state';
+import { normalizePixelScale, store } from '../state';
 import { button, clear, colorInput, el, labeled, select, slider } from './dom';
+import { setPreviewSvg, setScenePreviewSvg } from './renderPreview';
 
 /**
  * The style tab is the whole point of the tool: every control here re-renders
@@ -27,11 +28,15 @@ function selectedPreset(): StylePreset | undefined {
 function stylePreviewStrip(style: StyleSheet): HTMLElement {
   const strip = el('div', { className: 'style-compare-strip' });
   for (const recipe of store.state.characters.slice(0, 4)) {
-    const cell = el('div', { className: 'style-compare-character checker' });
-    cell.innerHTML = composeCharacter(recipe, style, 'south', 54, store.ui.previewMood);
+    const cell = el('div', { className: `style-compare-character checker ${pixelClass(style)}` });
+    setPreviewSvg(cell, composeCharacter(recipe, style, 'south', 54, store.ui.previewMood), style, 54);
     strip.append(cell);
   }
   return strip;
+}
+
+function pixelClass(style: StyleSheet): string {
+  return (style.render.pixelScale ?? 1) > 1 ? 'pixelated-preview' : '';
 }
 
 function presetSwatches(style: StyleSheet): HTMLElement {
@@ -61,8 +66,17 @@ function renderComparePreview(container: HTMLElement): void {
   const grid = el('div', { className: 'style-compare-grid' });
 
   for (const item of styles) {
-    const sceneFrame = el('div', { className: 'style-compare-scene' });
-    if (currentScene) sceneFrame.innerHTML = composeSceneSvg(currentScene, projectWithStyle(item.style), 26);
+    const sceneFrame = el('div', { className: `style-compare-scene ${pixelClass(item.style)}` });
+    if (currentScene) {
+      setScenePreviewSvg(
+        sceneFrame,
+        composeSceneSvg(currentScene, projectWithStyle(item.style), 26),
+        item.style,
+        currentScene.cols * 26,
+        currentScene.rows * 26,
+        true,
+      );
+    }
     grid.append(
       el(
         'article',
@@ -88,14 +102,14 @@ export function renderStylePreview(container: HTMLElement): void {
 
   const charGrid = el('div', { className: 'style-grid' });
   for (const recipe of characters) {
-    const cell = el('div', { className: 'style-cell checker' });
-    cell.innerHTML = composeCharacter(recipe, style, 'south', 88);
+    const cell = el('div', { className: `style-cell checker ${pixelClass(style)}` });
+    setPreviewSvg(cell, composeCharacter(recipe, style, 'south', 88), style, 88);
     charGrid.append(cell);
   }
   const propGrid = el('div', { className: 'style-grid' });
   for (const prop of props) {
-    const cell = el('div', { className: 'style-cell checker' });
-    cell.innerHTML = composeProp(prop, style, 88);
+    const cell = el('div', { className: `style-cell checker ${pixelClass(style)}` });
+    setPreviewSvg(cell, composeProp(prop, style, 88), style, 88);
     propGrid.append(cell);
   }
   container.append(
@@ -259,6 +273,12 @@ export function renderStyleControls(container: HTMLElement): void {
         [64, 96, 128, 192, 256].map((n) => ({ value: String(n), label: `${n}px` })),
         String(style.render.baseSize),
         (v) => store.mutate((s) => (s.style.render.baseSize = Number(v)), 'data'),
+      ),
+    ),
+    labeled(
+      'Pixelate',
+      slider(style.render.pixelScale ?? 1, 1, 8, 1, (v) =>
+        store.mutate((s) => (s.style.render.pixelScale = normalizePixelScale(v)), 'data'),
       ),
     ),
   );

@@ -131,6 +131,8 @@ export interface StyleSheet {
   render: {
     /** Design canvas is always 128 units; this is the export pixel size at 1x. */
     baseSize: number;
+    /** 1 = smooth SVG rasterization; higher values render smaller then nearest-neighbor scale up. */
+    pixelScale: number;
   };
   palettePools: {
     skin: string[];

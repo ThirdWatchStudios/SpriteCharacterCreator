@@ -13,6 +13,7 @@ import { randomCharacter, rerollPalette } from '../core/random';
 import { partsForSlot } from '../parts/library';
 import { store } from '../state';
 import { button, clear, colorInput, el, labeled, select } from './dom';
+import { setPreviewSvg } from './renderPreview';
 
 const PALETTE_LABELS: Record<PaletteToken, string> = {
   skin: 'Skin',
@@ -63,9 +64,10 @@ export function renderCharacterPreview(container: HTMLElement): void {
   }
   const style = store.state.style;
   const mood = store.ui.previewMood;
+  const pixelated = style.render.pixelScale > 1 ? ' pixelated-preview' : '';
 
-  const hero = el('div', { className: 'preview-hero checker' });
-  hero.innerHTML = composeCharacter(recipe, style, 'south', 224, mood);
+  const hero = el('div', { className: `preview-hero checker${pixelated}` });
+  setPreviewSvg(hero, composeCharacter(recipe, style, 'south', 224, mood), style, 224);
 
   const moodBar = el('div', { className: 'mood-bar' });
   for (const m of MOODS) {
@@ -84,8 +86,8 @@ export function renderCharacterPreview(container: HTMLElement): void {
   const row = el('div', { className: 'facing-row' });
   for (const facing of ['south', 'east', 'north', 'west'] as const) {
     const cell = el('div', { className: 'facing-cell' });
-    const img = el('div', { className: 'facing-img checker' });
-    img.innerHTML = composeCharacter(recipe, style, facing, 96, mood);
+    const img = el('div', { className: `facing-img checker${pixelated}` });
+    setPreviewSvg(img, composeCharacter(recipe, style, facing, 96, mood), style, 96);
     cell.append(img, el('span', { className: 'facing-label' }, facing));
     row.append(cell);
   }

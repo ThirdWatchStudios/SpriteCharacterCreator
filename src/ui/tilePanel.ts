@@ -11,6 +11,7 @@ import {
 import { FLOOR_TEMPLATES, WALL_TEMPLATES, maskName } from '../tiles/templates';
 import { store } from '../state';
 import { button, clear, colorInput, el, labeled, select, slider } from './dom';
+import { setPreviewSvg, setScenePreviewSvg } from './renderPreview';
 
 const PALETTE_LABELS: Record<PropPaletteToken, string> = {
   primary: 'Primary',
@@ -40,10 +41,14 @@ export function renderTileList(container: HTMLElement): void {
   const item = (tile: TileInstance, kind: 'wall' | 'floor') => {
     const selected = tile.id === store.ui.selectedTileId;
     const thumb = el('span', { className: 'thumb checker' });
-    thumb.innerHTML =
+    setPreviewSvg(
+      thumb,
       kind === 'wall'
         ? composeWallTile(tile, store.state.style, 0b1010, 40) // EW straight reads best tiny
-        : composeFloorTile(tile, store.state.style, 40);
+        : composeFloorTile(tile, store.state.style, 40),
+      store.state.style,
+      40,
+    );
     list.append(
       el(
         'button',
@@ -100,27 +105,34 @@ export function renderTilePreview(container: HTMLElement): void {
   }
   const { tile, kind } = sel;
   const style = store.state.style;
+  const pixelated = style.render.pixelScale > 1 ? ' pixelated-preview' : '';
 
   if (kind === 'wall') {
     // demo room assembled from the autotile set, rendered as one svg so the
     // outline pass is unified and runs read as continuous walls
-    const room = el('div', { className: 'tile-room checker' });
-    room.innerHTML = composeWallRoom(tile, style, DEMO_ROOM, 44);
+    const room = el('div', { className: `tile-room checker${pixelated}` });
+    setScenePreviewSvg(
+      room,
+      composeWallRoom(tile, style, DEMO_ROOM, 44),
+      style,
+      DEMO_ROOM[0].length * 44,
+      DEMO_ROOM.length * 44,
+    );
     container.append(el('p', { className: 'preview-caption' }, 'Sample room from the 16-piece autotile set'), room);
 
     // the full tileset
     const sheet = el('div', { className: 'tile-sheet' });
     for (let mask = 0; mask < 16; mask++) {
-      const cell = el('div', { className: 'tile-sheet-cell checker' });
-      cell.innerHTML = composeWallTile(tile, style, mask, 56);
+      const cell = el('div', { className: `tile-sheet-cell checker${pixelated}` });
+      setPreviewSvg(cell, composeWallTile(tile, style, mask, 56), style, 56);
       sheet.append(cell, );
       cell.title = `${mask}: ${maskName(mask)}`;
     }
     container.append(el('p', { className: 'preview-caption' }, 'Tileset (masks 0–15, hover for names)'), sheet);
   } else {
     // 3x2 repeat in one svg proves the tile is seamless
-    const repeat = el('div', { className: 'tile-repeat' });
-    repeat.innerHTML = composeFloorRepeat(tile, style, 3, 2, 88);
+    const repeat = el('div', { className: `tile-repeat${pixelated}` });
+    setScenePreviewSvg(repeat, composeFloorRepeat(tile, style, 3, 2, 88), style, 3 * 88, 2 * 88);
     container.append(el('p', { className: 'preview-caption' }, 'Tiled 3×2 — seams should be invisible'), repeat);
   }
 }

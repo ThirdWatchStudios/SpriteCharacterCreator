@@ -12,6 +12,7 @@ export const DEFAULT_STYLE: StyleSheet = {
   },
   render: {
     baseSize: 128,
+    pixelScale: 1,
   },
   palettePools: {
     skin: ['#F4D3B0', '#E8B88A', '#D9A06B', '#C68B59', '#A9714B', '#8D5A3B', '#6B4226'],
@@ -46,6 +47,7 @@ export const DEFAULT_STYLE_PRESETS: StylePreset[] = [
       },
       render: {
         baseSize: 128,
+        pixelScale: 1,
       },
       palettePools: {
         skin: ['#F1D6BE', '#D6A77F', '#BC855F', '#8E6046', '#68422F'],
@@ -71,6 +73,7 @@ export const DEFAULT_STYLE_PRESETS: StylePreset[] = [
       },
       render: {
         baseSize: 128,
+        pixelScale: 1,
       },
       palettePools: {
         skin: ['#FFE1BD', '#D99A65', '#A86A42', '#6B3F27'],

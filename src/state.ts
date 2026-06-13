@@ -95,10 +95,16 @@ class Store {
     project.walls ??= structuredClone(DEFAULT_WALLS);
     project.floors ??= structuredClone(DEFAULT_FLOORS);
     project.stylePresets ??= structuredClone(DEFAULT_STYLE_PRESETS);
+    project.style.render.pixelScale ??= 1;
+    project.style.render.pixelScale = normalizePixelScale(project.style.render.pixelScale);
     for (const preset of DEFAULT_STYLE_PRESETS) {
       if (!project.stylePresets.some((item) => item.id === preset.id || item.name === preset.name)) {
         project.stylePresets.push(structuredClone(preset));
       }
+    }
+    for (const preset of project.stylePresets) {
+      preset.style.render.pixelScale ??= 1;
+      preset.style.render.pixelScale = normalizePixelScale(preset.style.render.pixelScale);
     }
     for (const prop of DEFAULT_PROPS) {
       if (!project.props.some((item) => item.id === prop.id || item.templateId === prop.templateId)) {
@@ -127,6 +133,11 @@ class Store {
     if (floor) return { tile: floor, kind: 'floor' };
     return undefined;
   }
+}
+
+export function normalizePixelScale(value: number): number {
+  if (!Number.isFinite(value)) return 1;
+  return Math.max(1, Math.min(8, Math.round(value)));
 }
 
 export const store = new Store();

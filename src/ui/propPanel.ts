@@ -4,6 +4,7 @@ import { downloadBlob, downloadJson, propAtlas, propPng } from '../core/exporter
 import { PROP_TEMPLATES } from '../props/templates';
 import { store } from '../state';
 import { button, clear, colorInput, el, labeled, select, slider } from './dom';
+import { setPreviewSvg } from './renderPreview';
 
 const PALETTE_LABELS: Record<PropPaletteToken, string> = {
   primary: 'Primary',
@@ -71,8 +72,10 @@ export function renderPropPreview(container: HTMLElement): void {
     container.append(el('p', { className: 'hint' }, 'Select or add a prop.'));
     return;
   }
-  const hero = el('div', { className: 'preview-hero checker' });
-  hero.innerHTML = composeProp(prop, store.state.style, 224);
+  const hero = el('div', {
+    className: `preview-hero checker${store.state.style.render.pixelScale > 1 ? ' pixelated-preview' : ''}`,
+  });
+  setPreviewSvg(hero, composeProp(prop, store.state.style, 224), store.state.style, 224);
   container.append(hero);
 }
 
