@@ -221,12 +221,36 @@ function wallAt(scene: SceneState, x: number, y: number): boolean {
   return Boolean(scene.wallIds[y]?.[x]);
 }
 
+/**
+ * A threshold is an open tile sitting in a 1- or 2-tile gap within a wall run
+ * (a doorway). The gap must be genuinely bounded — a far wall (distance 2)
+ * only counts alongside a near wall on the opposite side — so a plain tile in
+ * a 3-wide room between walls doesn't qualify.
+ */
+function isThreshold(scene: SceneState, x: number, y: number): boolean {
+  if (wallAt(scene, x, y)) return false;
+  const gap = (w1: boolean, w2: boolean, e1: boolean, e2: boolean) => (w1 && e1) || (w1 && e2) || (e1 && w2);
+  return (
+    gap(wallAt(scene, x - 1, y), wallAt(scene, x - 2, y), wallAt(scene, x + 1, y), wallAt(scene, x + 2, y)) ||
+    gap(wallAt(scene, x, y - 1), wallAt(scene, x, y - 2), wallAt(scene, x, y + 1), wallAt(scene, x, y + 2))
+  );
+}
+
+/**
+ * For wall autotiling, a doorway (threshold) tile counts as a connection so
+ * the wall extends an arm up to the door frame instead of retracting to its
+ * centre block and leaving a floor gap beside the door.
+ */
+function wallConnects(scene: SceneState, x: number, y: number): boolean {
+  return wallAt(scene, x, y) || isThreshold(scene, x, y);
+}
+
 function wallMask(scene: SceneState, x: number, y: number): number {
   return (
-    (wallAt(scene, x, y - 1) ? 1 : 0) |
-    (wallAt(scene, x + 1, y) ? 2 : 0) |
-    (wallAt(scene, x, y + 1) ? 4 : 0) |
-    (wallAt(scene, x - 1, y) ? 8 : 0)
+    (wallConnects(scene, x, y - 1) ? 1 : 0) |
+    (wallConnects(scene, x + 1, y) ? 2 : 0) |
+    (wallConnects(scene, x, y + 1) ? 4 : 0) |
+    (wallConnects(scene, x - 1, y) ? 8 : 0)
   );
 }
 
@@ -286,19 +310,10 @@ export function composeSceneSvg(scene: SceneState, project: ProjectState, cellPi
       const own = scene.floorIds[y][x];
       const isWall = wallAt(scene, x, y);
       // Quadrant splitting applies ONLY where a wall line passes through the
-      // tile: wall tiles themselves, and thresholds — tiles inside a 1- or
-      // 2-tile door gap in a wall run. The gap must be genuinely bounded: a
-      // far wall (distance 2) only counts together with a NEAR wall on the
-      // opposite side, otherwise any tile in a 3-wide room with walls either
-      // side would qualify and open floor transitions checkerboard.
-      const gapInRun = (w1: boolean, w2: boolean, e1: boolean, e2: boolean) =>
-        (w1 && e1) || (w1 && e2) || (e1 && w2);
-      const isThreshold =
-        !isWall &&
-        (gapInRun(wallAt(scene, x - 1, y), wallAt(scene, x - 2, y), wallAt(scene, x + 1, y), wallAt(scene, x + 2, y)) ||
-          gapInRun(wallAt(scene, x, y - 1), wallAt(scene, x, y - 2), wallAt(scene, x, y + 1), wallAt(scene, x, y + 2)));
+      // tile: wall tiles themselves, and thresholds (doorway gaps).
+      const threshold = isThreshold(scene, x, y);
       const floor = project.floors.find((item) => item.id === own);
-      if (!isWall && !isThreshold) {
+      if (!isWall && !threshold) {
         if (floor) body += svgAt(composeFloorTile(floor, project.style, CANVAS), x, y);
         continue;
       }
