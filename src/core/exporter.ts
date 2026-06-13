@@ -49,16 +49,51 @@ function renderScale(style: StyleSheet): number {
   return Math.max(1, Math.min(8, Math.round(value)));
 }
 
-function drawRasterized(
+// ---------------------------------------------------------------------------
+// SVG → PNG behind an interface. Every PNG the exporter produces is a "sheet":
+// one or more 128-unit SVG cells composited into a grid at fixed pixel
+// positions, optionally pixelated (render small, nearest-neighbor upscale).
+// The browser uses a <canvas> backend (CanvasRasterizer); the headless CLI
+// supplies a resvg-js backend (src/core/rasterizer-node.ts). Cell layout lives
+// in pure SheetDesc builders below, so both backends render identical geometry.
+// ---------------------------------------------------------------------------
+
+/** PNG output: a Blob in the browser, raw bytes (Uint8Array/Buffer) headless. */
+export type PngBytes = Blob | Uint8Array;
+
+/** One 128-unit SVG drawn into the sheet at (dx,dy), scaled to dw×dh pixels. */
+export interface RasterCell {
+  /** A full <svg> whose viewBox is 0 0 128 128 (the design canvas). */
+  svg: string;
+  dx: number;
+  dy: number;
+  dw: number;
+  dh: number;
+}
+
+/** A complete sheet to rasterize: canvas size, pixelate factor, and its cells. */
+export interface SheetDesc {
+  width: number;
+  height: number;
+  /** >1 renders each cell small then nearest-neighbor upscales (pixelate). */
+  pixelScale: number;
+  cells: RasterCell[];
+}
+
+export interface Rasterizer {
+  rasterizeSheet(desc: SheetDesc): Promise<PngBytes>;
+}
+
+/** Draw one cell into a 2D context, honoring the pixelate (nearest-neighbor) trick. */
+function drawCell(
   ctx: CanvasRenderingContext2D,
   img: HTMLImageElement,
   dx: number,
   dy: number,
   dw: number,
   dh: number,
-  style: StyleSheet,
+  pixelScale: number,
 ): void {
-  const pixelScale = renderScale(style);
   if (pixelScale <= 1) {
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(img, dx, dy, dw, dh);
@@ -76,23 +111,122 @@ function drawRasterized(
   ctx.imageSmoothingEnabled = true;
 }
 
+/** Browser SVG→PNG backend: composite cells on a <canvas>, export as a Blob. */
+class CanvasRasterizer implements Rasterizer {
+  async rasterizeSheet(desc: SheetDesc): Promise<PngBytes> {
+    const canvas = document.createElement('canvas');
+    canvas.width = desc.width;
+    canvas.height = desc.height;
+    const ctx = canvas.getContext('2d')!;
+    for (const cell of desc.cells) {
+      const img = await svgToImage(cell.svg);
+      drawCell(ctx, img, cell.dx, cell.dy, cell.dw, cell.dh, desc.pixelScale);
+    }
+    return canvasToBlob(canvas);
+  }
+}
+
+let canvasRasterizer: Rasterizer | null = null;
+/** The default (browser) rasterizer. Instantiated lazily so importing this
+ *  module in Node (the CLI) never touches the DOM. */
+export function defaultRasterizer(): Rasterizer {
+  return (canvasRasterizer ??= new CanvasRasterizer());
+}
+
+const asBlob = (p: Promise<PngBytes>): Promise<Blob> => p as Promise<Blob>;
+
+// --- Sheet descriptors (pure: cell positions only, no rasterization) ---------
+
+function characterSheetDesc(recipe: CharacterRecipe, style: StyleSheet, scale: number): SheetDesc {
+  const size = style.render.baseSize * scale;
+  return {
+    width: size * SHEET_FACINGS.length,
+    height: size,
+    pixelScale: renderScale(style),
+    cells: SHEET_FACINGS.map((facing, i) => ({
+      svg: composeCharacter(recipe, style, facing, size),
+      dx: i * size,
+      dy: 0,
+      dw: size,
+      dh: size,
+    })),
+  };
+}
+
+function moodSheetDesc(recipe: CharacterRecipe, style: StyleSheet, scale: number): SheetDesc {
+  const size = style.render.baseSize * scale;
+  const cells: RasterCell[] = [];
+  MOODS.forEach((mood, row) => {
+    SHEET_FACINGS.forEach((facing, col) => {
+      cells.push({
+        svg: composeCharacter(recipe, style, facing, size, mood),
+        dx: col * size,
+        dy: row * size,
+        dw: size,
+        dh: size,
+      });
+    });
+  });
+  return { width: size * SHEET_FACINGS.length, height: size * MOODS.length, pixelScale: renderScale(style), cells };
+}
+
+function layerSheetDesc(recipe: CharacterRecipe, style: StyleSheet, scale: number): SheetDesc {
+  const layers = characterLayers(recipe, style);
+  const size = style.render.baseSize * scale;
+  const cells: RasterCell[] = [];
+  layers.forEach((layer, row) => {
+    SHEET_FACINGS.forEach((facing, col) => {
+      const markup = layer.markup[facing];
+      if (!markup) return; // empty cell: draw nothing (same as the canvas path)
+      cells.push({ svg: layerCellSvg(markup, size), dx: col * size, dy: row * size, dw: size, dh: size });
+    });
+  });
+  // Layer sheets never pixelate (re-tintable masks must stay crisp/exact).
+  return { width: size * SHEET_FACINGS.length, height: size * Math.max(1, layers.length), pixelScale: 1, cells };
+}
+
+function wallTilesetDesc(wall: TileInstance, style: StyleSheet, scale: number): SheetDesc {
+  const size = style.render.baseSize * scale;
+  const cells: RasterCell[] = [];
+  for (let mask = 0; mask < 16; mask++) {
+    cells.push({
+      svg: composeWallTile(wall, style, mask, size),
+      dx: (mask % 4) * size,
+      dy: Math.floor(mask / 4) * size,
+      dw: size,
+      dh: size,
+    });
+  }
+  return { width: size * 4, height: size * 4, pixelScale: renderScale(style), cells };
+}
+
+function floorTileDesc(floor: TileInstance, style: StyleSheet, scale: number): SheetDesc {
+  const size = style.render.baseSize * scale;
+  return {
+    width: size,
+    height: size,
+    pixelScale: renderScale(style),
+    cells: [{ svg: composeFloorTile(floor, style, size), dx: 0, dy: 0, dw: size, dh: size }],
+  };
+}
+
+function propDesc(prop: PropInstance, style: StyleSheet, scale: number): SheetDesc {
+  const size = style.render.baseSize * scale;
+  return {
+    width: size,
+    height: size,
+    pixelScale: renderScale(style),
+    cells: [{ svg: composeProp(prop, style, size), dx: 0, dy: 0, dw: size, dh: size }],
+  };
+}
+
 /** Render a character sprite sheet (south, east, north, west) at the given scale. */
 export async function characterSheetPng(
   recipe: CharacterRecipe,
   style: StyleSheet,
   scale: number,
 ): Promise<Blob> {
-  const size = style.render.baseSize * scale;
-  const canvas = document.createElement('canvas');
-  canvas.width = size * SHEET_FACINGS.length;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d')!;
-  for (let i = 0; i < SHEET_FACINGS.length; i++) {
-    const svg = composeCharacter(recipe, style, SHEET_FACINGS[i], size);
-    const img = await svgToImage(svg);
-    drawRasterized(ctx, img, i * size, 0, size, size, style);
-  }
-  return canvasToBlob(canvas);
+  return asBlob(defaultRasterizer().rasterizeSheet(characterSheetDesc(recipe, style, scale)));
 }
 
 /** Atlas metadata matching the sheet layout, for slicing in Unity. */
@@ -129,21 +263,7 @@ export async function characterLayerSheetPng(
   style: StyleSheet,
   scale: number,
 ): Promise<Blob> {
-  const layers = characterLayers(recipe, style);
-  const size = style.render.baseSize * scale;
-  const canvas = document.createElement('canvas');
-  canvas.width = size * SHEET_FACINGS.length;
-  canvas.height = size * Math.max(1, layers.length);
-  const ctx = canvas.getContext('2d')!;
-  for (let row = 0; row < layers.length; row++) {
-    for (let col = 0; col < SHEET_FACINGS.length; col++) {
-      const markup = layers[row].markup[SHEET_FACINGS[col]];
-      if (!markup) continue;
-      const img = await svgToImage(layerCellSvg(markup, size));
-      ctx.drawImage(img, col * size, row * size, size, size);
-    }
-  }
-  return canvasToBlob(canvas);
+  return asBlob(defaultRasterizer().rasterizeSheet(layerSheetDesc(recipe, style, scale)));
 }
 
 export function characterLayerManifest(recipe: CharacterRecipe, style: StyleSheet, scale: number) {
@@ -202,19 +322,7 @@ export async function moodSheetPng(
   style: StyleSheet,
   scale: number,
 ): Promise<Blob> {
-  const size = style.render.baseSize * scale;
-  const canvas = document.createElement('canvas');
-  canvas.width = size * SHEET_FACINGS.length;
-  canvas.height = size * MOODS.length;
-  const ctx = canvas.getContext('2d')!;
-  for (let row = 0; row < MOODS.length; row++) {
-    for (let col = 0; col < SHEET_FACINGS.length; col++) {
-      const svg = composeCharacter(recipe, style, SHEET_FACINGS[col], size, MOODS[row]);
-      const img = await svgToImage(svg);
-      drawRasterized(ctx, img, col * size, row * size, size, size, style);
-    }
-  }
-  return canvasToBlob(canvas);
+  return asBlob(defaultRasterizer().rasterizeSheet(moodSheetDesc(recipe, style, scale)));
 }
 
 export function moodAtlas(recipe: CharacterRecipe, style: StyleSheet, scale: number) {
@@ -247,16 +355,7 @@ export function moodAtlas(recipe: CharacterRecipe, style: StyleSheet, scale: num
  * order (mask = row * 4 + column; bits N=1, E=2, S=4, W=8).
  */
 export async function wallTilesetPng(wall: TileInstance, style: StyleSheet, scale: number): Promise<Blob> {
-  const size = style.render.baseSize * scale;
-  const canvas = document.createElement('canvas');
-  canvas.width = size * 4;
-  canvas.height = size * 4;
-  const ctx = canvas.getContext('2d')!;
-  for (let mask = 0; mask < 16; mask++) {
-    const img = await svgToImage(composeWallTile(wall, style, mask, size));
-    drawRasterized(ctx, img, (mask % 4) * size, Math.floor(mask / 4) * size, size, size, style);
-  }
-  return canvasToBlob(canvas);
+  return asBlob(defaultRasterizer().rasterizeSheet(wallTilesetDesc(wall, style, scale)));
 }
 
 export function wallAtlas(wall: TileInstance, style: StyleSheet, scale: number) {
@@ -286,14 +385,7 @@ export function wallAtlas(wall: TileInstance, style: StyleSheet, scale: number) 
 }
 
 export async function floorTilePng(floor: TileInstance, style: StyleSheet, scale: number): Promise<Blob> {
-  const size = style.render.baseSize * scale;
-  const svg = composeFloorTile(floor, style, size);
-  const img = await svgToImage(svg);
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  drawRasterized(canvas.getContext('2d')!, img, 0, 0, size, size, style);
-  return canvasToBlob(canvas);
+  return asBlob(defaultRasterizer().rasterizeSheet(floorTileDesc(floor, style, scale)));
 }
 
 export function floorAtlas(floor: TileInstance, style: StyleSheet, scale: number) {
@@ -340,25 +432,24 @@ export function propAtlas(prop: PropInstance, style: StyleSheet, scale: number) 
 }
 
 export async function propPng(prop: PropInstance, style: StyleSheet, scale: number): Promise<Blob> {
-  const size = style.render.baseSize * scale;
-  const svg = composeProp(prop, style, size);
-  const img = await svgToImage(svg);
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  drawRasterized(canvas.getContext('2d')!, img, 0, 0, size, size, style);
-  return canvasToBlob(canvas);
+  return asBlob(defaultRasterizer().rasterizeSheet(propDesc(prop, style, scale)));
 }
 
 export async function scenePosterPng(scene: SceneState, project: ProjectState, scale: number): Promise<Blob> {
+  // Scene cells span the whole grid, so this sheet has one cell whose source
+  // SVG viewBox is cols*128 × rows*128 (not the 128 the other cells use). The
+  // canvas backend scales it to fill, matching the in-app poster.
   const cellSize = project.style.render.baseSize * scale;
-  const svg = composeSceneSvg(scene, project, cellSize);
-  const img = await svgToImage(svg);
-  const canvas = document.createElement('canvas');
-  canvas.width = scene.cols * cellSize;
-  canvas.height = scene.rows * cellSize;
-  drawRasterized(canvas.getContext('2d')!, img, 0, 0, canvas.width, canvas.height, project.style);
-  return canvasToBlob(canvas);
+  const width = scene.cols * cellSize;
+  const height = scene.rows * cellSize;
+  return asBlob(
+    defaultRasterizer().rasterizeSheet({
+      width,
+      height,
+      pixelScale: renderScale(project.style),
+      cells: [{ svg: composeSceneSvg(scene, project, cellSize), dx: 0, dy: 0, dw: width, dh: height }],
+    }),
+  );
 }
 
 export function downloadBlob(name: string, blob: Blob): void {
@@ -379,16 +470,27 @@ function slug(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'unnamed';
 }
 
-/**
- * Export the whole project as a zip: every character sheet and prop at
- * 1x/2x/4x, atlas JSON, and the full project file (recipes + style) so the
- * exact asset set can be regenerated or imported later.
- */
-/** Progress callback for exportAllZip — fired after each rendered PNG. */
+/** Progress callback for exportAll — fired after each rendered PNG. */
 export type ExportProgress = (done: number, total: number, label: string) => void;
 
-export async function exportAllZip(project: ProjectState, onProgress?: ExportProgress): Promise<Blob> {
-  const zip = new JSZip();
+/** Where exported files land. Keys are full POSIX paths ("characters/x/y.png"). */
+export interface ExportSink {
+  file(path: string, data: string | PngBytes): void | Promise<void>;
+}
+
+/**
+ * Regenerate the entire asset set — every character sheet/moods/layers, prop,
+ * wall, and floor at 1x/2x/4x with atlas JSON, the project file, and (when a
+ * scene exists) office-layout.json — into a sink, rasterizing PNGs through the
+ * given backend. This is the single source of truth for the export tree; both
+ * the in-browser zip (canvas backend) and the headless CLI (resvg backend) call
+ * it, so their outputs are structurally identical.
+ */
+export async function exportAll(
+  project: ProjectState,
+  opts: { sink: ExportSink; rasterizer: Rasterizer; onProgress?: ExportProgress },
+): Promise<void> {
+  const { sink, rasterizer, onProgress } = opts;
   const { style } = project;
   const scales = EXPORT_SCALES.length;
 
@@ -404,67 +506,79 @@ export async function exportAllZip(project: ProjectState, onProgress?: ExportPro
     done += 1;
     onProgress?.(done, total, label);
   };
+  const png = (desc: SheetDesc) => rasterizer.rasterizeSheet(desc);
+  const write = (path: string, data: string | PngBytes) => sink.file(path, data);
 
   for (const recipe of project.characters) {
-    const dir = zip.folder(`characters/${slug(recipe.name)}`)!;
+    const dir = `characters/${slug(recipe.name)}`;
     for (const scale of EXPORT_SCALES) {
-      dir.file(`sheet@${scale}x.png`, await characterSheetPng(recipe, style, scale));
-      dir.file(`atlas@${scale}x.json`, JSON.stringify(characterAtlas(recipe, style, scale), null, 2));
+      await write(`${dir}/sheet@${scale}x.png`, await png(characterSheetDesc(recipe, style, scale)));
+      await write(`${dir}/atlas@${scale}x.json`, JSON.stringify(characterAtlas(recipe, style, scale), null, 2));
       tick(recipe.name);
-      dir.file(`moods@${scale}x.png`, await moodSheetPng(recipe, style, scale));
-      dir.file(`moods-atlas@${scale}x.json`, JSON.stringify(moodAtlas(recipe, style, scale), null, 2));
+      await write(`${dir}/moods@${scale}x.png`, await png(moodSheetDesc(recipe, style, scale)));
+      await write(`${dir}/moods-atlas@${scale}x.json`, JSON.stringify(moodAtlas(recipe, style, scale), null, 2));
       tick(`${recipe.name} moods`);
     }
-    dir.file('recipe.json', JSON.stringify(recipe, null, 2));
+    await write(`${dir}/recipe.json`, JSON.stringify(recipe, null, 2));
   }
 
   // Re-tintable layer atlases (Phase 2.2 / runtime NPC compositor input). Kept
   // in a separate top-level folder so the layer importer iterates it distinctly
   // from the baked character sheets above.
   for (const recipe of project.characters) {
-    const dir = zip.folder(`character-layers/${slug(recipe.name)}`)!;
+    const dir = `character-layers/${slug(recipe.name)}`;
     for (const scale of EXPORT_SCALES) {
-      dir.file(`layers@${scale}x.png`, await characterLayerSheetPng(recipe, style, scale));
-      dir.file(`manifest@${scale}x.json`, JSON.stringify(characterLayerManifest(recipe, style, scale), null, 2));
+      await write(`${dir}/layers@${scale}x.png`, await png(layerSheetDesc(recipe, style, scale)));
+      await write(`${dir}/manifest@${scale}x.json`, JSON.stringify(characterLayerManifest(recipe, style, scale), null, 2));
       tick(`${recipe.name} layers`);
     }
-    dir.file('recipe.json', JSON.stringify(recipe, null, 2));
+    await write(`${dir}/recipe.json`, JSON.stringify(recipe, null, 2));
   }
 
   for (const prop of project.props) {
-    const dir = zip.folder(`props/${slug(prop.name)}`)!;
+    const dir = `props/${slug(prop.name)}`;
     for (const scale of EXPORT_SCALES) {
-      dir.file(`sprite@${scale}x.png`, await propPng(prop, style, scale));
-      dir.file(`atlas@${scale}x.json`, JSON.stringify(propAtlas(prop, style, scale), null, 2));
+      await write(`${dir}/sprite@${scale}x.png`, await png(propDesc(prop, style, scale)));
+      await write(`${dir}/atlas@${scale}x.json`, JSON.stringify(propAtlas(prop, style, scale), null, 2));
       tick(prop.name);
     }
-    dir.file('prop.json', JSON.stringify(prop, null, 2));
+    await write(`${dir}/prop.json`, JSON.stringify(prop, null, 2));
   }
 
   for (const wall of project.walls ?? []) {
-    const dir = zip.folder(`walls/${slug(wall.name)}`)!;
+    const dir = `walls/${slug(wall.name)}`;
     for (const scale of EXPORT_SCALES) {
-      dir.file(`tileset@${scale}x.png`, await wallTilesetPng(wall, style, scale));
-      dir.file(`atlas@${scale}x.json`, JSON.stringify(wallAtlas(wall, style, scale), null, 2));
+      await write(`${dir}/tileset@${scale}x.png`, await png(wallTilesetDesc(wall, style, scale)));
+      await write(`${dir}/atlas@${scale}x.json`, JSON.stringify(wallAtlas(wall, style, scale), null, 2));
       tick(wall.name);
     }
-    dir.file('wall.json', JSON.stringify(wall, null, 2));
+    await write(`${dir}/wall.json`, JSON.stringify(wall, null, 2));
   }
 
   for (const floor of project.floors ?? []) {
-    const dir = zip.folder(`floors/${slug(floor.name)}`)!;
+    const dir = `floors/${slug(floor.name)}`;
     for (const scale of EXPORT_SCALES) {
-      dir.file(`tile@${scale}x.png`, await floorTilePng(floor, style, scale));
-      dir.file(`atlas@${scale}x.json`, JSON.stringify(floorAtlas(floor, style, scale), null, 2));
+      await write(`${dir}/tile@${scale}x.png`, await png(floorTileDesc(floor, style, scale)));
+      await write(`${dir}/atlas@${scale}x.json`, JSON.stringify(floorAtlas(floor, style, scale), null, 2));
       tick(floor.name);
     }
-    dir.file('floor.json', JSON.stringify(floor, null, 2));
+    await write(`${dir}/floor.json`, JSON.stringify(floor, null, 2));
   }
 
-  onProgress?.(total, total, 'zipping');
-  zip.file('project.json', JSON.stringify(project, null, 2));
+  onProgress?.(total, total, 'writing');
+  await write('project.json', JSON.stringify(project, null, 2));
   if (project.scene) {
-    zip.file('office-layout.json', JSON.stringify(sceneToLayoutJson(project.scene, project), null, 2));
+    await write('office-layout.json', JSON.stringify(sceneToLayoutJson(project.scene, project), null, 2));
   }
+}
+
+/**
+ * Export the whole project as a zip (browser path). Thin wrapper over exportAll
+ * with the canvas rasterizer and a JSZip sink — unchanged output vs before.
+ */
+export async function exportAllZip(project: ProjectState, onProgress?: ExportProgress): Promise<Blob> {
+  const zip = new JSZip();
+  const sink: ExportSink = { file: (path, data) => void zip.file(path, data as Blob | Uint8Array | string) };
+  await exportAll(project, { sink, rasterizer: defaultRasterizer(), onProgress });
   return zip.generateAsync({ type: 'blob' });
 }

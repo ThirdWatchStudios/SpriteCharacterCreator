@@ -245,7 +245,29 @@ walls and thresholds) and **walls extending an arm into door tiles** (close the
 gap beside a door without latticing cubicle openings). Depends on 2.1 (import)
 and 2.3 (NPC composer).
 
-### 2.5 Headless export CLI
+### 2.5 Headless export CLI — DONE (2026-06-13)
+Implemented with: `npm run export -- <project.json|default> <outDir>`
+(`scripts/export.ts`, run via tsx). Regenerates the full asset tree without a
+browser — `characters/`, `character-layers/`, `props/`, `walls/`, `floors/`
+(PNG + atlas JSON at 1x/2x/4x) plus `project.json` and, when the project has a
+scene, `office-layout.json` — the exact same contents as the in-app "Export
+all" zip. SVG→PNG is factored behind a `Rasterizer` interface in `exporter.ts`:
+the browser keeps its `<canvas>` backend (in-app path byte-unchanged), the CLI
+supplies a `resvg-js` backend (`src/core/rasterizer-node.ts`). The whole export
+loop is now a single `exportAll(project, { sink, rasterizer })` that both paths
+call — the browser wraps it with a JSZip sink, the CLI with a filesystem sink —
+so the two outputs are structurally identical by construction; only PNG bytes
+differ (the injected rasterizer) and JSON is bit-identical. `default` runs the
+built-in project + a seeded office so the scene outputs are exercised.
+Pixelate (style `pixelScale` > 1) is supported headlessly via a small
+nearest-neighbor upscale (pngjs); the default project is `pixelScale` 1.
+Implementation note: the resvg backend composites cells with a group transform
+rather than nested `<svg>` (resvg panics computing the bbox of some nested
+viewports, e.g. the quiet-carpet floor). **Verified:** `npm run build` clean,
+79 compositor snapshots still green (compose output unchanged by the refactor),
+the CLI exports 419 files on the default project, PNGs are valid with correct
+dimensions, and two runs (incl. a round-trip of the exported `project.json`)
+are byte-for-byte identical (fully deterministic).
 `npm run export -- project.json out/` — regenerate every asset without the
 browser (resvg-js or playwright for SVG→PNG). Lets the game's build pipeline
 treat art as a compiled artifact of `project.json`, which is the whole point
