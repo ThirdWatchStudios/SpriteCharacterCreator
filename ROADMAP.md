@@ -135,8 +135,18 @@ Spike proof:
   atlas now also ships inside the export-all zip under
   `character-layers/<slug>/` (`layers@Nx.png` + `manifest@Nx.json` + recipe),
   so the existing zip-import flow can reach it.
-- **Unity-side half — CODE WRITTEN (2026-06-13), UNVERIFIED in-editor.** In
-  The-Water-Cooler:
+- **Unity-side half — VALIDATED in-editor (2026-06-13).** Imported a real zip
+  (layerAtlases imported, layoutJson present) and composed four
+  differently-tinted coworkers from one atlas via the demo component — tint,
+  mood, and facing all correct. Spike passes: the raster layer-atlas path works.
+  (Fix applied during bring-up: split the import ScriptableObjects/MonoBehaviour
+  into one-file-per-class so Unity resolves the MonoScripts — "no script asset"
+  warnings otherwise.) Smoothness: character/mood/layer sheets now import with
+  Bilinear filtering (centered figures, low bleed risk); walls/floors stay Point
+  to avoid packed-atlas seams until gutters land (3.4). Remaining lever if still
+  soft: layer atlases import at 2x (4x layer sheets hit the texture ceiling) —
+  bump via a grid repack later.
+  In The-Water-Cooler:
   - `Runtime/Phase2/SpriteToolkitLayerAtlas.cs` — `SpriteToolkitLayerAtlas` SO
     (layers with z/tint/mood + per-facing sprites, default palette) and
     `SpriteToolkitNpcComposer` (SelectLayers by mood + (z,order); Compose
@@ -173,6 +183,26 @@ Unity**, not pre-authored. So `src/core/layout.ts` gets a real C# port — Unity
 produces a fresh, seeded office each playthrough rather than loading exported
 layout JSON. (The tool's layout JSON export stays as a debug/authoring and
 golden-test artifact, not the shipping path.)
+
+**Sequenced renderer-first.** Step 1 (the scene renderer) is built before the
+generator port so the office can be seen in the prototype scene against
+known-good data, and because the renderer is needed either way:
+
+- **Step 1 — scene assembler, fed by exported layout JSON — CODE WRITTEN
+  (2026-06-13), UNVERIFIED.** In The-Water-Cooler:
+  `SpriteToolkitOfficeLayout` SO (parsed layout — grids/props/spawns; no runtime
+  JSON dependency, the project has no runtime Newtonsoft), importer
+  `ImportOfficeLayout` parses `office-layout.json` into it (catalog gained an
+  `OfficeLayout` field), and `SpriteToolkitSceneAssembler` MonoBehaviour
+  (ContextMenu "Assemble Office") instantiates floors, autotiled walls
+  (door-aware mask recomputed in C#), plan/elevation props, and NPCs via the
+  composer. Simplifications: full-tile floors (walls hide boundary bleed); banded
+  + y-sort ordering (no wall→character occlusion); plan-prop rotation negated
+  (verify sign). Output `SpriteToolkitOfficeLayout` is the shared shape the Step
+  2 generator will produce, so both render identically.
+- **Step 2 — port `layout.ts` to a C# `OfficeLayoutGenerator`** that produces a
+  `SpriteToolkitOfficeLayout` at runtime (no JSON), rendered by the same
+  assembler. Details below.
 
 Port to a deterministic `OfficeLayoutGenerator`:
 - **Room templates** — the shared-edge `RoomSpec` rects per template (adjacent

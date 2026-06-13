@@ -25,12 +25,20 @@ export function mountApp(root: HTMLElement): void {
 
   const exportAllBtn = button('Export all (zip)', async () => {
     exportAllBtn.disabled = true;
-    exportAllBtn.textContent = 'Rendering…';
+    exportAllBtn.classList.add('busy');
+    const setBusy = (text: string) => {
+      exportAllBtn.innerHTML = `<span class="spinner" aria-hidden="true"></span>${text}`;
+    };
+    setBusy('Rendering…');
     try {
-      const blob = await exportAllZip(store.state);
+      const blob = await exportAllZip(store.state, (doneCount, total, label) => {
+        const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
+        setBusy(label === 'zipping' ? 'Zipping…' : `Rendering… ${pct}%`);
+      });
       downloadBlob('water-cooler-sprites.zip', blob);
     } finally {
       exportAllBtn.disabled = false;
+      exportAllBtn.classList.remove('busy');
       exportAllBtn.textContent = 'Export all (zip)';
     }
   }, 'primary');

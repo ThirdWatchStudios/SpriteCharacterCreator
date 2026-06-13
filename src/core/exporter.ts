@@ -384,17 +384,36 @@ function slug(name: string): string {
  * 1x/2x/4x, atlas JSON, and the full project file (recipes + style) so the
  * exact asset set can be regenerated or imported later.
  */
-export async function exportAllZip(project: ProjectState): Promise<Blob> {
+/** Progress callback for exportAllZip — fired after each rendered PNG. */
+export type ExportProgress = (done: number, total: number, label: string) => void;
+
+export async function exportAllZip(project: ProjectState, onProgress?: ExportProgress): Promise<Blob> {
   const zip = new JSZip();
   const { style } = project;
+  const scales = EXPORT_SCALES.length;
+
+  // Total PNG renders (the slow part): per character sheet + moods + layers,
+  // plus one per prop/wall/floor — each across every scale.
+  const total =
+    project.characters.length * scales * 3 +
+    project.props.length * scales +
+    (project.walls?.length ?? 0) * scales +
+    (project.floors?.length ?? 0) * scales;
+  let done = 0;
+  const tick = (label: string) => {
+    done += 1;
+    onProgress?.(done, total, label);
+  };
 
   for (const recipe of project.characters) {
     const dir = zip.folder(`characters/${slug(recipe.name)}`)!;
     for (const scale of EXPORT_SCALES) {
       dir.file(`sheet@${scale}x.png`, await characterSheetPng(recipe, style, scale));
       dir.file(`atlas@${scale}x.json`, JSON.stringify(characterAtlas(recipe, style, scale), null, 2));
+      tick(recipe.name);
       dir.file(`moods@${scale}x.png`, await moodSheetPng(recipe, style, scale));
       dir.file(`moods-atlas@${scale}x.json`, JSON.stringify(moodAtlas(recipe, style, scale), null, 2));
+      tick(`${recipe.name} moods`);
     }
     dir.file('recipe.json', JSON.stringify(recipe, null, 2));
   }
@@ -407,6 +426,7 @@ export async function exportAllZip(project: ProjectState): Promise<Blob> {
     for (const scale of EXPORT_SCALES) {
       dir.file(`layers@${scale}x.png`, await characterLayerSheetPng(recipe, style, scale));
       dir.file(`manifest@${scale}x.json`, JSON.stringify(characterLayerManifest(recipe, style, scale), null, 2));
+      tick(`${recipe.name} layers`);
     }
     dir.file('recipe.json', JSON.stringify(recipe, null, 2));
   }
@@ -416,6 +436,7 @@ export async function exportAllZip(project: ProjectState): Promise<Blob> {
     for (const scale of EXPORT_SCALES) {
       dir.file(`sprite@${scale}x.png`, await propPng(prop, style, scale));
       dir.file(`atlas@${scale}x.json`, JSON.stringify(propAtlas(prop, style, scale), null, 2));
+      tick(prop.name);
     }
     dir.file('prop.json', JSON.stringify(prop, null, 2));
   }
@@ -425,6 +446,7 @@ export async function exportAllZip(project: ProjectState): Promise<Blob> {
     for (const scale of EXPORT_SCALES) {
       dir.file(`tileset@${scale}x.png`, await wallTilesetPng(wall, style, scale));
       dir.file(`atlas@${scale}x.json`, JSON.stringify(wallAtlas(wall, style, scale), null, 2));
+      tick(wall.name);
     }
     dir.file('wall.json', JSON.stringify(wall, null, 2));
   }
@@ -434,10 +456,12 @@ export async function exportAllZip(project: ProjectState): Promise<Blob> {
     for (const scale of EXPORT_SCALES) {
       dir.file(`tile@${scale}x.png`, await floorTilePng(floor, style, scale));
       dir.file(`atlas@${scale}x.json`, JSON.stringify(floorAtlas(floor, style, scale), null, 2));
+      tick(floor.name);
     }
     dir.file('floor.json', JSON.stringify(floor, null, 2));
   }
 
+  onProgress?.(total, total, 'zipping');
   zip.file('project.json', JSON.stringify(project, null, 2));
   if (project.scene) {
     zip.file('office-layout.json', JSON.stringify(sceneToLayoutJson(project.scene, project), null, 2));

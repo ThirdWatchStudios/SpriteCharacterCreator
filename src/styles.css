@@ -862,3 +862,27 @@ select:focus {
     flex-wrap: wrap;
   }
 }
+
+/* Inline spinner for in-progress buttons (e.g. Export all). */
+.spinner {
+  display: inline-block;
+  width: 13px;
+  height: 13px;
+  margin-right: 8px;
+  vertical-align: -2px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+button.busy {
+  cursor: progress;
+  opacity: 0.92;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
