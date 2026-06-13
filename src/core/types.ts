@@ -40,7 +40,7 @@ export interface ShapeSpec {
 }
 
 /** Named attachment points, defined per facing in the compositor. */
-export type AnchorName = 'body' | 'neck' | 'headCenter' | 'chest' | 'handRight';
+export type AnchorName = 'body' | 'neck' | 'headCenter' | 'aboveHead' | 'chest' | 'handRight';
 
 export interface PartVariant {
   shapes: ShapeSpec[];

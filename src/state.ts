@@ -20,6 +20,8 @@ class Store {
     exportScale: 2,
     /** Preview-only mood; never stored in recipes. */
     previewMood: 'normal' as Mood,
+    /** Show the overhead mood badge in live previews (exports always include it). */
+    showMoodBadge: true,
     sceneBrush: 'character' as SceneBrush,
     sceneFacing: 'south' as SceneFacing,
     sceneMood: 'suspicious' as Mood,

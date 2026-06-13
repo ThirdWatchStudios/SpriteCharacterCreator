@@ -346,6 +346,21 @@ body {
   color: var(--text);
 }
 
+.badge-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+
+.badge-toggle input {
+  cursor: pointer;
+}
+
 .facing-row {
   display: flex;
   gap: 16px;

@@ -146,7 +146,12 @@ atlases plus layout JSON.
 - Window (wall-slot, like door), nameplate, HVAC vent, desk clutter
   (papers, phone), couch + rug (plan), vending machine (elevation).
 
-### 3.2 Part library growth
+### 3.2 Part library growth — DONE
+Implemented with: three additional head shapes (long, angular, soft square),
+five hair variants (side part, pixie, ponytail, long straight, coils), three
+outfits (hoodie, suit jacket, dress), and five accessories/carried overlays
+(watch, earbuds, clipboard, coffee run, stack of papers) exposed through the
+existing character selectors and random coworker generator.
 More heads, hair, outfits (hoodie, suit jacket, dress), accessories (watch,
 earbuds, clipboard). Carried-item overlays for characters (coffee run, stack
 of papers) — same slot system, anchored at the hands.

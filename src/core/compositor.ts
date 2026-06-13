@@ -10,9 +10,10 @@ import type {
 } from './types';
 import type { Mood, TileInstance } from './types';
 import { CANVAS } from './types';
-import { ellipse } from './geometry';
+import { circle, ellipse } from './geometry';
 import { getPart } from '../parts/library';
-import { MOOD_OVERLAYS } from '../parts/moods';
+import type { MoodEmote } from '../parts/moods';
+import { MOOD_EMOTES, MOOD_OVERLAYS } from '../parts/moods';
 import { PROP_TEMPLATES } from '../props/templates';
 import { FLOOR_TEMPLATES, WALL_TEMPLATES } from '../tiles/templates';
 
@@ -25,6 +26,7 @@ const ANCHORS: Record<Facing, Record<AnchorName, { x: number; y: number }>> = {
     body: { x: 64, y: 87 },
     neck: { x: 64, y: 58 },
     headCenter: { x: 64, y: 44 },
+    aboveHead: { x: 64, y: 12 },
     chest: { x: 64, y: 80 },
     handRight: { x: 89, y: 99 },
   },
@@ -32,6 +34,7 @@ const ANCHORS: Record<Facing, Record<AnchorName, { x: number; y: number }>> = {
     body: { x: 64, y: 87 },
     neck: { x: 64, y: 58 },
     headCenter: { x: 67, y: 44 },
+    aboveHead: { x: 67, y: 12 },
     chest: { x: 64, y: 80 },
     handRight: { x: 80, y: 99 },
   },
@@ -39,6 +42,7 @@ const ANCHORS: Record<Facing, Record<AnchorName, { x: number; y: number }>> = {
     body: { x: 64, y: 87 },
     neck: { x: 64, y: 58 },
     headCenter: { x: 64, y: 44 },
+    aboveHead: { x: 64, y: 12 },
     chest: { x: 64, y: 80 },
     handRight: { x: 89, y: 99 },
   },
@@ -206,6 +210,25 @@ function renderPlaced(
   return outline + color;
 }
 
+/** Style-neutral ink ringing the badge bubble — matches the face overlays. */
+const BADGE_INK = '#2C2C2A';
+
+/**
+ * The overhead emote badge: a thought-bubble holding the mood glyph. Drawn in
+ * canvas coords, undistorted by the body/head group transforms, so it reads
+ * crisply at any zoom. Glyph fills/strokes are literal colors, so the resolver
+ * is the identity.
+ */
+function emoteMarkup(emote: MoodEmote, ax: number, ay: number): string {
+  const identity: ResolveToken = (ref) => ref;
+  const tail =
+    `<path d="${circle(0.5, 8.6, 1.7)}" fill="${emote.color}" stroke="${BADGE_INK}" stroke-width="1.2"/>` +
+    `<path d="${circle(-0.8, 11.8, 1)}" fill="${emote.color}" stroke="${BADGE_INK}" stroke-width="1"/>`;
+  const bubble = `<path d="${circle(0, 0, 8)}" fill="${emote.color}" stroke="${BADGE_INK}" stroke-width="1.5" stroke-linejoin="round"/>`;
+  const glyph = emote.glyph.map((s) => emitColorShape(s, identity)).join('');
+  return `<g transform="translate(${ax} ${ay})">${tail}${bubble}${glyph}</g>`;
+}
+
 function svgWrap(inner: string, pixelSize: number): string {
   return (
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${CANVAS} ${CANVAS}" ` +
@@ -220,12 +243,20 @@ export function composeCharacter(
   facing: Facing | 'west',
   pixelSize?: number,
   mood: Mood = 'normal',
+  opts: { badge?: boolean } = {},
 ): string {
   const actual: Facing = facing === 'west' ? 'east' : facing;
   const placed = placeParts(recipe, actual, mood);
   let inner = renderPlaced(placed, actual, style, makeCharacterResolver(recipe));
   if (facing === 'west') {
     inner = `<g transform="translate(${CANVAS} 0) scale(-1 1)">${inner}</g>`;
+  }
+  // The badge sits outside the mirror so its glyph stays upright; mirror only
+  // its anchor x so it tracks the head. Facing-independent, drawn above all.
+  const emote = MOOD_EMOTES[mood];
+  if ((opts.badge ?? true) && emote) {
+    const a = ANCHORS[actual].aboveHead;
+    inner += emoteMarkup(emote, facing === 'west' ? CANVAS - a.x : a.x, a.y);
   }
   return svgWrap(inner, pixelSize ?? style.render.baseSize);
 }
