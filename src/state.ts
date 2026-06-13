@@ -111,6 +111,11 @@ class Store {
         project.props.push(structuredClone(prop));
       }
     }
+    for (const floor of DEFAULT_FLOORS) {
+      if (!project.floors.some((item) => item.id === floor.id || item.templateId === floor.templateId)) {
+        project.floors.push(structuredClone(floor));
+      }
+    }
   }
 
   private emit(kind: ChangeKind): void {

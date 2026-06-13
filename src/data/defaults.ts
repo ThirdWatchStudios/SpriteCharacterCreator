@@ -309,6 +309,20 @@ export const DEFAULT_FLOORS: TileInstance[] = [
     params: { grid: 32 },
     palette: { primary: '#E8E4D8', secondary: '#D3D1C7', accent: '#B4B2A9' },
   },
+  {
+    id: 'floor-utility-vinyl',
+    name: 'Utility vinyl',
+    templateId: 'utility-vinyl',
+    params: { grid: 32, scuff: 2, seed: 4 },
+    palette: { primary: '#CAD4D7', secondary: '#EEF3F4', accent: '#7F8B91' },
+  },
+  {
+    id: 'floor-quiet-carpet',
+    name: 'Quiet room carpet',
+    templateId: 'quiet-carpet',
+    params: { weave: 2, seed: 6 },
+    palette: { primary: '#496C68', secondary: '#6F908B', accent: '#314D55' },
+  },
 ];
 
 export function defaultProject(): ProjectState {

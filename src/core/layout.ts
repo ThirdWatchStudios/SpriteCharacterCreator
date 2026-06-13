@@ -7,7 +7,18 @@ import { PROP_TEMPLATES } from '../props/templates';
 
 export const GENERATED_COWORKER_PREFIX = 'layout-coworker-';
 
-type RoomId = 'reception' | 'manager-office' | 'break-room' | 'conference-room' | 'cubicle-farm' | 'hallway';
+type RoomId =
+  | 'reception'
+  | 'manager-office'
+  | 'break-room'
+  | 'conference-room'
+  | 'cubicle-farm'
+  | 'hallway'
+  | 'copy-room'
+  | 'records-room'
+  | 'focus-room'
+  | 'waiting-nook'
+  | 'storage-closet';
 
 interface RoomSpec extends SceneRoom {
   id: RoomId;
@@ -73,83 +84,115 @@ const ROWS = 14;
  */
 const LAYOUT_TEMPLATES: LayoutTemplate[] = [
   {
-    id: 'cross-hall',
-    label: 'Cross hall',
+    id: 'cross-hall-compact',
+    label: 'Cross hall compact',
     rooms: [
-      { id: 'reception', label: 'Reception', x: 0, y: 0, cols: 7, rows: 7 },
-      { id: 'cubicle-farm', label: 'Cubicle farm', x: 6, y: 0, cols: 10, rows: 7 },
-      { id: 'manager-office', label: 'Manager office', x: 15, y: 0, cols: 7, rows: 7 },
-      { id: 'hallway', label: 'Hallway', x: 0, y: 6, cols: 22, rows: 4 },
-      { id: 'break-room', label: 'Break room', x: 0, y: 9, cols: 9, rows: 5 },
-      { id: 'conference-room', label: 'Conference room', x: 8, y: 9, cols: 14, rows: 5 },
+      { id: 'reception', label: 'Reception', x: 0, y: 0, cols: 6, rows: 6 },
+      { id: 'focus-room', label: 'Focus room', x: 5, y: 0, cols: 5, rows: 6 },
+      { id: 'cubicle-farm', label: 'Cubicle farm', x: 9, y: 0, cols: 8, rows: 6 },
+      { id: 'manager-office', label: 'Manager office', x: 16, y: 0, cols: 6, rows: 6 },
+      { id: 'hallway', label: 'Hallway', x: 0, y: 5, cols: 22, rows: 5 },
+      { id: 'copy-room', label: 'Copy room', x: 0, y: 9, cols: 5, rows: 5 },
+      { id: 'break-room', label: 'Break room', x: 4, y: 9, cols: 6, rows: 5 },
+      { id: 'conference-room', label: 'Conference room', x: 9, y: 9, cols: 13, rows: 5 },
     ],
     doors: [
-      [3, 6],
-      [10, 6],
-      [18, 6],
-      [4, 9],
-      [14, 9],
-      [6, 3],
+      [2, 5],
+      [7, 5],
+      [13, 5],
+      [18, 5],
+      [2, 9],
+      [7, 9],
+      [15, 9],
     ],
   },
   {
-    id: 'vertical-core',
-    label: 'Vertical core',
+    id: 'vertical-core-support',
+    label: 'Vertical core support',
     rooms: [
-      { id: 'reception', label: 'Reception', x: 0, y: 0, cols: 8, rows: 8 },
-      { id: 'hallway', label: 'Hallway', x: 7, y: 0, cols: 5, rows: 14 },
-      { id: 'cubicle-farm', label: 'Cubicle farm', x: 11, y: 0, cols: 11, rows: 9 },
-      { id: 'break-room', label: 'Break room', x: 0, y: 7, cols: 8, rows: 7 },
-      { id: 'conference-room', label: 'Conference room', x: 11, y: 8, cols: 6, rows: 6 },
-      { id: 'manager-office', label: 'Manager office', x: 16, y: 8, cols: 6, rows: 6 },
+      { id: 'reception', label: 'Reception', x: 0, y: 0, cols: 6, rows: 5 },
+      { id: 'records-room', label: 'Records room', x: 0, y: 4, cols: 6, rows: 5 },
+      { id: 'break-room', label: 'Break room', x: 0, y: 8, cols: 6, rows: 6 },
+      { id: 'hallway', label: 'Hallway', x: 5, y: 0, cols: 4, rows: 14 },
+      { id: 'cubicle-farm', label: 'Cubicle farm', x: 8, y: 0, cols: 14, rows: 7 },
+      { id: 'conference-room', label: 'Conference room', x: 8, y: 6, cols: 7, rows: 8 },
+      { id: 'manager-office', label: 'Manager office', x: 14, y: 6, cols: 8, rows: 8 },
     ],
     doors: [
-      [7, 3],
-      [11, 4],
-      [7, 10],
-      [11, 11],
-      [16, 11],
-      [14, 8],
+      [5, 2],
+      [5, 6],
+      [5, 10],
+      [8, 3],
+      [11, 6],
+      [17, 6],
     ],
   },
   {
-    id: 'north-suite',
-    label: 'North suite',
+    id: 'north-suite-small-break',
+    label: 'North suite small break',
     rooms: [
-      { id: 'reception', label: 'Reception', x: 0, y: 0, cols: 8, rows: 8 },
-      { id: 'manager-office', label: 'Manager office', x: 7, y: 0, cols: 7, rows: 8 },
-      { id: 'break-room', label: 'Break room', x: 13, y: 0, cols: 9, rows: 8 },
-      { id: 'hallway', label: 'Hallway', x: 0, y: 7, cols: 22, rows: 3 },
+      { id: 'reception', label: 'Reception', x: 0, y: 0, cols: 6, rows: 6 },
+      { id: 'manager-office', label: 'Manager office', x: 5, y: 0, cols: 7, rows: 6 },
+      { id: 'records-room', label: 'Records room', x: 11, y: 0, cols: 5, rows: 6 },
+      { id: 'break-room', label: 'Break room', x: 15, y: 0, cols: 7, rows: 6 },
+      { id: 'hallway', label: 'Hallway', x: 0, y: 5, cols: 22, rows: 5 },
       { id: 'cubicle-farm', label: 'Cubicle farm', x: 0, y: 9, cols: 14, rows: 5 },
       { id: 'conference-room', label: 'Conference room', x: 13, y: 9, cols: 9, rows: 5 },
     ],
     doors: [
-      [3, 7],
-      [10, 7],
-      [17, 7],
+      [2, 5],
+      [8, 5],
+      [13, 5],
+      [18, 5],
       [5, 9],
       [11, 9],
       [17, 9],
     ],
   },
   {
-    id: 'wide-front',
-    label: 'Wide front',
+    id: 'wide-front-nooks',
+    label: 'Wide front nooks',
     rooms: [
-      { id: 'reception', label: 'Reception', x: 0, y: 0, cols: 10, rows: 7 },
-      { id: 'cubicle-farm', label: 'Cubicle farm', x: 9, y: 0, cols: 9, rows: 7 },
-      { id: 'break-room', label: 'Break room', x: 17, y: 0, cols: 5, rows: 7 },
-      { id: 'hallway', label: 'Hallway', x: 0, y: 6, cols: 22, rows: 4 },
-      { id: 'conference-room', label: 'Conference room', x: 0, y: 9, cols: 12, rows: 5 },
-      { id: 'manager-office', label: 'Manager office', x: 11, y: 9, cols: 11, rows: 5 },
+      { id: 'reception', label: 'Reception', x: 0, y: 0, cols: 6, rows: 6 },
+      { id: 'waiting-nook', label: 'Waiting nook', x: 5, y: 0, cols: 5, rows: 6 },
+      { id: 'cubicle-farm', label: 'Cubicle farm', x: 9, y: 0, cols: 9, rows: 6 },
+      { id: 'break-room', label: 'Break room', x: 17, y: 0, cols: 5, rows: 6 },
+      { id: 'hallway', label: 'Hallway', x: 0, y: 5, cols: 22, rows: 5 },
+      { id: 'conference-room', label: 'Conference room', x: 0, y: 9, cols: 10, rows: 5 },
+      { id: 'storage-closet', label: 'Storage closet', x: 9, y: 9, cols: 4, rows: 5 },
+      { id: 'manager-office', label: 'Manager office', x: 12, y: 9, cols: 10, rows: 5 },
     ],
     doors: [
-      [4, 6],
-      [13, 6],
-      [19, 6],
-      [6, 9],
-      [16, 9],
-      [9, 3],
+      [2, 5],
+      [7, 5],
+      [13, 5],
+      [19, 5],
+      [5, 9],
+      [11, 9],
+      [17, 9],
+    ],
+  },
+  {
+    id: 'back-office-cluster',
+    label: 'Back office cluster',
+    rooms: [
+      { id: 'reception', label: 'Reception', x: 0, y: 0, cols: 6, rows: 5 },
+      { id: 'conference-room', label: 'Conference room', x: 5, y: 0, cols: 8, rows: 5 },
+      { id: 'focus-room', label: 'Focus room', x: 12, y: 0, cols: 5, rows: 5 },
+      { id: 'break-room', label: 'Break room', x: 16, y: 0, cols: 6, rows: 5 },
+      { id: 'hallway', label: 'Hallway', x: 0, y: 4, cols: 22, rows: 5 },
+      { id: 'copy-room', label: 'Copy room', x: 0, y: 8, cols: 5, rows: 6 },
+      { id: 'cubicle-farm', label: 'Cubicle farm', x: 4, y: 8, cols: 12, rows: 6 },
+      { id: 'manager-office', label: 'Manager office', x: 15, y: 8, cols: 7, rows: 6 },
+    ],
+    doors: [
+      [2, 4],
+      [9, 4],
+      [14, 4],
+      [19, 4],
+      [2, 8],
+      [9, 8],
+      [18, 8],
     ],
   },
 ];
@@ -232,13 +275,30 @@ function wallAt(scene: SceneState, x: number, y: number): boolean {
   return Boolean(scene.wallIds[y]?.[x]);
 }
 
-function roomById(rooms: RoomSpec[], id: RoomId): RoomSpec {
-  return rooms.find((room) => room.id === id)!;
+function wallForRoom(room: RoomSpec, officeWall: string | null, glassWall: string | null): string | null {
+  if (room.id === 'manager-office' || room.id === 'conference-room' || room.id === 'focus-room') {
+    return glassWall ?? officeWall;
+  }
+  return officeWall;
 }
 
-function wallForRoom(room: RoomSpec, officeWall: string | null, glassWall: string | null): string | null {
-  if (room.id === 'manager-office' || room.id === 'conference-room') return glassWall ?? officeWall;
-  return officeWall;
+function floorForRoom(
+  roomId: RoomId,
+  floors: {
+    carpet: string | null;
+    lobby: string | null;
+    wood: string | null;
+    linoleum: string | null;
+    utility: string | null;
+    quiet: string | null;
+  },
+): string | null {
+  if (roomId === 'reception') return floors.lobby;
+  if (roomId === 'copy-room' || roomId === 'records-room' || roomId === 'storage-closet') return floors.utility;
+  if (roomId === 'focus-room' || roomId === 'waiting-nook') return floors.quiet;
+  if (roomId === 'manager-office' || roomId === 'conference-room') return floors.wood;
+  if (roomId === 'break-room') return floors.linoleum;
+  return floors.carpet;
 }
 
 function drawRoomWalls(
@@ -466,9 +526,11 @@ function createGeneratedCoworkers(project: ProjectState, count: number, rng: Rng
 }
 
 function furnishReception(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): void {
-  addPropNear(scene, project, room, 'reception-desk', 'prop-reception-desk', 'reception-desk', 0.3, 0.4, rng, pick(rng, ROTATIONS));
+  addPropNear(scene, project, room, 'reception-desk', 'prop-reception-desk', 'reception-desk', 0.38, 0.42, rng, pick(rng, ROTATIONS));
   if (chance(rng, 0.8)) addPropNear(scene, project, room, 'reception-plant', 'prop-office-plant', 'office-plant', 0.85, 0.2, rng);
-  if (chance(rng, 0.45)) addPropNear(scene, project, room, 'reception-printer', 'prop-printer', 'printer', 0.75, 0.8, rng);
+  if (room.cols >= 6 && room.rows >= 6 && chance(rng, 0.35)) {
+    addPropNear(scene, project, room, 'reception-printer', 'prop-printer', 'printer', 0.8, 0.8, rng);
+  }
 }
 
 function furnishManagerOffice(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): SeatCell | undefined {
@@ -484,6 +546,8 @@ function furnishManagerOffice(scene: SceneState, project: ProjectState, room: Ro
 }
 
 function furnishBreakRoom(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): void {
+  const box = interior(room);
+  const interiorArea = (box.x1 - box.x0 + 1) * (box.y1 - box.y0 + 1);
   const appliances = [
     ['fridge', 'prop-fridge', 'fridge'] as const,
     ['coffee-machine', 'prop-coffee-machine', 'coffee-machine'] as const,
@@ -495,13 +559,52 @@ function furnishBreakRoom(scene: SceneState, project: ProjectState, room: RoomSp
     const [key, preferredId, templateId] = appliances[i];
     addPropNear(scene, project, room, key, preferredId, templateId, slots[i], 0.05, rng);
   }
-  if (chance(rng, 0.55)) addPropNear(scene, project, room, 'break-table', 'prop-desk', 'desk', 0.5, 0.75, rng, pick(rng, [0, 90] as SceneRotation[]));
+  if (interiorArea >= 16 && chance(rng, 0.45)) {
+    addPropNear(scene, project, room, 'break-table', 'prop-desk', 'desk', 0.5, 0.78, rng, pick(rng, [0, 90] as SceneRotation[]));
+  }
 }
 
 function furnishConferenceRoom(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): void {
   addPropNear(scene, project, room, 'conference-table', 'prop-conference-table', 'conference-table', 0.5, 0.5, rng, pick(rng, [0, 90] as SceneRotation[]));
   addPropNear(scene, project, room, 'conference-whiteboard', 'prop-whiteboard', 'whiteboard', 0.9, 0.1, rng);
   if (chance(rng, 0.55)) addPropNear(scene, project, room, 'conference-plant', 'prop-office-plant', 'office-plant', 0.1, 0.8, rng);
+}
+
+function furnishCopyRoom(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): void {
+  addPropNear(scene, project, room, 'copy-printer', 'prop-printer', 'printer', 0.35, 0.35, rng);
+  addPropNear(scene, project, room, 'copy-files', 'prop-filing-cabinet', 'filing-cabinet', 0.78, 0.35, rng);
+  if (room.cols >= 5 && room.rows >= 5 && chance(rng, 0.45)) {
+    addPropNear(scene, project, room, 'copy-whiteboard', 'prop-whiteboard', 'whiteboard', 0.7, 0.82, rng);
+  }
+}
+
+function furnishRecordsRoom(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): void {
+  addPropNear(scene, project, room, 'records-files-a', 'prop-filing-cabinet', 'filing-cabinet', 0.25, 0.25, rng);
+  addPropNear(scene, project, room, 'records-files-b', 'prop-filing-cabinet', 'filing-cabinet', 0.75, 0.25, rng);
+  if (chance(rng, 0.55)) addPropNear(scene, project, room, 'records-badge-reader', 'prop-badge-reader', 'badge-reader', 0.5, 0.85, rng);
+}
+
+function furnishFocusRoom(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): SeatCell | undefined {
+  const box = interior(room);
+  const deskX = clamp(Math.round((box.x0 + box.x1) / 2), box.x0, box.x1);
+  const deskY = box.y0;
+  addProp(scene, project, 'focus-desk', 'prop-desk', 'desk', deskX, deskY, 180);
+  addProp(scene, project, 'focus-chair', 'prop-office-chair', 'office-chair', deskX, Math.min(deskY + 1, box.y1), 0);
+  if (chance(rng, 0.55)) addPropNear(scene, project, room, 'focus-whiteboard', 'prop-whiteboard', 'whiteboard', 0.85, 0.25, rng);
+  return { x: deskX, y: Math.min(deskY + 1, box.y1), facing: 'north' };
+}
+
+function furnishWaitingNook(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): void {
+  addPropNear(scene, project, room, 'waiting-plant', 'prop-office-plant', 'office-plant', 0.18, 0.25, rng);
+  addPropNear(scene, project, room, 'waiting-chair-a', 'prop-office-chair', 'office-chair', 0.55, 0.55, rng, pick(rng, ROTATIONS));
+  if (room.cols >= 5 && chance(rng, 0.65)) {
+    addPropNear(scene, project, room, 'waiting-chair-b', 'prop-office-chair', 'office-chair', 0.82, 0.55, rng, pick(rng, ROTATIONS));
+  }
+}
+
+function furnishStorageCloset(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): void {
+  addPropNear(scene, project, room, 'storage-files', 'prop-filing-cabinet', 'filing-cabinet', 0.5, 0.3, rng);
+  if (chance(rng, 0.5)) addPropNear(scene, project, room, 'storage-printer', 'prop-printer', 'printer', 0.5, 0.75, rng);
 }
 
 interface SeatCell {
@@ -594,6 +697,8 @@ export function generateOfficeLayout(
   const lobby = byPreferredId(project.floors, 'floor-carpet-tiles')?.id ?? carpet;
   const wood = byPreferredId(project.floors, 'floor-wood')?.id ?? carpet;
   const linoleum = byPreferredId(project.floors, 'floor-linoleum')?.id ?? carpet;
+  const utility = byPreferredId(project.floors, 'floor-utility-vinyl')?.id ?? linoleum;
+  const quiet = byPreferredId(project.floors, 'floor-quiet-carpet')?.id ?? carpet;
 
   const scene: SceneState = {
     cols: COLS,
@@ -607,24 +712,36 @@ export function generateOfficeLayout(
     generated: { templateId: template.id, seed: actualSeed },
   };
 
+  const floorSet = { carpet, lobby, wood, linoleum, utility, quiet };
+  for (const room of rooms.filter((item) => item.id !== 'hallway')) {
+    fillFloor(scene, room.id, floorForRoom(room.id, floorSet));
+  }
   // hallway fills LAST so shared boundary tiles show hallway carpet — reads as
   // a consistent corridor border instead of random floor strips under walls
-  fillFloor(scene, 'reception', lobby);
-  fillFloor(scene, 'manager-office', wood);
-  fillFloor(scene, 'break-room', linoleum);
-  fillFloor(scene, 'conference-room', wood);
-  fillFloor(scene, 'cubicle-farm', carpet);
-  fillFloor(scene, 'hallway', carpet);
+  for (const room of rooms.filter((item) => item.id === 'hallway')) {
+    fillFloor(scene, room.id, floorForRoom(room.id, floorSet));
+  }
 
   drawRoomWalls(scene, rooms, officeWall, glassWall);
   clearDoorways(scene, template, rng);
 
-  furnishReception(scene, project, roomById(rooms, 'reception'), rng);
-  const managerSeat = furnishManagerOffice(scene, project, roomById(rooms, 'manager-office'), rng);
-  furnishBreakRoom(scene, project, roomById(rooms, 'break-room'), rng);
-  furnishConferenceRoom(scene, project, roomById(rooms, 'conference-room'), rng);
-  const seats = buildCubicleComb(scene, project, roomById(rooms, 'cubicle-farm'), rng);
-  furnishHallway(scene, project, roomById(rooms, 'hallway'), rng);
+  let managerSeat: SeatCell | undefined;
+  const seats: SeatCell[] = [];
+  for (const room of rooms) {
+    if (room.id === 'reception') furnishReception(scene, project, room, rng);
+    else if (room.id === 'manager-office') managerSeat = furnishManagerOffice(scene, project, room, rng);
+    else if (room.id === 'break-room') furnishBreakRoom(scene, project, room, rng);
+    else if (room.id === 'conference-room') furnishConferenceRoom(scene, project, room, rng);
+    else if (room.id === 'cubicle-farm') seats.push(...buildCubicleComb(scene, project, room, rng));
+    else if (room.id === 'hallway') furnishHallway(scene, project, room, rng);
+    else if (room.id === 'copy-room') furnishCopyRoom(scene, project, room, rng);
+    else if (room.id === 'records-room') furnishRecordsRoom(scene, project, room, rng);
+    else if (room.id === 'focus-room') {
+      const seat = furnishFocusRoom(scene, project, room, rng);
+      if (seat) seats.push(seat);
+    } else if (room.id === 'waiting-nook') furnishWaitingNook(scene, project, room, rng);
+    else if (room.id === 'storage-closet') furnishStorageCloset(scene, project, room, rng);
+  }
 
   const baseCast = project.characters.filter((recipe) => !recipe.id.startsWith(GENERATED_COWORKER_PREFIX));
   const coworkers = createGeneratedCoworkers(project, coworkerCount, rng, actualSeed);
@@ -635,7 +752,15 @@ export function generateOfficeLayout(
   if (managerSeat) addCharacter(scene, project, manager, managerSeat.x, managerSeat.y, 'hostile', managerSeat.facing);
   else spawnCharacter(scene, project, manager, 'manager-office', 'hostile', pick(rng, FACINGS), rng);
 
-  const coworkerRooms: RoomId[] = ['cubicle-farm', 'hallway', 'break-room', 'conference-room'];
+  const coworkerRooms: RoomId[] = [
+    'cubicle-farm',
+    'hallway',
+    'break-room',
+    'conference-room',
+    'copy-room',
+    'focus-room',
+    'waiting-nook',
+  ];
   const freeSeats = [...seats];
   for (const coworker of coworkers) {
     // most coworkers sit at their cubicle, facing the desk

@@ -209,7 +209,82 @@ const linoleum: FloorTemplate = {
   },
 };
 
-export const FLOOR_TEMPLATES: FloorTemplate[] = [carpet, carpetTiles, woodFloor, linoleum];
+const utilityVinyl: FloorTemplate = {
+  kind: 'floor',
+  id: 'utility-vinyl',
+  label: 'Utility vinyl',
+  params: [
+    { key: 'grid', label: 'Tile size', min: 16, max: 64, step: 16, default: 32 },
+    { key: 'scuff', label: 'Scuff', min: 0, max: 3, step: 1, default: 2 },
+    { key: 'seed', label: 'Pattern seed', min: 1, max: 9, step: 1, default: 4 },
+  ],
+  build(params) {
+    const g = params.grid ?? 32;
+    const shapes: ShapeSpec[] = [flat(rr(0, 0, 128, 128, 0), '$primary')];
+    for (let v = 0; v <= 128; v += g) {
+      shapes.push({ d: `M ${v} 0 L ${v} 128`, stroke: '#00000010', strokeWidth: 1.5, silhouette: false });
+      shapes.push({ d: `M 0 ${v} L 128 ${v}`, stroke: '#00000010', strokeWidth: 1.5, silhouette: false });
+    }
+    const rng = mulberry32((params.seed ?? 4) * 65537);
+    const count = (params.scuff ?? 2) * 10;
+    for (let i = 0; i < count; i++) {
+      const x = rng() * 128;
+      const y = rng() * 128;
+      const w = 4 + rng() * 9;
+      const fill = rng() > 0.45 ? '$secondary' : '$accent';
+      for (const dx of [0, -128, 128]) {
+        for (const dy of [0, -128, 128]) {
+          if (x + dx > -12 && x + dx < 140 && y + dy > -4 && y + dy < 132) {
+            shapes.push(flat(rr(x + dx, y + dy, w, 1.5, 1), fill, 0.34));
+          }
+        }
+      }
+    }
+    shapes.push(flat(rr(0, 0, 128, 12, 0), '#FFFFFF08'));
+    return shapes;
+  },
+};
+
+const quietCarpet: FloorTemplate = {
+  kind: 'floor',
+  id: 'quiet-carpet',
+  label: 'Quiet room carpet',
+  params: [
+    { key: 'weave', label: 'Weave', min: 1, max: 4, step: 1, default: 2 },
+    { key: 'seed', label: 'Pattern seed', min: 1, max: 9, step: 1, default: 6 },
+  ],
+  build(params) {
+    const shapes: ShapeSpec[] = [flat(rr(0, 0, 128, 128, 0), '$primary')];
+    const step = 16;
+    const opacity = 0.06 + (params.weave ?? 2) * 0.025;
+    for (let v = -128; v <= 256; v += step) {
+      shapes.push({ d: `M ${v} 0 L ${v + 128} 128`, stroke: '$secondary', strokeWidth: 1.2, opacity, silhouette: false });
+      shapes.push({ d: `M ${v} 128 L ${v + 128} 0`, stroke: '$accent', strokeWidth: 1, opacity: opacity * 0.8, silhouette: false });
+    }
+    const rng = mulberry32((params.seed ?? 6) * 31337);
+    for (let i = 0; i < 12; i++) {
+      const x = rng() * 128;
+      const y = rng() * 128;
+      for (const dx of [0, -128, 128]) {
+        for (const dy of [0, -128, 128]) {
+          if (x + dx > -4 && x + dx < 132 && y + dy > -4 && y + dy < 132) {
+            shapes.push(flat(circle(x + dx, y + dy, 1.1), '$secondary', 0.32));
+          }
+        }
+      }
+    }
+    return shapes;
+  },
+};
+
+export const FLOOR_TEMPLATES: FloorTemplate[] = [
+  carpet,
+  carpetTiles,
+  woodFloor,
+  linoleum,
+  utilityVinyl,
+  quietCarpet,
+];
 
 /** Human-readable name for a wall mask, used in atlas JSON. */
 export function maskName(mask: number): string {
