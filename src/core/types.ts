@@ -87,11 +87,14 @@ export interface PropParamDef {
  * with characters, never rotates.
  */
 export type Projection = 'plan' | 'elevation';
+export type PropPlacement = 'floor' | 'wall-slot';
 
 export interface PropTemplate {
   id: string;
   label: string;
   projection: Projection;
+  /** Floor props occupy walkable cells; wall-slot props mount into or over wall runs. */
+  placement?: PropPlacement;
   params: PropParamDef[];
   /**
    * Build shapes in canvas coords (128 design units). Elevation props rest on

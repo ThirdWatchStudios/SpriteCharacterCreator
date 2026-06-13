@@ -132,12 +132,21 @@ export function createDefaultScene(project: ProjectState): SceneState {
 
   addProp('prop-reception-desk', 2, 2);
   addProp('prop-desk', 5, 2);
+  addProp('prop-desk-clutter', 5, 2);
   addProp('prop-office-chair', 5, 3);
   addProp('prop-printer', 3, 5);
+  addProp('prop-door', 7, 3);
+  addProp('prop-open-door', 4, 4);
+  addProp('prop-window', 7, 1);
+  addProp('prop-nameplate', 6, 1);
+  addProp('prop-hvac-vent', 9, 0);
   addProp('prop-water-cooler', 8, 2);
   addProp('prop-coffee-machine', 9, 2);
   addProp('prop-fridge', 10, 2);
+  addProp('prop-vending-machine', 10, 3);
+  addProp('prop-rug', 8, 5);
   addProp('prop-conference-table', 8, 5);
+  addProp('prop-couch', 10, 5);
   addProp('prop-office-plant', 2, 5);
   addCharacter('janice', 6, 5, 'suspicious', 'west');
   addCharacter('carl', 7, 5, 'curious', 'east');

@@ -58,7 +58,7 @@ export function mountApp(root: HTMLElement): void {
   const header = el(
     'header',
     { className: 'topbar' },
-    el('h1', {}, 'Sprite Character Creator'),
+    el('h1', {}, 'Third Watch Sprite Studio'),
     el('span', { className: 'subtitle' }, 'The Water Cooler'),
     tabBar,
     el(

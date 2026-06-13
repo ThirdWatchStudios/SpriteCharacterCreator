@@ -37,20 +37,25 @@ https://thirdwatchstudios.github.io/SpriteCharacterCreator/
   the six emotional states (normal, suspicious, curious, defensive, hostile, confused).
   Moods are face overlays applied at render time — they are never part of a recipe.
 - **Props** — parametric office objects with sliders and a 3-token palette: water
-  cooler, printer, desk, coffee machine, office plant, break room fridge, conference
-  table, reception desk, badge reader (with granted/denied light), office chair,
-  whiteboard, and filing cabinet.
+  cooler, printer, desk, coffee machine, office plant, break room fridge,
+  conference table, reception desk, badge reader, door/open door, office window,
+  nameplate, HVAC vent, desk clutter, couch, rug, vending machine, office chair,
+  cubicle workstation, whiteboard, and filing cabinet.
 
   Props follow the RimWorld hybrid-projection convention, tagged per template:
-  - **Plan** (top-down): desk, conference table, office chair, reception desk.
-    Pivot at center, render on the furniture layer below characters, rotate freely
-    in-engine (one sprite = all four orientations).
+  - **Plan** (top-down): desks, tables, chairs, reception desk, cubicle
+    workstation, desk clutter, couches, and rugs. Pivot at center, render on the
+    furniture layer below characters, rotate freely in-engine (one sprite = all
+    four orientations).
   - **Elevation** (front view): everything else. Pivot at the base (y = 0.09, same
     ground line as characters), y-sort with characters, never rotate.
+  - **Wall slot** placement: door, window, nameplate, HVAC vent, and badge reader
+    mount into or over wall runs. The wall-slot flag is separate from projection,
+    so these still y-sort as elevation sprites.
   The rule for new templates: if characters stand behind/around/on it → plan;
   tall with a small footprint and only approached from the front → elevation.
-  The projection ships in each prop's atlas JSON (`projection`, `pivot`,
-  `meta.sorting`, `meta.rotatable`).
+  The projection and placement ship in each prop's atlas JSON (`projection`,
+  `placement`, `pivot`, `meta.sorting`, `meta.rotatable`, `meta.wallSlot`).
 
 - **Walls & Floors** — autotiling walls and seamless floor tiles.
   - Walls (office wall, glass partition, cubicle partition) are 16-piece
@@ -78,9 +83,11 @@ characters/<name>/moods@{1,2,4}x.png        # 6 mood rows x 4 facing columns
 characters/<name>/moods-atlas@{1,2,4}x.json # frames keyed "<mood>_<facing>"
 characters/<name>/recipe.json
 props/<name>/sprite@{1,2,4}x.png
+props/<name>/atlas@{1,2,4}x.json            # projection + placement + pivot
 walls/<name>/tileset@{1,2,4}x.png           # 4x4 sheet, frames keyed mask_0..mask_15
 walls/<name>/atlas@{1,2,4}x.json            # mask bits, frame rects, human names
 floors/<name>/tile@{1,2,4}x.png             # seamless, tileable: true in atlas
+office-layout.json                          # current scene grid, props, spawns
 project.json                                # full regenerable project state
 ```
 

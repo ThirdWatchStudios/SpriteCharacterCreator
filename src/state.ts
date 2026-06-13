@@ -107,7 +107,7 @@ class Store {
       preset.style.render.pixelScale = normalizePixelScale(preset.style.render.pixelScale);
     }
     for (const prop of DEFAULT_PROPS) {
-      if (!project.props.some((item) => item.id === prop.id || item.templateId === prop.templateId)) {
+      if (!project.props.some((item) => item.id === prop.id)) {
         project.props.push(structuredClone(prop));
       }
     }

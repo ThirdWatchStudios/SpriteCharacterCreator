@@ -1,4 +1,4 @@
-import type { CharacterRecipe, Mood, ProjectState, PropInstance } from './types';
+import type { CharacterRecipe, Mood, ProjectState, PropInstance, PropPlacement } from './types';
 import type { SceneFacing, SceneRoom, SceneRotation, SceneState } from './scene';
 import { WALL_BITS } from './types';
 import type { Rng } from './random';
@@ -60,6 +60,7 @@ export interface SceneLayoutJson {
     y: number;
     rotation: SceneRotation;
     projection: 'plan' | 'elevation';
+    placement: PropPlacement;
   }>;
   characterSpawns: Array<{
     id: string;
@@ -230,6 +231,10 @@ function propProjection(prop: PropInstance | undefined): 'plan' | 'elevation' {
   return PROP_TEMPLATES.find((template) => template.id === prop?.templateId)?.projection ?? 'elevation';
 }
 
+function propPlacement(prop: PropInstance | undefined): PropPlacement {
+  return PROP_TEMPLATES.find((template) => template.id === prop?.templateId)?.placement ?? 'floor';
+}
+
 function roomGrid(rooms: RoomSpec[]): Array<Array<string | null>> {
   const cells = grid<string | null>(COLS, ROWS, null);
   for (const room of rooms) {
@@ -328,9 +333,11 @@ function drawRoomWalls(
   wallLine(scene, COLS - 1, 0, COLS - 1, ROWS - 1, officeWall);
 }
 
-function clearDoorways(scene: SceneState, template: LayoutTemplate, rng: Rng): void {
+function clearDoorways(scene: SceneState, template: LayoutTemplate, rng: Rng): Array<{ x: number; y: number }> {
+  const doorways: Array<{ x: number; y: number }> = [];
   for (const [x, y] of template.doors) {
     clearWall(scene, x, y);
+    doorways.push({ x, y });
     if (!chance(rng, 0.35)) continue;
     // widen along the wall run, never across it, and never into a junction
     const widen = (tx: number, ty: number, horizontal: boolean) => {
@@ -340,6 +347,7 @@ function clearDoorways(scene: SceneState, template: LayoutTemplate, rng: Rng): v
     if (wallAt(scene, x - 1, y) && wallAt(scene, x + 1, y)) widen(x + (chance(rng, 0.5) ? -1 : 1), y, true);
     else if (wallAt(scene, x, y - 1) && wallAt(scene, x, y + 1)) widen(x, y + (chance(rng, 0.5) ? -1 : 1), false);
   }
+  return doorways;
 }
 
 function wallMask(scene: SceneState, x: number, y: number): number {
@@ -349,6 +357,87 @@ function wallMask(scene: SceneState, x: number, y: number): number {
     (wallAt(scene, x, y + 1) ? WALL_BITS.S : 0) |
     (wallAt(scene, x - 1, y) ? WALL_BITS.W : 0)
   );
+}
+
+function decorateDoorways(
+  scene: SceneState,
+  project: ProjectState,
+  doorways: Array<{ x: number; y: number }>,
+  rng: Rng,
+): void {
+  for (const doorway of doorways) {
+    const open = chance(rng, 0.62);
+    addProp(
+      scene,
+      project,
+      open ? 'open-door' : 'closed-door',
+      open ? 'prop-open-door' : 'prop-door',
+      'door',
+      doorway.x,
+      doorway.y,
+    );
+    if (!chance(rng, 0.68)) continue;
+    const adjacentWalls = [
+      { x: doorway.x - 1, y: doorway.y },
+      { x: doorway.x + 1, y: doorway.y },
+      { x: doorway.x, y: doorway.y - 1 },
+      { x: doorway.x, y: doorway.y + 1 },
+    ].filter((cell) => wallAt(scene, cell.x, cell.y));
+    const wall = adjacentWalls.length > 0 ? pick(rng, adjacentWalls) : undefined;
+    if (wall) addWallSlotProp(scene, project, 'door-badge-reader', 'prop-badge-reader', 'badge-reader', wall.x, wall.y);
+  }
+}
+
+function roomWallCells(scene: SceneState, room: RoomSpec): Array<{ x: number; y: number }> {
+  const cells: Array<{ x: number; y: number }> = [];
+  for (let x = room.x + 1; x < room.x + room.cols - 1; x++) {
+    if (wallAt(scene, x, room.y)) cells.push({ x, y: room.y });
+    if (wallAt(scene, x, room.y + room.rows - 1)) cells.push({ x, y: room.y + room.rows - 1 });
+  }
+  for (let y = room.y + 1; y < room.y + room.rows - 1; y++) {
+    if (wallAt(scene, room.x, y)) cells.push({ x: room.x, y });
+    if (wallAt(scene, room.x + room.cols - 1, y)) cells.push({ x: room.x + room.cols - 1, y });
+  }
+  return cells;
+}
+
+function addRoomWallFixture(
+  scene: SceneState,
+  project: ProjectState,
+  room: RoomSpec,
+  rng: Rng,
+  key: string,
+  preferredId: string,
+  templateId: string,
+): void {
+  const cells = roomWallCells(scene, room).filter(
+    (cell) =>
+      !scene.entities.some(
+        (entity) =>
+          entity.kind === 'prop' &&
+          entity.x === cell.x &&
+          entity.y === cell.y &&
+          project.props.find((prop) => prop.id === entity.refId)?.templateId === templateId,
+      ),
+  );
+  if (cells.length > 0) {
+    const cell = pick(rng, cells);
+    addWallSlotProp(scene, project, key, preferredId, templateId, cell.x, cell.y);
+  }
+}
+
+function decorateRoomWalls(scene: SceneState, project: ProjectState, rooms: RoomSpec[], rng: Rng): void {
+  for (const room of rooms) {
+    if ((room.id === 'manager-office' || room.id === 'conference-room' || room.id === 'focus-room') && chance(rng, 0.85)) {
+      addRoomWallFixture(scene, project, room, rng, `${room.id}-window`, 'prop-window', 'window');
+    }
+    if ((room.id === 'manager-office' || room.id === 'focus-room' || room.id === 'records-room') && chance(rng, 0.75)) {
+      addRoomWallFixture(scene, project, room, rng, `${room.id}-nameplate`, 'prop-nameplate', 'nameplate');
+    }
+    if ((room.id === 'break-room' || room.id === 'copy-room' || room.id === 'hallway' || room.id === 'storage-closet') && chance(rng, 0.62)) {
+      addRoomWallFixture(scene, project, room, rng, `${room.id}-hvac`, 'prop-hvac-vent', 'hvac-vent');
+    }
+  }
 }
 
 function entityAt(scene: SceneState, x: number, y: number): boolean {
@@ -411,7 +500,22 @@ function addProp(
   rotation: SceneRotation = 0,
 ): void {
   const prop = propBy(project, preferredId, templateId);
-  if (!prop || isBlocked(scene, x, y)) return;
+  if (!prop) return;
+  const occupants = scene.entities.filter((entity) => entity.x === x && entity.y === y);
+  const shareable = templateId === 'desk-clutter' || templateId === 'rug';
+  const blockingOccupants = occupants.filter((entity) => {
+    if (entity.kind === 'character') return true;
+    const occupantTemplateId = project.props.find((p) => p.id === entity.refId)?.templateId;
+    return occupantTemplateId !== 'desk-clutter' && occupantTemplateId !== 'rug';
+  });
+  if (propPlacement(prop) === 'wall-slot') {
+    if (occupants.some((entity) => entity.kind === 'prop' && project.props.find((p) => p.id === entity.refId)?.templateId === templateId)) return;
+  } else {
+    if (wallAt(scene, x, y)) return;
+    if (!shareable && blockingOccupants.length > 0) return;
+    if (occupants.some((entity) => entity.kind === 'character')) return;
+    if (shareable && occupants.some((entity) => entity.kind === 'prop' && project.props.find((p) => p.id === entity.refId)?.templateId === templateId)) return;
+  }
   scene.entities.push({
     id: `generated-prop-${key}-${x}-${y}`,
     kind: 'prop',
@@ -422,6 +526,19 @@ function addProp(
     mood: 'normal',
     rotation,
   });
+}
+
+function addWallSlotProp(
+  scene: SceneState,
+  project: ProjectState,
+  key: string,
+  preferredId: string,
+  templateId: string,
+  x: number,
+  y: number,
+): void {
+  if (!wallAt(scene, x, y)) return;
+  addProp(scene, project, key, preferredId, templateId, x, y, 0);
 }
 
 function addPropNear(
@@ -527,6 +644,11 @@ function createGeneratedCoworkers(project: ProjectState, count: number, rng: Rng
 
 function furnishReception(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): void {
   addPropNear(scene, project, room, 'reception-desk', 'prop-reception-desk', 'reception-desk', 0.38, 0.42, rng, pick(rng, ROTATIONS));
+  const lounge = findOpenNear(scene, room, cellAt(room, 0.72, 0.72), rng);
+  if (lounge) {
+    addProp(scene, project, 'reception-rug', 'prop-rug', 'rug', lounge.x, lounge.y, pick(rng, [0, 90] as SceneRotation[]));
+    addProp(scene, project, 'reception-couch', 'prop-couch', 'couch', lounge.x, lounge.y, pick(rng, ROTATIONS));
+  }
   if (chance(rng, 0.8)) addPropNear(scene, project, room, 'reception-plant', 'prop-office-plant', 'office-plant', 0.85, 0.2, rng);
   if (room.cols >= 6 && room.rows >= 6 && chance(rng, 0.35)) {
     addPropNear(scene, project, room, 'reception-printer', 'prop-printer', 'printer', 0.8, 0.8, rng);
@@ -539,6 +661,7 @@ function furnishManagerOffice(scene: SceneState, project: ProjectState, room: Ro
   // south of the desk, so its backrest stays south (rotation 0), occupant faces north
   const deskX = clamp(Math.round((box.x0 + box.x1) / 2), box.x0, box.x1);
   addProp(scene, project, 'manager-desk', 'prop-desk', 'desk', deskX, box.y0, 180);
+  addProp(scene, project, 'manager-desk-clutter', 'prop-desk-clutter', 'desk-clutter', deskX, box.y0, 180);
   addProp(scene, project, 'manager-chair', 'prop-office-chair', 'office-chair', deskX, box.y0 + 1, 0);
   if (chance(rng, 0.72)) addPropNear(scene, project, room, 'manager-files', 'prop-filing-cabinet', 'filing-cabinet', 0.9, 0.2, rng);
   if (chance(rng, 0.5)) addPropNear(scene, project, room, 'manager-plant', 'prop-office-plant', 'office-plant', 0.1, 0.2, rng);
@@ -562,10 +685,16 @@ function furnishBreakRoom(scene: SceneState, project: ProjectState, room: RoomSp
   if (interiorArea >= 16 && chance(rng, 0.45)) {
     addPropNear(scene, project, room, 'break-table', 'prop-desk', 'desk', 0.5, 0.78, rng, pick(rng, [0, 90] as SceneRotation[]));
   }
+  if (chance(rng, 0.5)) addPropNear(scene, project, room, 'break-vending', 'prop-vending-machine', 'vending-machine', 0.88, 0.45, rng);
 }
 
 function furnishConferenceRoom(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): void {
-  addPropNear(scene, project, room, 'conference-table', 'prop-conference-table', 'conference-table', 0.5, 0.5, rng, pick(rng, [0, 90] as SceneRotation[]));
+  const tableCell = findOpenNear(scene, room, cellAt(room, 0.5, 0.5), rng);
+  if (tableCell) {
+    const rotation = pick(rng, [0, 90] as SceneRotation[]);
+    addProp(scene, project, 'conference-rug', 'prop-rug', 'rug', tableCell.x, tableCell.y, rotation);
+    addProp(scene, project, 'conference-table', 'prop-conference-table', 'conference-table', tableCell.x, tableCell.y, rotation);
+  }
   addPropNear(scene, project, room, 'conference-whiteboard', 'prop-whiteboard', 'whiteboard', 0.9, 0.1, rng);
   if (chance(rng, 0.55)) addPropNear(scene, project, room, 'conference-plant', 'prop-office-plant', 'office-plant', 0.1, 0.8, rng);
 }
@@ -589,12 +718,18 @@ function furnishFocusRoom(scene: SceneState, project: ProjectState, room: RoomSp
   const deskX = clamp(Math.round((box.x0 + box.x1) / 2), box.x0, box.x1);
   const deskY = box.y0;
   addProp(scene, project, 'focus-desk', 'prop-desk', 'desk', deskX, deskY, 180);
+  addProp(scene, project, 'focus-desk-clutter', 'prop-desk-clutter', 'desk-clutter', deskX, deskY, 180);
   addProp(scene, project, 'focus-chair', 'prop-office-chair', 'office-chair', deskX, Math.min(deskY + 1, box.y1), 0);
   if (chance(rng, 0.55)) addPropNear(scene, project, room, 'focus-whiteboard', 'prop-whiteboard', 'whiteboard', 0.85, 0.25, rng);
   return { x: deskX, y: Math.min(deskY + 1, box.y1), facing: 'north' };
 }
 
 function furnishWaitingNook(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): void {
+  const lounge = findOpenNear(scene, room, cellAt(room, 0.62, 0.52), rng);
+  if (lounge) {
+    addProp(scene, project, 'waiting-rug', 'prop-rug', 'rug', lounge.x, lounge.y, pick(rng, [0, 90] as SceneRotation[]));
+    addProp(scene, project, 'waiting-couch', 'prop-couch', 'couch', lounge.x, lounge.y, pick(rng, ROTATIONS));
+  }
   addPropNear(scene, project, room, 'waiting-plant', 'prop-office-plant', 'office-plant', 0.18, 0.25, rng);
   addPropNear(scene, project, room, 'waiting-chair-a', 'prop-office-chair', 'office-chair', 0.55, 0.55, rng, pick(rng, ROTATIONS));
   if (room.cols >= 5 && chance(rng, 0.65)) {
@@ -658,6 +793,9 @@ function buildCubicleComb(scene: SceneState, project: ProjectState, room: RoomSp
       if (chance(rng, 0.12)) continue; // the vacant cubicle sells the office
       const rotation: SceneRotation = comb.flipped ? 180 : 0;
       addProp(scene, project, `cubicle-desk-${comb.deskY}-${p}`, 'prop-desk', 'desk', deskX, comb.deskY, rotation);
+      if (chance(rng, 0.46)) {
+        addProp(scene, project, `cubicle-clutter-${comb.deskY}-${p}`, 'prop-desk-clutter', 'desk-clutter', deskX, comb.deskY, rotation);
+      }
       addProp(scene, project, `cubicle-chair-${comb.chairY}-${p}`, 'prop-office-chair', 'office-chair', deskX, comb.chairY, rotation);
       seats.push({ x: deskX, y: comb.chairY, facing: comb.flipped ? 'south' : 'north' });
       if (entryX !== undefined && chance(rng, 0.25)) {
@@ -723,7 +861,9 @@ export function generateOfficeLayout(
   }
 
   drawRoomWalls(scene, rooms, officeWall, glassWall);
-  clearDoorways(scene, template, rng);
+  const doorways = clearDoorways(scene, template, rng);
+  decorateDoorways(scene, project, doorways, rng);
+  decorateRoomWalls(scene, project, rooms, rng);
 
   let managerSeat: SeatCell | undefined;
   const seats: SeatCell[] = [];
@@ -811,6 +951,7 @@ export function sceneToLayoutJson(scene: SceneState, project: ProjectState): Sce
           y: entity.y,
           rotation: entity.rotation,
           projection: propProjection(prop),
+          placement: propPlacement(prop),
         };
       }),
     characterSpawns: scene.entities

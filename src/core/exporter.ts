@@ -3,6 +3,7 @@ import type { CharacterRecipe, ProjectState, PropInstance, StyleSheet, TileInsta
 import type { SceneState } from './scene';
 import { MOODS } from './types';
 import { composeCharacter, composeFloorTile, composeProp, composeWallTile } from './compositor';
+import { sceneToLayoutJson } from './layout';
 import { composeSceneSvg } from './scene';
 import { PROP_TEMPLATES } from '../props/templates';
 import { maskName } from '../tiles/templates';
@@ -235,6 +236,7 @@ export function floorAtlas(floor: TileInstance, style: StyleSheet, scale: number
 export function propAtlas(prop: PropInstance, style: StyleSheet, scale: number) {
   const template = PROP_TEMPLATES.find((t) => t.id === prop.templateId);
   const projection = template?.projection ?? 'elevation';
+  const placement = template?.placement ?? 'floor';
   const size = style.render.baseSize * scale;
   return {
     name: prop.name,
@@ -243,11 +245,13 @@ export function propAtlas(prop: PropInstance, style: StyleSheet, scale: number) 
     frameSize: size,
     scale,
     projection,
+    placement,
     pivot: projection === 'plan' ? { x: 0.5, y: 0.5 } : { x: 0.5, y: 0.09 },
     meta: {
       generator: 'sprite-character-creator',
       sorting: projection === 'plan' ? 'floor-layer' : 'y-sort',
       rotatable: projection === 'plan',
+      wallSlot: placement === 'wall-slot',
     },
   };
 }
@@ -340,5 +344,8 @@ export async function exportAllZip(project: ProjectState): Promise<Blob> {
   }
 
   zip.file('project.json', JSON.stringify(project, null, 2));
+  if (project.scene) {
+    zip.file('office-layout.json', JSON.stringify(sceneToLayoutJson(project.scene, project), null, 2));
+  }
   return zip.generateAsync({ type: 'blob' });
 }

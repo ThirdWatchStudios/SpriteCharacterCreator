@@ -243,6 +243,7 @@ const badgeReader: PropTemplate = {
   id: 'badge-reader',
   label: 'Badge reader',
   projection: 'elevation',
+  placement: 'wall-slot',
   params: [{ key: 'granted', label: 'Access granted', min: 0, max: 1, step: 1, default: 1 }],
   build(params) {
     const light = params.granted >= 1 ? '#97C459' : '#E24B4A';
@@ -262,6 +263,249 @@ const badgeReader: PropTemplate = {
       // swipe slot
       { d: `M ${CX - 6} 89 L ${CX + 6} 89`, stroke: '#00000055', strokeWidth: 2, silhouette: false },
     ];
+  },
+};
+
+const door: PropTemplate = {
+  id: 'door',
+  label: 'Door',
+  projection: 'elevation',
+  placement: 'wall-slot',
+  params: [
+    { key: 'width', label: 'Width', min: 42, max: 70, step: 2, default: 56 },
+    { key: 'open', label: 'Open', min: 0, max: 1, step: 1, default: 0 },
+  ],
+  build(params) {
+    const w = params.width ?? 56;
+    const x = CX - w / 2;
+    const top = 34;
+    const isOpen = (params.open ?? 0) >= 1;
+    const shapes: ShapeSpec[] = [
+      // wall-slot frame
+      { d: rr(x - 5, top - 4, w + 10, 9, 2), fill: '$secondary' },
+      { d: rr(x - 5, top, 8, GROUND - top, 2), fill: '$secondary' },
+      { d: rr(x + w - 3, top, 8, GROUND - top, 2), fill: '$secondary' },
+      { d: rr(x - 3, GROUND - 5, w + 6, 5, 1.5), fill: '#00000024', silhouette: false },
+    ];
+    if (isOpen) {
+      shapes.push(
+        // swung slab reads as an open office door while staying in one cell
+        { d: `M ${x + 4} ${top + 5} L ${x + w * 0.72} ${top + 13} L ${x + w * 0.72} ${GROUND - 4} L ${x + 4} ${GROUND - 10} Z`, fill: '$primary' },
+        { d: `M ${x + 11} ${top + 14} L ${x + w * 0.62} ${top + 19} L ${x + w * 0.62} ${GROUND - 18} L ${x + 11} ${GROUND - 23} Z`, fill: '#00000010', silhouette: false },
+        { d: circle(x + w * 0.57, 82, 2.3), fill: '$accent', silhouette: false },
+      );
+    } else {
+      shapes.push(
+        { d: rr(x + 3, top + 5, w - 6, GROUND - top - 6, 2), fill: '$primary' },
+        { d: rr(x + 10, top + 13, w - 20, GROUND - top - 34, 1.5), fill: '#00000012', silhouette: false },
+        { d: circle(x + w - 13, 82, 2.6), fill: '$accent', silhouette: false },
+        { d: rr(x + 6, GROUND - 21, w - 12, 11, 1.5), fill: '#00000010', silhouette: false },
+      );
+    }
+    return shapes;
+  },
+};
+
+const window: PropTemplate = {
+  id: 'window',
+  label: 'Window',
+  projection: 'elevation',
+  placement: 'wall-slot',
+  params: [
+    { key: 'width', label: 'Width', min: 48, max: 88, step: 4, default: 72 },
+    { key: 'blinds', label: 'Blinds', min: 0, max: 3, step: 1, default: 1 },
+  ],
+  build(params) {
+    const w = params.width ?? 72;
+    const x = CX - w / 2;
+    const y = 42;
+    const h = 42;
+    const shapes: ShapeSpec[] = [
+      { d: rr(x - 4, y - 4, w + 8, h + 8, 3), fill: '$primary' },
+      { d: rr(x, y, w, h, 1.5), fill: '$secondary', opacity: 0.92 },
+      { d: `M ${CX} ${y + 2} L ${CX} ${y + h - 2} M ${x + 2} ${y + h / 2} L ${x + w - 2} ${y + h / 2}`, stroke: '$primary', strokeWidth: 3, silhouette: false },
+      { d: rr(x + 8, y + 6, 8, h - 12, 3), fill: '#FFFFFF30', silhouette: false },
+    ];
+    const blinds = params.blinds ?? 1;
+    for (let i = 0; i < blinds; i++) {
+      const by = y + 9 + i * 9;
+      shapes.push({ d: `M ${x + 5} ${by} L ${x + w - 5} ${by}`, stroke: '$accent', strokeWidth: 2, opacity: 0.65, silhouette: false });
+    }
+    return shapes;
+  },
+};
+
+const nameplate: PropTemplate = {
+  id: 'nameplate',
+  label: 'Nameplate',
+  projection: 'elevation',
+  placement: 'wall-slot',
+  params: [
+    { key: 'width', label: 'Width', min: 34, max: 64, step: 2, default: 48 },
+    { key: 'lines', label: 'Label lines', min: 1, max: 3, step: 1, default: 2 },
+  ],
+  build(params) {
+    const w = params.width ?? 48;
+    const x = CX - w / 2;
+    const y = 62;
+    const shapes: ShapeSpec[] = [
+      { d: rr(x - 3, y - 3, w + 6, 24, 3), fill: '$primary' },
+      { d: rr(x + 4, y + 4, w - 8, 4, 1), fill: '$secondary', silhouette: false },
+    ];
+    const lines = params.lines ?? 2;
+    for (let i = 0; i < lines; i++) {
+      shapes.push({ d: rr(x + 9, y + 11 + i * 6, w - 18 - i * 8, 2.5, 1), fill: '$accent', silhouette: false });
+    }
+    return shapes;
+  },
+};
+
+const hvacVent: PropTemplate = {
+  id: 'hvac-vent',
+  label: 'HVAC vent',
+  projection: 'elevation',
+  placement: 'wall-slot',
+  params: [
+    { key: 'width', label: 'Width', min: 36, max: 66, step: 2, default: 52 },
+    { key: 'slats', label: 'Slats', min: 3, max: 7, step: 1, default: 5 },
+  ],
+  build(params) {
+    const w = params.width ?? 52;
+    const x = CX - w / 2;
+    const y = 42;
+    const shapes: ShapeSpec[] = [
+      { d: rr(x, y, w, 24, 3), fill: '$primary' },
+      { d: rr(x + 4, y + 4, w - 8, 16, 2), fill: '$secondary', silhouette: false },
+    ];
+    const slats = params.slats ?? 5;
+    for (let i = 0; i < slats; i++) {
+      const sx = x + 9 + (i * (w - 18)) / Math.max(1, slats - 1);
+      shapes.push({ d: `M ${sx} ${y + 7} L ${sx - 3} ${y + 18}`, stroke: '$accent', strokeWidth: 2, silhouette: false });
+    }
+    return shapes;
+  },
+};
+
+const deskClutter: PropTemplate = {
+  id: 'desk-clutter',
+  label: 'Desk clutter',
+  projection: 'plan',
+  params: [
+    { key: 'papers', label: 'Paper piles', min: 1, max: 4, step: 1, default: 3 },
+    { key: 'phone', label: 'Phone', min: 0, max: 1, step: 1, default: 1 },
+  ],
+  build(params) {
+    const shapes: ShapeSpec[] = [];
+    const piles = params.papers ?? 3;
+    const paperCells: Array<[number, number, number]> = [
+      [42, 42, -7],
+      [59, 55, 4],
+      [77, 44, -3],
+      [50, 72, 6],
+    ];
+    for (let i = 0; i < piles; i++) {
+      const [x, y, rot] = paperCells[i];
+      shapes.push(
+        { d: `M ${x - 9} ${y - 7} L ${x + 10} ${y - 7 + rot * 0.04} L ${x + 8} ${y + 8} L ${x - 10} ${y + 7 - rot * 0.04} Z`, fill: '#F7F4EC' },
+        { d: `M ${x - 5} ${y - 1} L ${x + 5} ${y - 1} M ${x - 4} ${y + 4} L ${x + 4} ${y + 4}`, stroke: '$secondary', strokeWidth: 1.5, silhouette: false },
+      );
+    }
+    if ((params.phone ?? 1) >= 1) {
+      shapes.push(
+        { d: rr(80, 66, 25, 13, 4), fill: '$primary' },
+        { d: rr(84, 69, 12, 4, 2), fill: '$accent', silhouette: false },
+        { d: circle(101, 72, 2), fill: '$secondary', silhouette: false },
+      );
+    }
+    shapes.push({ d: circle(36, 72, 4.5), fill: '$accent', silhouette: false });
+    return shapes;
+  },
+};
+
+const couch: PropTemplate = {
+  id: 'couch',
+  label: 'Couch',
+  projection: 'plan',
+  params: [
+    { key: 'width', label: 'Width', min: 62, max: 98, step: 4, default: 82 },
+    { key: 'cushions', label: 'Cushions', min: 2, max: 3, step: 1, default: 3 },
+  ],
+  build(params) {
+    const w = params.width ?? 82;
+    const x = CX - w / 2;
+    const top = 42;
+    const cushions = params.cushions ?? 3;
+    const shapes: ShapeSpec[] = [
+      { d: rr(x - 8, top - 6, w + 16, 52, 10), fill: '$secondary' },
+      { d: rr(x, top, w, 42, 8), fill: '$primary' },
+      { d: rr(x - 12, top + 4, 14, 34, 6), fill: '$secondary' },
+      { d: rr(x + w - 2, top + 4, 14, 34, 6), fill: '$secondary' },
+      { d: rr(x + 5, top + 31, w - 10, 7, 3), fill: '#00000016', silhouette: false },
+    ];
+    for (let i = 1; i < cushions; i++) {
+      const sx = x + (w * i) / cushions;
+      shapes.push({ d: `M ${sx} ${top + 7} L ${sx} ${top + 36}`, stroke: '$secondary', strokeWidth: 2, opacity: 0.65, silhouette: false });
+    }
+    return shapes;
+  },
+};
+
+const rug: PropTemplate = {
+  id: 'rug',
+  label: 'Rug',
+  projection: 'plan',
+  params: [
+    { key: 'width', label: 'Width', min: 72, max: 112, step: 4, default: 96 },
+    { key: 'pattern', label: 'Pattern', min: 0, max: 2, step: 1, default: 1 },
+  ],
+  build(params) {
+    const w = params.width ?? 96;
+    const x = CX - w / 2;
+    const y = 42;
+    const h = 48;
+    const shapes: ShapeSpec[] = [
+      { d: rr(x, y, w, h, 12), fill: '$primary' },
+      { d: rr(x + 8, y + 8, w - 16, h - 16, 8), fill: '$secondary', silhouette: false },
+    ];
+    const pattern = params.pattern ?? 1;
+    if (pattern >= 1) shapes.push({ d: rr(x + 20, y + 18, w - 40, h - 36, 6), fill: '$accent', opacity: 0.55, silhouette: false });
+    if (pattern >= 2) {
+      shapes.push(
+        { d: `M ${x + 12} ${y + 12} L ${x + w - 12} ${y + h - 12}`, stroke: '#FFFFFF42', strokeWidth: 4, silhouette: false },
+        { d: `M ${x + w - 12} ${y + 12} L ${x + 12} ${y + h - 12}`, stroke: '#FFFFFF42', strokeWidth: 4, silhouette: false },
+      );
+    }
+    return shapes;
+  },
+};
+
+const vendingMachine: PropTemplate = {
+  id: 'vending-machine',
+  label: 'Vending machine',
+  projection: 'elevation',
+  params: [
+    { key: 'height', label: 'Height', min: 70, max: 94, step: 2, default: 84 },
+    { key: 'stocked', label: 'Stocked rows', min: 1, max: 3, step: 1, default: 3 },
+  ],
+  build(params) {
+    const h = params.height ?? 84;
+    const top = GROUND - h;
+    const stocked = params.stocked ?? 3;
+    const shapes: ShapeSpec[] = [
+      { d: rr(CX - 23, top, 46, h, 5), fill: '$primary' },
+      { d: rr(CX - 17, top + 8, 24, h - 20, 3), fill: '$secondary', opacity: 0.92 },
+      { d: rr(CX + 10, top + 11, 8, h - 24, 2), fill: '#00000038', silhouette: false },
+      { d: circle(CX + 14, top + 23, 2.5), fill: '$accent', silhouette: false },
+      { d: rr(CX + 11, GROUND - 22, 7, 9, 1.5), fill: '$accent', silhouette: false },
+      { d: rr(CX - 13, GROUND - 10, 25, 5, 2), fill: '#00000040', silhouette: false },
+    ];
+    const colors = ['#D85A30', '#97C459', '#185FA5', '#EF9F27', '#F7F4EC', '#A32D2D'];
+    for (let row = 0; row < stocked; row++) {
+      for (let col = 0; col < 3; col++) {
+        shapes.push({ d: rr(CX - 14 + col * 8, top + 14 + row * 14, 5, 8, 1), fill: colors[(row * 3 + col) % colors.length], silhouette: false });
+      }
+    }
+    return shapes;
   },
 };
 
@@ -433,6 +677,14 @@ export const PROP_TEMPLATES: PropTemplate[] = [
   conferenceTable,
   receptionDesk,
   badgeReader,
+  door,
+  window,
+  nameplate,
+  hvacVent,
+  deskClutter,
+  couch,
+  rug,
+  vendingMachine,
   officeChair,
   cubicleWorkstation,
   whiteboard,

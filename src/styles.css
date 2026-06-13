@@ -307,6 +307,16 @@ body {
   color: var(--accent);
 }
 
+.projection-badge.wall-slot {
+  border-color: rgba(83, 151, 201, 0.62);
+  color: #8fc4e8;
+}
+
+.projection-badge.floor {
+  border-color: rgba(151, 196, 89, 0.48);
+  color: #b0d985;
+}
+
 .mood-bar {
   display: flex;
   gap: 6px;

@@ -103,6 +103,14 @@ export function renderPropControls(container: HTMLElement): void {
         template.projection === 'plan' ? 'Plan (top-down, rotatable)' : 'Elevation (front, y-sorted)',
       ),
     ),
+    labeled(
+      'Placement',
+      el(
+        'span',
+        { className: `projection-badge ${template.placement ?? 'floor'}` },
+        (template.placement ?? 'floor') === 'wall-slot' ? 'Wall slot' : 'Floor cell',
+      ),
+    ),
   );
 
   for (const param of template.params) {

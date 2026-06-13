@@ -4,9 +4,10 @@ Where the sprite toolkit goes next. Phases are ordered by dependency: each one
 builds on the last, and items within a phase are roughly independent.
 
 Current state (done): character compositor with anchors/tokens/silhouette
-contracts, 6 mood overlays, 12 props with hybrid plan/elevation projection,
-3 autotiling wall sets, 4 seamless floors, global style sheet, PNG + atlas
-export at 1x/2x/4x, full-project zip.
+contracts, 6 mood overlays, 21 prop templates / 22 default prop instances with
+hybrid plan/elevation projection and wall-slot placement metadata, 3
+autotiling wall sets, 4 seamless floors, global style sheet, PNG + atlas export
+at 1x/2x/4x, scene/layout JSON, full-project zip.
 
 ---
 
@@ -59,7 +60,15 @@ preview/export behavior; part definitions stay vector-smooth and unchanged.
 
 ## Phase 2 — Into Unity
 
-### 2.1 Unity import helper (do this before any porting)
+### 2.1 Unity import helper — DONE
+Implemented in The-Water-Cooler with a Phase 2 editor menu importer:
+`Water Cooler/Phase 2/Import Sprite Toolkit Zip...`. The importer extracts a
+Sprite Character Creator export zip into a timestamped generated folder,
+slices character/mood sheets and wall tilesets from atlas JSON, applies pivot
+and projection metadata, builds character/prop prefabs, creates floor/prop/
+character metadata assets, and uses a 16-mask wall sprite lookup instead of
+RuleTiles until the map path needs a Tilemap dependency.
+
 Editor script in The-Water-Cooler that ingests the export zip:
 - Slices sheets using the atlas JSONs (frames, pivots).
 - Applies projection metadata: plan props → center pivot, floor sorting
@@ -70,24 +79,51 @@ Editor script in The-Water-Cooler that ingests the export zip:
   game needs for a long time. The port is only urgent if runtime NPC
   generation is needed.
 
-### 2.2 Runtime rendering decision (spike, ~a day)
-The C# port has one open question: how to draw vector shapes in Unity.
-Options to evaluate:
+### 2.2 Runtime rendering decision (chosen hybrid)
+The C# port should not draw vector shapes in Unity. Runtime generation should
+assemble imported sprites from data:
+- **Baked sheets for maps, props, walls, and floors** — the tool exports final
+  sprite sheets/atlases plus JSON metadata. Unity imports them once, then the
+  map generator places sprites via layout JSON, tile masks, prop ids, pivots,
+  sorting hints, and projection metadata.
+- **Layer atlases for generated coworkers** — the tool exports body/head/hair/
+  outfit/accessory/mood layers as separate neutral or token-mask textures.
+  Unity generates NPC recipes, then stacks/tints those layers by facing, mood,
+  anchor, z-order, and palette.
+
+Rejected or limited alternatives:
 - **Unity VectorGraphics package** — parse the part SVGs directly, rasterize
-  to textures at runtime. Closest to a straight port.
+  to textures at runtime. Closest to a straight vector port, but more runtime
+  complexity than this project needs.
 - **Shapes library** (already in the project) — render parts as immediate-mode
-  vector draws; would constrain part paths to its primitives.
-- **Pre-rasterized layer atlas** — bake each part variant to a texture once
-  (in-tool), composite by stacking tinted quads in Unity. No vector code in
-  C# at all; recipes + palette tints still give runtime variety.
-The third option is likely the winner (simplest, fastest, mod-friendly), but
-decide with a spike before committing.
+  vector draws; useful for editor/debug overlays and procedural primitives, but
+  not a drop-in compositor for these assets because the current parts are SVG
+  path data and Shapes has no SVG importer. Choosing it as the primary runtime
+  renderer would mean re-authoring/constraining art to Shapes primitives and
+  issuing carefully ordered draw calls every frame.
+Keep Shapes available for map gizmos, placement previews, selection rings,
+route/debug lines, room bounds, or intentionally primitive procedural graphics.
+
+Spike proof:
+- Export a layer atlas for one character family: body/head/hair/outfit/mood
+  overlays as separate neutral or token-mask textures.
+- In Unity, compose two coworkers from the same atlas with different recipes,
+  palette tints, moods, facings, and sort orders.
+- Generate one small office from layout JSON using imported wall/floor/prop
+  atlas entries; use Shapes only for debug overlays such as room bounds or
+  navigation paths.
+- Accept the raster-atlas path if the result is visually close, avoids visible
+  seams, and generates a room plus 10 NPC variants without per-frame vector
+  draw work.
 
 ### 2.3 C# compositor port
-Port the data model + composite logic per the 2.2 decision: recipes, palette
-token resolution, anchors, z-order, proportions, mood overlays. The outline
-pass moves to a shader or stays baked depending on 2.2. Target API:
-`SpriteSheet Compose(CharacterRecipe recipe, StyleSheet style)`.
+Port only the data model + sprite-layer assembly needed for generated
+coworkers: recipes, palette token resolution, anchors, z-order, proportions,
+facings, and mood overlays. This is an `NpcSpriteComposer`, not a vector
+renderer. Maps do not use this path; they use layout generation plus imported
+tile/prop sprite lookups. The outline pass should stay baked unless the layer
+atlas spike proves a shader outline is necessary. Target API:
+`NpcSpriteSet Compose(CharacterRecipe recipe, StyleSheet style)`.
 
 ### 2.4 Headless export CLI
 `npm run export -- project.json out/` — regenerate every asset without the
@@ -99,7 +135,12 @@ of art-as-data.
 
 ## Phase 3 — Content depth & hardening
 
-### 3.1 Remaining object taxonomy
+### 3.1 Remaining object taxonomy — DONE
+Implemented with: wall-slot door/open-door/window/nameplate/HVAC templates,
+door open/closed state parameter, badge-reader pairing in generated doorways,
+desk clutter, couch, rug, vending machine, default prop instances, starter-scene
+coverage, generated-office placement rules, and `placement` metadata in prop
+atlases plus layout JSON.
 - **Door** — special wall-slot tile (fits into a wall run, open/closed
   states); pairs with the badge reader.
 - Window (wall-slot, like door), nameplate, HVAC vent, desk clutter
