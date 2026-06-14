@@ -177,8 +177,18 @@ body {
   gap: 12px 16px;
 }
 
+/* Cards full of flat fields (a location, a truth, a relationship override) also
+   columnize their fields — but only inside the editor, never the inspector. */
+.layout.swap .controls .row-card {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  align-items: start;
+  gap: 10px 14px;
+}
+
 .layout.swap .controls > *:not(.field),
 .layout.swap .section-body > *:not(.field),
+.layout.swap .controls .row-card > *:not(.field),
 .layout.swap .controls > .field:has(textarea),
 .layout.swap .controls > .field:has(.check-grid),
 .layout.swap .controls > .field:has(.palette-grid),
@@ -186,8 +196,57 @@ body {
 .layout.swap .section-body > .field:has(textarea),
 .layout.swap .section-body > .field:has(.check-grid),
 .layout.swap .section-body > .field:has(.palette-grid),
-.layout.swap .section-body > .field:has(.tag-editor) {
+.layout.swap .section-body > .field:has(.tag-editor),
+.layout.swap .controls .row-card > .field:has(textarea),
+.layout.swap .controls .row-card > .field:has(.tag-editor) {
   grid-column: 1 / -1;
+}
+
+/* Scenario: a wider inspector column for the dense analysis views, and let the
+   inspector content fill that column rather than centering like the art panels. */
+.layout.scenario-layout {
+  grid-template-columns: 220px 1fr 380px;
+}
+
+.layout.scenario-layout .preview {
+  align-items: stretch;
+  padding: 16px;
+}
+
+/* ---------- in-panel view tabs (editor sections / inspector views) ---------- */
+
+.view-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: rgba(17, 20, 22, 0.97);
+  padding: 4px 0 8px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+}
+
+.view-tab {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 5px 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.view-tab:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+
+.view-tab.active {
+  background: var(--accent-soft);
+  border-color: rgba(214, 155, 75, 0.55);
+  color: var(--text);
 }
 
 .sidebar {

@@ -31,7 +31,7 @@ import {
   type TruthFact,
 } from '../core/scenario';
 import { button, clear, el, labeled, select } from './dom';
-import { collapsibleSection as section, listItem, num, optNum, tagEditor, textArea, textField, uid } from './controls';
+import { collapsibleSection as section, listItem, num, optNum, tagEditor, textArea, textField, uid, viewTabs } from './controls';
 
 // Which variant the dry-run preview resolves against (transient; resets on reload).
 let previewVariantId: string | null = null;
@@ -40,6 +40,10 @@ let previewContainer: HTMLElement | null = null;
 let placingLocationId: string | null = null;
 // Belief topic the social graph clusters by (transient).
 let graphTopic: string | null = null;
+// Which editor section group / inspector view is shown (transient; resets on reload).
+let editorContainer: HTMLElement | null = null;
+let editorGroup = 'setup';
+let inspectorView = 'map';
 
 function edit(fn: () => void, kind: ChangeKind = 'data'): void {
   store.mutate(fn, kind);
@@ -708,31 +712,64 @@ export function renderScenarioPreview(container: HTMLElement): void {
       ),
     );
   }
-  renderOfficeMap(container, s);
-  renderDryRun(container, s);
+
+  // One analysis view at a time — the stack used to render all four at once.
+  if (!INSPECTOR_VIEWS.some((v) => v.id === inspectorView)) inspectorView = 'map';
+  container.append(
+    viewTabs(inspectorView, INSPECTOR_VIEWS, (id) => {
+      inspectorView = id;
+      if (previewContainer) renderScenarioPreview(previewContainer);
+    }),
+  );
   const run = activeRun(s);
-  renderSocialGraph(container, run);
-  renderOverview(container, s, run);
+  if (inspectorView === 'map') renderOfficeMap(container, s);
+  else if (inspectorView === 'dryrun') renderDryRun(container, s);
+  else if (inspectorView === 'graph') {
+    if (run.agents.length > 1) renderSocialGraph(container, run);
+    else container.append(el('p', { className: 'hint' }, 'Add at least two cast members to see the social graph.'));
+  } else renderOverview(container, s, run);
 }
+
+const INSPECTOR_VIEWS: ReadonlyArray<{ id: string; label: string }> = [
+  { id: 'map', label: 'Map' },
+  { id: 'dryrun', label: 'Dry run' },
+  { id: 'graph', label: 'Graph' },
+  { id: 'stats', label: 'Stats' },
+];
+
+// The editor's sections, grouped so the tab strip stays short. Each group
+// renders only when its tab is active, so you focus on one slice at a time.
+const EDITOR_GROUPS: ReadonlyArray<{ id: string; label: string; build: (s: Scenario) => HTMLElement[] }> = [
+  { id: 'setup', label: 'Setup', build: (s) => [metaSection(s), officeSection(s), objectiveSection(s)] },
+  { id: 'cast', label: 'Cast', build: (s) => [castSection(s)] },
+  { id: 'locations', label: 'Locations', build: (s) => [locationsSection(s)] },
+  { id: 'knowledge', label: 'Knowledge', build: (s) => [truthSection(s), informationSection(s)] },
+  { id: 'experiment', label: 'Experiment', build: (s) => [experimentSection(s)] },
+];
 
 export function renderScenarioControls(container: HTMLElement): void {
   clear(container);
+  editorContainer = container;
   const s = store.selectedScenario;
   if (!s) return;
 
+  if (!EDITOR_GROUPS.some((g) => g.id === editorGroup)) editorGroup = 'setup';
+  const group = EDITOR_GROUPS.find((g) => g.id === editorGroup)!;
   container.append(
-    metaSection(s),
-    officeSection(s),
-    castSection(s),
-    locationsSection(s),
-    truthSection(s),
-    informationSection(s),
-    experimentSection(s),
-    objectiveSection(s),
-    el(
-      'div',
-      { className: 'btn-row' },
-      button('Validate', () => {
+    viewTabs(editorGroup, EDITOR_GROUPS, (id) => {
+      editorGroup = id;
+      if (editorContainer) renderScenarioControls(editorContainer);
+    }),
+    ...group.build(s),
+    actionRow(s),
+  );
+}
+
+function actionRow(s: Scenario): HTMLElement {
+  return el(
+    'div',
+    { className: 'btn-row' },
+    button('Validate', () => {
         const issues = validateScenario(s, validationCtx());
         const personaless = castWithoutPersona(s);
         const notes = [
@@ -759,6 +796,5 @@ export function renderScenarioControls(container: HTMLElement): void {
           store.ui.selectedScenarioId = st.scenarios[0]?.scenarioId ?? '';
         }, 'structure');
       }, 'danger'),
-    ),
   );
 }

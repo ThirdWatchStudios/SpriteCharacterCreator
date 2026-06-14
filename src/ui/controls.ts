@@ -134,6 +134,31 @@ export function collapsibleSection(title: string, ...children: Array<Node | null
   return sec;
 }
 
+// --- view tabs --------------------------------------------------------------
+
+/**
+ * A horizontal segmented strip for switching between views *within* a panel —
+ * used to break dense editors/inspectors into one-at-a-time sections. The active
+ * id is owned by the caller (module-level), so clicking just re-renders.
+ */
+export function viewTabs(
+  active: string,
+  tabs: ReadonlyArray<{ id: string; label: string }>,
+  onPick: (id: string) => void,
+): HTMLElement {
+  const bar = el('div', { className: 'view-tabs' });
+  for (const t of tabs) {
+    bar.append(
+      el(
+        'button',
+        { className: `view-tab ${t.id === active ? 'active' : ''}`, onClick: () => onPick(t.id) },
+        t.label,
+      ),
+    );
+  }
+  return bar;
+}
+
 // --- palette grid -----------------------------------------------------------
 
 /** Shared labels for the prop/tile palette tokens. */

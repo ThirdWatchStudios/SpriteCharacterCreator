@@ -59,10 +59,11 @@ function groupForLeaf(leaf: Leaf): NavGroup {
 
 /**
  * Most tabs use a swapped layout: the detailed controls take the wide center
- * column and the visual preview moves into the right-hand panel. The interactive
- * map editors (Office, Scenario) keep their canvas in the center instead.
+ * column and the visual preview moves into the right-hand panel. The Scenario
+ * editor joins them (analysis becomes a tabbed inspector); the Office tab keeps
+ * its paint canvas in the center instead.
  */
-const SWAP_TABS = new Set<Leaf>(['characters', 'persona', 'employees', 'props', 'tiles', 'style']);
+const SWAP_TABS = new Set<Leaf>(['characters', 'persona', 'employees', 'props', 'tiles', 'style', 'scenario']);
 
 export function mountApp(root: HTMLElement): void {
   const tabBar = el('nav', { className: 'tabs' });
@@ -185,6 +186,8 @@ export function mountApp(root: HTMLElement): void {
     const tab = store.ui.tab;
     main.classList.toggle('no-sidebar', tab === 'style');
     main.classList.toggle('swap', SWAP_TABS.has(tab));
+    // Scenario gets a wider inspector column for its dense analysis views.
+    main.classList.toggle('scenario-layout', tab === 'scenario');
 
     if (tab === 'characters') {
       renderCharacterList(sidebar);

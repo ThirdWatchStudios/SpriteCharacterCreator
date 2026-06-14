@@ -16,7 +16,7 @@ import { downloadBlob, downloadJson, scenePosterPng } from '../core/exporter';
 import { PROP_TEMPLATES } from '../props/templates';
 import { store } from '../state';
 import { button, clear, el, labeled, select } from './dom';
-import { exportScaleSelect, listItem } from './controls';
+import { exportScaleSelect, listItem, viewTabs } from './controls';
 import { setPreviewSvg, setScenePreviewSvg } from './renderPreview';
 
 const BRUSHES: Array<{ id: SceneBrush; label: string }> = [
@@ -206,10 +206,36 @@ function placedCharacterRows(current: SceneState): HTMLElement {
   return rows;
 }
 
+// Office controls split into focused tabs so paint settings, office generation,
+// and export aren't all competing for attention beside the canvas at once.
+const SCENE_TABS: ReadonlyArray<{ id: string; label: string }> = [
+  { id: 'paint', label: 'Paint' },
+  { id: 'generate', label: 'Generate' },
+  { id: 'export', label: 'Export' },
+];
+
+let sceneControlsContainer: HTMLElement | null = null;
+let sceneControlsTab = 'paint';
+
 export function renderSceneControls(container: HTMLElement): void {
   clear(container);
+  sceneControlsContainer = container;
   const current = scene();
 
+  if (!SCENE_TABS.some((t) => t.id === sceneControlsTab)) sceneControlsTab = 'paint';
+  container.append(
+    viewTabs(sceneControlsTab, SCENE_TABS, (id) => {
+      sceneControlsTab = id;
+      if (sceneControlsContainer) renderSceneControls(sceneControlsContainer);
+    }),
+  );
+
+  if (sceneControlsTab === 'paint') renderScenePaint(container, current);
+  else if (sceneControlsTab === 'generate') renderSceneGenerate(container);
+  else renderSceneExport(container, current);
+}
+
+function renderScenePaint(container: HTMLElement, current: SceneState): void {
   container.append(
     labeled(
       'Character facing',
@@ -242,7 +268,9 @@ export function renderSceneControls(container: HTMLElement): void {
   }
 
   container.append(el('h3', {}, 'Placed moods'), placedCharacterRows(current));
+}
 
+function renderSceneExport(container: HTMLElement, current: SceneState): void {
   const scaleSelect = exportScaleSelect();
 
   const exportBtn = button('Poster PNG', async () => {
@@ -257,6 +285,20 @@ export function renderSceneControls(container: HTMLElement): void {
     }
   }, 'primary');
 
+  container.append(
+    el('h3', {}, 'Export'),
+    labeled('Export scale', scaleSelect),
+    el(
+      'div',
+      { className: 'btn-row' },
+      exportBtn,
+      button('Layout JSON', () => downloadJson('office-layout.json', sceneToLayoutJson(current, store.state))),
+      button('Reset scene', () => store.mutate((state) => (state.scene = createDefaultScene(state)), 'structure')),
+    ),
+  );
+}
+
+function renderSceneGenerate(container: HTMLElement): void {
   const coworkerInput = el('input', {
     type: 'number',
     min: 0,
@@ -300,17 +342,9 @@ export function renderSceneControls(container: HTMLElement): void {
 
   container.append(
     el('h3', {}, 'Random office'),
+    el('p', { className: 'hint' }, 'Roll a fresh office and coworker cast, or replay a pinned seed.'),
     labeled('Random coworkers', coworkerInput),
     labeled('Seed (same seed = same office)', seedInput),
     el('div', { className: 'btn-row' }, randomBtn, generateBtn),
-    el('h3', {}, 'Scene'),
-    labeled('Export scale', scaleSelect),
-    el(
-      'div',
-      { className: 'btn-row' },
-      exportBtn,
-      button('Layout JSON', () => downloadJson('office-layout.json', sceneToLayoutJson(current, store.state))),
-      button('Reset scene', () => store.mutate((state) => (state.scene = createDefaultScene(state)), 'structure')),
-    ),
   );
 }
