@@ -510,7 +510,10 @@ export async function exportAll(
   const write = (path: string, data: string | PngBytes) => sink.file(path, data);
 
   for (const recipe of project.characters) {
-    const dir = `characters/${slug(recipe.name)}`;
+    // Slug off the recipe id, not the display name: the id is the engine
+    // binding key (layer atlas Family = recipe id = the sim's AgentId), so the
+    // exported folder name must be stable and match the consuming agent id.
+    const dir = `characters/${slug(recipe.id)}`;
     for (const scale of EXPORT_SCALES) {
       await write(`${dir}/sheet@${scale}x.png`, await png(characterSheetDesc(recipe, style, scale)));
       await write(`${dir}/atlas@${scale}x.json`, JSON.stringify(characterAtlas(recipe, style, scale), null, 2));
@@ -526,7 +529,9 @@ export async function exportAll(
   // in a separate top-level folder so the layer importer iterates it distinctly
   // from the baked character sheets above.
   for (const recipe of project.characters) {
-    const dir = `character-layers/${slug(recipe.name)}`;
+    // Layer-atlas folder is keyed by recipe id too — this is the Family the
+    // runtime NPC composer resolves by AgentId (see SPRITE_INTEGRATION.md W4).
+    const dir = `character-layers/${slug(recipe.id)}`;
     for (const scale of EXPORT_SCALES) {
       await write(`${dir}/layers@${scale}x.png`, await png(layerSheetDesc(recipe, style, scale)));
       await write(`${dir}/manifest@${scale}x.json`, JSON.stringify(characterLayerManifest(recipe, style, scale), null, 2));

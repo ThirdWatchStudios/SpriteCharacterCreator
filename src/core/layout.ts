@@ -83,7 +83,7 @@ const ROWS = 14;
  * line. Never leave a one-tile gap between rooms — that's how double walls
  * happen.
  */
-const LAYOUT_TEMPLATES: LayoutTemplate[] = [
+export const LAYOUT_TEMPLATES: LayoutTemplate[] = [
   {
     id: 'cross-hall-compact',
     label: 'Cross hall compact',
@@ -839,6 +839,11 @@ function buildCubicleComb(scene: SceneState, project: ProjectState, room: RoomSp
 
 function furnishHallway(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): void {
   addPropNear(scene, project, room, 'hall-badge-reader', 'prop-badge-reader', 'badge-reader', 0.8, 0.5, rng);
+  // Supply cabinet + mail station are the visible counterparts of the sim's
+  // hallway interaction anchors (anchor:hallway:supply_cabinet / :mail_station),
+  // so place them unconditionally — the anchors must always resolve to a prop.
+  addPropNear(scene, project, room, 'hall-supply-cabinet', 'prop-supply-cabinet', 'supply-cabinet', 0.3, 0.1, rng);
+  addPropNear(scene, project, room, 'hall-mail-station', 'prop-mail-station', 'mail-station', 0.55, 0.1, rng);
   if (chance(rng, 0.5)) addPropNear(scene, project, room, 'hall-plant', 'prop-office-plant', 'office-plant', 0.1, 0.5, rng);
 }
 
@@ -911,7 +916,7 @@ export function generateOfficeLayout(
   spawnCharacter(scene, project, baseCast.find((r) => r.id === 'janice') ?? baseCast[0], 'hallway', 'suspicious', pick(rng, FACINGS), rng);
   spawnCharacter(scene, project, baseCast.find((r) => r.id === 'carl') ?? baseCast[1], chance(rng, 0.5) ? 'break-room' : 'cubicle-farm', 'curious', pick(rng, FACINGS), rng);
   spawnCharacter(scene, project, baseCast.find((r) => r.id === 'linda') ?? baseCast[2], chance(rng, 0.5) ? 'conference-room' : 'cubicle-farm', 'defensive', pick(rng, FACINGS), rng);
-  const manager = baseCast.find((r) => r.id === 'the-manager') ?? baseCast[3];
+  const manager = baseCast.find((r) => r.id === 'manager') ?? baseCast[3];
   if (managerSeat) addCharacter(scene, project, manager, managerSeat.x, managerSeat.y, 'hostile', managerSeat.facing);
   else spawnCharacter(scene, project, manager, 'manager-office', 'hostile', pick(rng, FACINGS), rng);
 

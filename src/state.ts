@@ -1,7 +1,10 @@
 import type { Mood, ProjectState } from './core/types';
 import type { SceneBrush, SceneFacing } from './core/scene';
 import { createDefaultScene } from './core/scene';
-import { DEFAULT_FLOORS, DEFAULT_PROPS, DEFAULT_STYLE_PRESETS, DEFAULT_WALLS, defaultProject } from './data/defaults';
+import { migrateProject } from './core/migrations';
+import { defaultProject } from './data/defaults';
+
+export { normalizePixelScale } from './core/migrations';
 
 const STORAGE_KEY = 'sprite-character-creator-v1';
 
@@ -41,18 +44,17 @@ class Store {
     this.ui.selectedTileId = this.state.walls[0]?.id ?? this.state.floors[0]?.id ?? '';
     this.ui.selectedStylePresetId = this.state.stylePresets[0]?.id ?? '';
     this.state.scene ??= createDefaultScene(this.state);
+    // Persist the migrated/normalized form so older saves are rewritten to the
+    // current schema (and legacy ids reconciled) without waiting for an edit.
+    this.save();
   }
 
   private load(): ProjectState {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
-        const parsed = JSON.parse(raw) as ProjectState;
-        if (parsed.version === 1) {
-          // Projects saved before walls/floors existed get the default sets.
-          this.backfillDefaults(parsed);
-          return parsed;
-        }
+        const migrated = migrateProject(JSON.parse(raw));
+        if (migrated) return migrated;
       }
     } catch {
       // fall through to defaults
@@ -81,43 +83,14 @@ class Store {
   }
 
   replaceProject(next: ProjectState): void {
-    this.backfillDefaults(next);
-    this.state = next;
-    this.ui.selectedCharacterId = next.characters[0]?.id ?? '';
-    this.ui.selectedPropId = next.props[0]?.id ?? '';
-    this.ui.selectedTileId = next.walls[0]?.id ?? next.floors[0]?.id ?? '';
-    this.ui.selectedStylePresetId = next.stylePresets[0]?.id ?? '';
-    next.scene ??= createDefaultScene(next);
+    this.state = migrateProject(next) ?? next;
+    this.ui.selectedCharacterId = this.state.characters[0]?.id ?? '';
+    this.ui.selectedPropId = this.state.props[0]?.id ?? '';
+    this.ui.selectedTileId = this.state.walls[0]?.id ?? this.state.floors[0]?.id ?? '';
+    this.ui.selectedStylePresetId = this.state.stylePresets[0]?.id ?? '';
+    this.state.scene ??= createDefaultScene(this.state);
     this.save();
     this.emit('structure');
-  }
-
-  private backfillDefaults(project: ProjectState): void {
-    project.props ??= structuredClone(DEFAULT_PROPS);
-    project.walls ??= structuredClone(DEFAULT_WALLS);
-    project.floors ??= structuredClone(DEFAULT_FLOORS);
-    project.stylePresets ??= structuredClone(DEFAULT_STYLE_PRESETS);
-    project.style.render.pixelScale ??= 1;
-    project.style.render.pixelScale = normalizePixelScale(project.style.render.pixelScale);
-    for (const preset of DEFAULT_STYLE_PRESETS) {
-      if (!project.stylePresets.some((item) => item.id === preset.id || item.name === preset.name)) {
-        project.stylePresets.push(structuredClone(preset));
-      }
-    }
-    for (const preset of project.stylePresets) {
-      preset.style.render.pixelScale ??= 1;
-      preset.style.render.pixelScale = normalizePixelScale(preset.style.render.pixelScale);
-    }
-    for (const prop of DEFAULT_PROPS) {
-      if (!project.props.some((item) => item.id === prop.id)) {
-        project.props.push(structuredClone(prop));
-      }
-    }
-    for (const floor of DEFAULT_FLOORS) {
-      if (!project.floors.some((item) => item.id === floor.id || item.templateId === floor.templateId)) {
-        project.floors.push(structuredClone(floor));
-      }
-    }
   }
 
   private emit(kind: ChangeKind): void {
@@ -140,11 +113,6 @@ class Store {
     if (floor) return { tile: floor, kind: 'floor' };
     return undefined;
   }
-}
-
-export function normalizePixelScale(value: number): number {
-  if (!Number.isFinite(value)) return 1;
-  return Math.max(1, Math.min(8, Math.round(value)));
 }
 
 export const store = new Store();

@@ -1,5 +1,5 @@
-import type { ProjectState } from '../core/types';
 import { downloadBlob, downloadJson, exportAllZip } from '../core/exporter';
+import { migrateProject } from '../core/migrations';
 import { defaultProject } from '../data/defaults';
 import { store } from '../state';
 import { button, clear, el } from './dom';
@@ -51,11 +51,9 @@ export function mountApp(root: HTMLElement): void {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (!file) return;
       try {
-        const parsed = JSON.parse(await file.text()) as ProjectState;
-        if (parsed.version !== 1 || !Array.isArray(parsed.characters)) {
-          throw new Error('not a project file');
-        }
-        store.replaceProject(parsed);
+        const migrated = migrateProject(JSON.parse(await file.text()));
+        if (!migrated) throw new Error('not a project file');
+        store.replaceProject(migrated);
       } catch {
         alert('Could not import: not a valid project JSON.');
       }

@@ -189,7 +189,8 @@ export interface TileInstance {
 }
 
 export interface ProjectState {
-  version: 1;
+  /** Schema version; see CURRENT_SCHEMA_VERSION and migrateProject(). */
+  version: number;
   style: StyleSheet;
   stylePresets: StylePreset[];
   characters: CharacterRecipe[];
@@ -199,6 +200,14 @@ export interface ProjectState {
   /** The scene canvas — persisted so hand-edits survive reloads. */
   scene?: import('./scene').SceneState;
 }
+
+/**
+ * Current project/export schema version. Lives here (a dependency-free module)
+ * so both the defaults and the migration code can read it without a cycle.
+ * Bump it and add an ordered step in migrateProject() on any breaking shape
+ * change. v2 reconciled the manager recipe id to the game's AgentId.
+ */
+export const CURRENT_SCHEMA_VERSION = 2;
 
 /** Design-space canvas size. Parts are authored against this; never changes. */
 export const CANVAS = 128;

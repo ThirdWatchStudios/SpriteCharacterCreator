@@ -1,4 +1,5 @@
 import type { CharacterRecipe, ProjectState, PropInstance, StylePreset, StyleSheet, TileInstance } from '../core/types';
+import { CURRENT_SCHEMA_VERSION } from '../core/types';
 
 export const DEFAULT_STYLE: StyleSheet = {
   outline: {
@@ -143,7 +144,7 @@ export const DEFAULT_CAST: CharacterRecipe[] = [
     },
   },
   {
-    id: 'the-manager',
+    id: 'manager',
     name: 'The Manager',
     parts: {
       body: 'body-broad',
@@ -317,6 +318,20 @@ export const DEFAULT_PROPS: PropInstance[] = [
     params: { drawers: 3 },
     palette: { primary: '#7A6C5D', secondary: '#8A8578', accent: '#2C2C2A' },
   },
+  {
+    id: 'prop-supply-cabinet',
+    name: 'Supply cabinet',
+    templateId: 'supply-cabinet',
+    params: { height: 72 },
+    palette: { primary: '#8A8578', secondary: '#D3D1C7', accent: '#185FA5' },
+  },
+  {
+    id: 'prop-mail-station',
+    name: 'Mail station',
+    templateId: 'mail-station',
+    params: { height: 60, columns: 4 },
+    palette: { primary: '#7A6C5D', secondary: '#E8E4D8', accent: '#A32D2D' },
+  },
 ];
 
 export const DEFAULT_WALLS: TileInstance[] = [
@@ -390,7 +405,7 @@ export const DEFAULT_FLOORS: TileInstance[] = [
 
 export function defaultProject(): ProjectState {
   return {
-    version: 1,
+    version: CURRENT_SCHEMA_VERSION,
     style: structuredClone(DEFAULT_STYLE),
     stylePresets: structuredClone(DEFAULT_STYLE_PRESETS),
     characters: structuredClone(DEFAULT_CAST),

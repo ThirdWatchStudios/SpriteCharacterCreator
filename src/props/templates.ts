@@ -684,6 +684,85 @@ const filingCabinet: PropTemplate = {
   },
 };
 
+const supplyCabinet: PropTemplate = {
+  id: 'supply-cabinet',
+  label: 'Supply cabinet',
+  projection: 'elevation',
+  params: [{ key: 'height', label: 'Height', min: 60, max: 84, step: 2, default: 72 }],
+  build(params) {
+    const h = params.height;
+    const top = GROUND - h;
+    const w = 40;
+    const x = CX - w / 2;
+    const shelfY = top + Math.round(h * 0.42);
+    const doorW = (w - 13) / 2;
+    const doorTop = shelfY + 4;
+    const doorH = GROUND - doorTop - 4;
+    return [
+      // carcass
+      { d: rr(x, top, w, h, 4), fill: '$primary' },
+      // open upper shelf recess
+      { d: rr(x + 4, top + 4, w - 8, shelfY - top - 6, 2), fill: '$secondary', silhouette: false },
+      // stacked supplies on the shelf: paper reams + a box + a bottle
+      { d: rr(x + 7, top + 7, 10, 8, 1), fill: '#F7F4EC', silhouette: false },
+      { d: rr(x + 18, top + 8, 8, 7, 1), fill: '$accent', silhouette: false },
+      { d: rr(x + 27, top + 6, 6, 9, 1), fill: '#97C459', silhouette: false },
+      // lower double doors
+      { d: rr(x + 5, doorTop, doorW, doorH, 2), fill: '$secondary', silhouette: false },
+      { d: rr(CX + 2, doorTop, doorW, doorH, 2), fill: '$secondary', silhouette: false },
+      // door handles meeting at the centre seam
+      { d: rr(CX - 3.5, doorTop + doorH / 2 - 4, 2, 8, 1), fill: '$accent', silhouette: false },
+      { d: rr(CX + 1.5, doorTop + doorH / 2 - 4, 2, 8, 1), fill: '$accent', silhouette: false },
+    ];
+  },
+};
+
+const mailStation: PropTemplate = {
+  id: 'mail-station',
+  label: 'Mail station',
+  projection: 'elevation',
+  params: [
+    { key: 'height', label: 'Height', min: 48, max: 72, step: 2, default: 60 },
+    { key: 'columns', label: 'Slot columns', min: 3, max: 5, step: 1, default: 4 },
+  ],
+  build(params) {
+    const h = params.height;
+    const cols = params.columns ?? 4;
+    const top = GROUND - h;
+    const w = 46;
+    const x = CX - w / 2;
+    const sorterH = Math.round(h * 0.62);
+    const shapes: ShapeSpec[] = [
+      // carcass
+      { d: rr(x, top, w, h, 3), fill: '$primary' },
+      // pigeonhole face
+      { d: rr(x + 4, top + 4, w - 8, sorterH - 6, 2), fill: '$secondary', silhouette: false },
+    ];
+    // grid of mail cubbies
+    const rows = 3;
+    const gx = x + 6;
+    const gy = top + 6;
+    const gw = w - 12;
+    const gh = sorterH - 10;
+    const cw = gw / cols;
+    const ch = gh / rows;
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        shapes.push({ d: rr(gx + c * cw + 1, gy + r * ch + 1, cw - 2, ch - 2, 1), fill: '#00000026', silhouette: false });
+      }
+    }
+    // a couple of envelopes poking out of slots
+    shapes.push(
+      { d: rr(gx + 1.5, gy + 1.5, cw - 3, ch * 0.5, 0.5), fill: '#F7F4EC', silhouette: false },
+      { d: rr(gx + cw * (cols - 1) + 1.5, gy + ch + 1.5, cw - 3, ch * 0.5, 0.5), fill: '#F7F4EC', silhouette: false },
+      // lower parcel shelf + an accent label strip
+      { d: rr(x + 4, top + sorterH + 2, w - 8, GROUND - (top + sorterH) - 5, 2), fill: '$secondary', silhouette: false },
+      { d: rr(x + 6, top + sorterH + 5, 16, 4, 1), fill: '$accent', silhouette: false },
+    );
+    return shapes;
+  },
+};
+
 export const PROP_TEMPLATES: PropTemplate[] = [
   waterCooler,
   printer,
@@ -706,4 +785,6 @@ export const PROP_TEMPLATES: PropTemplate[] = [
   cubicleWorkstation,
   whiteboard,
   filingCabinet,
+  supplyCabinet,
+  mailStation,
 ];

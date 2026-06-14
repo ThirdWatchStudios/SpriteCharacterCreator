@@ -151,7 +151,7 @@ export function createDefaultScene(project: ProjectState): SceneState {
   addCharacter('janice', 6, 5, 'suspicious', 'west');
   addCharacter('carl', 7, 5, 'curious', 'east');
   addCharacter('linda', 8, 4, 'defensive', 'south');
-  addCharacter('the-manager', 9, 5, 'hostile', 'south');
+  addCharacter('manager', 9, 5, 'hostile', 'south');
 
   return { cols, rows, floorIds, wallIds, entities, source: 'starter' };
 }
