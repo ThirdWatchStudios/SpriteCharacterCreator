@@ -119,7 +119,8 @@ props/<name>/atlas@{1,2,4}x.json            # projection + placement + pivot
 walls/<name>/tileset@{1,2,4}x.png           # 4x4 sheet, frames keyed mask_0..mask_15
 walls/<name>/atlas@{1,2,4}x.json            # mask bits, frame rects, human names
 floors/<name>/tile@{1,2,4}x.png             # seamless, tileable: true in atlas
-office-layout.json                          # current scene grid, props, spawns
+office-layout.json                          # current scene grid, props, spawns, named anchors (rooms + per-agent desks)
+scenarios/<id>.json                         # authored run definitions (cast refs + locations + truth/info + variants + objective), one per scenario
 project.json                                # full regenerable project state
 ```
 

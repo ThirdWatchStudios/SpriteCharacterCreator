@@ -16,6 +16,7 @@ import { composeSceneSvg } from './scene';
 import type { EmployeeDefinition } from './employee';
 import { employeeRecipe } from './employee';
 import { serializeProfile } from './profile';
+import { serializeScenario } from './scenario';
 import { PROP_TEMPLATES } from '../props/templates';
 import { maskName } from '../tiles/templates';
 
@@ -640,6 +641,11 @@ export async function exportAll(
   await write('project.json', JSON.stringify(project, null, 2));
   if (project.scene) {
     await write('office-layout.json', JSON.stringify(sceneToLayoutJson(project.scene, project), null, 2));
+  }
+  // Authored run definitions (sim-consumer form). One file per scenario under
+  // scenarios/, keyed by scenarioId — the sim loads these to assemble a run.
+  for (const scenario of project.scenarios ?? []) {
+    await write(`scenarios/${slug(scenario.scenarioId)}.json`, JSON.stringify(serializeScenario(scenario), null, 2));
   }
 }
 

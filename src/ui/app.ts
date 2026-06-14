@@ -5,6 +5,7 @@ import { store } from '../state';
 import { button, clear, el } from './dom';
 import { renderCharacterControls, renderCharacterList, renderCharacterPreview } from './characterPanel';
 import { renderPersonaControls, renderPersonaPreview } from './personaPanel';
+import { renderScenarioControls, renderScenarioList, renderScenarioPreview } from './scenarioPanel';
 import { renderEmployeeControls, renderEmployeeList, renderEmployeePreview } from './employeePanel';
 import { renderPropControls, renderPropList, renderPropPreview } from './propPanel';
 import { renderSceneControls, renderSceneList, renderScenePreview } from './scenePanel';
@@ -17,6 +18,7 @@ const TABS = [
   { id: 'props', label: 'Props' },
   { id: 'tiles', label: 'Walls & Floors' },
   { id: 'scene', label: 'Scene' },
+  { id: 'scenario', label: 'Scenario' },
   { id: 'employees', label: 'Employees' },
   { id: 'style', label: 'Style' },
 ] as const;
@@ -130,6 +132,10 @@ export function mountApp(root: HTMLElement): void {
       renderSceneList(sidebar);
       renderScenePreview(preview);
       if (kind === 'structure') renderSceneControls(controls);
+    } else if (tab === 'scenario') {
+      renderScenarioList(sidebar);
+      renderScenarioPreview(preview);
+      if (kind === 'structure') renderScenarioControls(controls);
     } else if (tab === 'employees') {
       renderEmployeeList(sidebar);
       renderEmployeePreview(preview);

@@ -203,6 +203,12 @@ export interface ProjectState {
    * game-design-docs/the-water-cooler/docs/design/character_model.md.
    */
   profiles?: import('./profile').CharacterProfile[];
+  /**
+   * Authored run definitions, optional and sparse. A scenario composes the
+   * project's characters/profiles/office into a loadable run. See core/scenario.ts
+   * and game-design-docs/the-water-cooler/docs/design/scenario_model.md.
+   */
+  scenarios?: import('./scenario').Scenario[];
   /** The scene canvas — persisted so hand-edits survive reloads. */
   scene?: import('./scene').SceneState;
 }
@@ -213,8 +219,9 @@ export interface ProjectState {
  * Bump it and add an ordered step in migrateProject() on any breaking shape
  * change. v2 reconciled the manager recipe id to the game's AgentId.
  * v3 added the optional `profiles` collection (full-game character personas).
+ * v4 added the optional `scenarios` collection (authored run definitions).
  */
-export const CURRENT_SCHEMA_VERSION = 3;
+export const CURRENT_SCHEMA_VERSION = 4;
 
 /** Design-space canvas size. Parts are authored against this; never changes. */
 export const CANVAS = 128;

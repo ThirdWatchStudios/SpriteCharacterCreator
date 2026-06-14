@@ -2,6 +2,7 @@ import type { CharacterRecipe, ProjectState, PropInstance, StylePreset, StyleShe
 import { CURRENT_SCHEMA_VERSION } from '../core/types';
 import type { CharacterProfile, Relationship } from '../core/profile';
 import { applyDerived, createDefaultProfile } from '../core/profile';
+import type { Scenario } from '../core/scenario';
 
 export const DEFAULT_STYLE: StyleSheet = {
   outline: {
@@ -597,6 +598,110 @@ function buildDefaultProfiles(): CharacterProfile[] {
 
 export const DEFAULT_PROFILES: CharacterProfile[] = buildDefaultProfiles();
 
+// ---------------------------------------------------------------------------
+// Default scenarios — Experiment 001 ("The Promotion Rumor") authored as the
+// first full scenario (game-design-docs .../design/scenario_model.md). It
+// composes the cast by reference and adds the situation: locations bound to the
+// office, truth facts, information items, the experiment variants, and the
+// objective. Per the persona↔scenario boundary, the starting BELIEFS live here
+// (Carl's "rigged" suspicion seed moves out of his persona into the scenario),
+// and the promotion-driven suspicion spike is a relationship OVERRIDE on top of
+// his persona baseline.
+// ---------------------------------------------------------------------------
+
+const PROMOTION_RUMOR_001: Scenario = {
+  scenarioId: 'promotion_rumor_001',
+  title: 'The Promotion Rumor',
+  summary: 'An ambiguous promotion seeds a rumor; does it spread or stay contained?',
+  cast: [
+    {
+      agentId: 'janice',
+      spawnLocationId: 'janice_desk',
+      prototypeRole: 'Promotion Recipient',
+      relationshipOverrides: [],
+      beliefSeeds: [
+        { topic: 'janice_promotion', claim: 'I earned the promotion legitimately.', stance: 'accepts', confidence: 90 },
+      ],
+      knowledgeSeeds: ['official_promotion_notice'],
+    },
+    {
+      agentId: 'carl',
+      spawnLocationId: 'carl_desk',
+      prototypeRole: 'Promotion Skeptic',
+      // Scenario-driven shift on top of Carl's persona baseline toward Janice.
+      relationshipOverrides: [{ targetAgentId: 'janice', suspicion: 100, affinity: -50 }],
+      beliefSeeds: [
+        { topic: 'janice_promotion', claim: 'The promotion was probably rigged.', stance: 'suspects', confidence: 33 },
+      ],
+      knowledgeSeeds: ['official_promotion_notice', 'manager_private_meeting_observation'],
+    },
+    {
+      agentId: 'linda',
+      spawnLocationId: 'linda_desk',
+      prototypeRole: 'Information Amplifier',
+      relationshipOverrides: [],
+      beliefSeeds: [
+        { topic: 'janice_promotion', claim: 'Janice was promoted.', stance: 'unknown', confidence: 0 },
+      ],
+      knowledgeSeeds: [],
+    },
+    {
+      agentId: 'manager',
+      spawnLocationId: 'manager_office',
+      prototypeRole: 'Source Of Truth',
+      relationshipOverrides: [],
+      beliefSeeds: [
+        { topic: 'janice_promotion', claim: 'Janice earned the promotion legitimately.', stance: 'accepts', confidence: 100 },
+      ],
+      knowledgeSeeds: ['official_promotion_notice'],
+    },
+  ],
+  locations: [
+    { locationId: 'janice_desk', displayName: "Janice's Desk", tags: ['work_area'], accessState: 'open', fallbackLocationId: 'hallway', bindTo: { anchorId: 'desk:janice', roomId: 'cubicle-farm' } },
+    { locationId: 'carl_desk', displayName: "Carl's Desk", tags: ['work_area'], accessState: 'open', fallbackLocationId: 'hallway', bindTo: { anchorId: 'desk:carl', roomId: 'cubicle-farm' } },
+    { locationId: 'linda_desk', displayName: "Linda's Desk", tags: ['work_area'], accessState: 'open', fallbackLocationId: 'hallway', bindTo: { anchorId: 'desk:linda', roomId: 'cubicle-farm' } },
+    { locationId: 'manager_office', displayName: 'Manager Office', tags: ['management'], accessState: 'open', fallbackLocationId: '', bindTo: { anchorId: '', roomId: 'manager-office' } },
+    { locationId: 'break_room', displayName: 'Break Room', tags: ['break_area'], accessState: 'open', fallbackLocationId: 'hallway', bindTo: { anchorId: '', roomId: 'break-room' } },
+    { locationId: 'hallway', displayName: 'Hallway', tags: ['transit'], accessState: 'open', fallbackLocationId: '', bindTo: { anchorId: '', roomId: 'hallway' } },
+  ],
+  truthFacts: [
+    {
+      truthId: 'janice_promotion_legitimate',
+      topic: 'janice_promotion',
+      statement: 'Janice earned the promotion legitimately.',
+      subjectAgentIds: ['janice', 'manager'],
+      objectiveValue: true,
+      sourceAgentId: 'manager',
+    },
+  ],
+  informationItems: [
+    { informationId: 'official_promotion_notice', topic: 'janice_promotion', claim: 'Janice was promoted.', originType: 'official', truthId: 'janice_promotion_legitimate', truthAlignment: 'true', sourceAgentId: 'manager', initialHolderAgentIds: ['manager', 'janice'] },
+    { informationId: 'manager_private_meeting_observation', topic: 'janice_promotion', claim: 'Janice had a private meeting with the manager.', originType: 'observation', truthId: 'janice_promotion_legitimate', truthAlignment: 'misleading', sourceAgentId: 'carl', initialHolderAgentIds: ['carl'] },
+    { informationId: 'rigged_promotion_claim', topic: 'janice_promotion', claim: 'The promotion was rigged.', originType: 'rumor', truthId: 'janice_promotion_legitimate', truthAlignment: 'false', sourceAgentId: 'carl', initialHolderAgentIds: ['carl'] },
+  ],
+  interventionTypes: [
+    { type: 'promotion_information_entry', values: ['public_announcement', 'private_notification'] },
+    { type: 'break_room_access', values: ['open', 'locked'] },
+  ],
+  variants: [
+    { variantId: 'public_announcement', selections: { promotion_information_entry: 'public_announcement', break_room_access: 'open' } },
+    { variantId: 'private_notification', selections: { promotion_information_entry: 'private_notification', break_room_access: 'open' } },
+    { variantId: 'private_notification_break_room_locked', selections: { promotion_information_entry: 'private_notification', break_room_access: 'locked' } },
+  ],
+  defaultVariantId: 'public_announcement',
+  objective: {
+    objectiveId: 'maintain_rumor_resistance',
+    label: 'Maintain leadership confidence by testing rumor resistance after an ambiguous promotion.',
+    category: 'stability',
+    desiredPressure: 'management_trust',
+    intendedObservableBehavior: "Carl's suspicion stays low OR Linda does not spread the rumor.",
+    kpi: 'rumor_containment_or_amplification_assessment',
+    expectedEvidence: ['belief changes', 'rumor reach count', 'trust metrics'],
+  },
+};
+
+export const DEFAULT_SCENARIOS: Scenario[] = [PROMOTION_RUMOR_001];
+
 export function defaultProject(): ProjectState {
   return {
     version: CURRENT_SCHEMA_VERSION,
@@ -607,5 +712,6 @@ export function defaultProject(): ProjectState {
     walls: structuredClone(DEFAULT_WALLS),
     floors: structuredClone(DEFAULT_FLOORS),
     profiles: structuredClone(DEFAULT_PROFILES),
+    scenarios: structuredClone(DEFAULT_SCENARIOS),
   };
 }

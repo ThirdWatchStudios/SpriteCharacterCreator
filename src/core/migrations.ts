@@ -1,6 +1,6 @@
 import type { ProjectState } from './types';
 import { CURRENT_SCHEMA_VERSION } from './types';
-import { DEFAULT_FLOORS, DEFAULT_PROFILES, DEFAULT_PROPS, DEFAULT_STYLE_PRESETS, DEFAULT_WALLS } from '../data/defaults';
+import { DEFAULT_FLOORS, DEFAULT_PROFILES, DEFAULT_PROPS, DEFAULT_SCENARIOS, DEFAULT_STYLE_PRESETS, DEFAULT_WALLS } from '../data/defaults';
 
 // Re-export so callers can keep importing the version from the migration module.
 export { CURRENT_SCHEMA_VERSION } from './types';
@@ -55,8 +55,27 @@ export function migrateProject(raw: unknown): ProjectState | null {
   // profiles are never clobbered).
   backfillV3(project as ProjectState);
 
+  // v3 → v4: ensure the scenarios collection exists and seed the default scenario
+  // for saves that predate it (matched by scenarioId; user scenarios untouched).
+  backfillV4(project as ProjectState);
+
   project.version = CURRENT_SCHEMA_VERSION;
   return project as ProjectState;
+}
+
+/** v4 step: ensure `scenarios` exists and seed the default scenario(s). */
+function backfillV4(project: ProjectState): void {
+  project.scenarios ??= [];
+  const present = new Set(project.scenarios.map((s) => s.scenarioId));
+  const castIds = new Set(project.characters.map((c) => c.id));
+  for (const scenario of DEFAULT_SCENARIOS) {
+    // Only seed when the project actually has the scenario's cast (don't inject
+    // promotion_rumor_001 into an unrelated project).
+    const castPresent = scenario.cast.every((c) => castIds.has(c.agentId));
+    if (!present.has(scenario.scenarioId) && castPresent) {
+      project.scenarios.push(structuredClone(scenario));
+    }
+  }
 }
 
 /** v3 step: ensure `profiles` exists and the default cast personas are present. */

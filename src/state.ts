@@ -17,10 +17,11 @@ class Store {
   state: ProjectState;
   /** UI selection, not persisted as part of the project. */
   ui = {
-    tab: 'characters' as 'characters' | 'persona' | 'props' | 'tiles' | 'scene' | 'employees' | 'style',
+    tab: 'characters' as 'characters' | 'persona' | 'props' | 'tiles' | 'scene' | 'scenario' | 'employees' | 'style',
     selectedCharacterId: '',
     selectedPropId: '',
     selectedTileId: '',
+    selectedScenarioId: '',
     exportScale: 2,
     /** Preview-only mood; never stored in recipes. */
     previewMood: 'normal' as Mood,
@@ -51,6 +52,7 @@ class Store {
     this.ui.selectedPropId = this.state.props[0]?.id ?? '';
     this.ui.selectedTileId = this.state.walls[0]?.id ?? this.state.floors[0]?.id ?? '';
     this.ui.selectedStylePresetId = this.state.stylePresets[0]?.id ?? '';
+    this.ui.selectedScenarioId = this.state.scenarios?.[0]?.scenarioId ?? '';
     this.state.scene ??= createDefaultScene(this.state);
     // Persist the migrated/normalized form so older saves are rewritten to the
     // current schema (and legacy ids reconciled) without waiting for an edit.
@@ -96,6 +98,7 @@ class Store {
     this.ui.selectedPropId = this.state.props[0]?.id ?? '';
     this.ui.selectedTileId = this.state.walls[0]?.id ?? this.state.floors[0]?.id ?? '';
     this.ui.selectedStylePresetId = this.state.stylePresets[0]?.id ?? '';
+    this.ui.selectedScenarioId = this.state.scenarios?.[0]?.scenarioId ?? '';
     this.state.scene ??= createDefaultScene(this.state);
     this.save();
     this.emit('structure');
@@ -112,6 +115,11 @@ class Store {
   /** The persona for the selected character (Persona tab), if one is authored. */
   get selectedProfile() {
     return this.state.profiles?.find((p) => p.agentId === this.ui.selectedCharacterId);
+  }
+
+  /** The selected scenario (Scenario tab), if any. */
+  get selectedScenario() {
+    return this.state.scenarios?.find((s) => s.scenarioId === this.ui.selectedScenarioId);
   }
 
   get selectedProp() {

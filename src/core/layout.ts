@@ -38,6 +38,21 @@ export interface GeneratedOfficeLayout {
   templateId: string;
 }
 
+/**
+ * A named binding target in the office that a scenario location resolves to
+ * (scenario_model.md). `room` anchors are one per room (id == roomId); `desk`
+ * anchors are per-agent (`desk:<agentId>`), resolving the long-standing desk
+ * granularity seam so the cast no longer collapses into one anonymous room.
+ */
+export type OfficeAnchorKind = 'room' | 'desk';
+export interface OfficeAnchor {
+  anchorId: string;
+  roomId: string;
+  x: number;
+  y: number;
+  kind: OfficeAnchorKind;
+}
+
 export interface SceneLayoutJson {
   version: 1;
   source: SceneState['source'];
@@ -72,6 +87,8 @@ export interface SceneLayoutJson {
     mood: Mood;
     generatedCoworker: boolean;
   }>;
+  /** Named binding targets a scenario's locations resolve to (rooms + per-agent desks). */
+  anchors: OfficeAnchor[];
 }
 
 const COLS = 22;
@@ -944,6 +961,65 @@ export function generateOfficeLayout(
   return { scene, coworkers, seed: actualSeed, templateId: template.id };
 }
 
+/**
+ * Derive the named anchors a scenario binds to from a scene. Emits one `room`
+ * anchor per room (centered on the room interior) and one `desk:<agentId>` anchor
+ * per base-cast member (excluding the manager, who binds to their office), mapped
+ * onto the cubicle-farm desks in a deterministic order. Stable ids so an authored
+ * scenario resolves against any generated office.
+ */
+export function computeOfficeAnchors(scene: SceneState, project: ProjectState): OfficeAnchor[] {
+  const anchors: OfficeAnchor[] = [];
+
+  for (const room of scene.rooms ?? []) {
+    anchors.push({
+      anchorId: room.id,
+      roomId: room.id,
+      x: Math.floor(room.x + room.cols / 2),
+      y: Math.floor(room.y + room.rows / 2),
+      kind: 'room',
+    });
+  }
+
+  // Per-agent desks: the cubicle-farm desk cells, deterministically ordered,
+  // assigned to the base cast (manager excluded — they bind to manager-office).
+  const deskAgents = project.characters.filter(
+    (recipe) => !recipe.id.startsWith(GENERATED_COWORKER_PREFIX) && recipe.id !== 'manager',
+  );
+
+  const deskCells = scene.entities
+    .filter((entity) => entity.kind === 'prop')
+    .filter((entity) => project.props.find((p) => p.id === entity.refId)?.templateId === 'desk')
+    .filter((entity) => scene.roomIds?.[entity.y]?.[entity.x] === 'cubicle-farm')
+    .map((entity) => ({ x: entity.x, y: entity.y }))
+    .sort((a, b) => a.y - b.y || a.x - b.x);
+
+  // Guarantee one anchor cell per desk-agent: small cubicle-farm templates fit
+  // fewer desk pods than the cast, so top up from free cubicle-farm floor cells
+  // (deterministic y,x order). Keeps `desk:<agentId>` resolvable for any office.
+  if (deskCells.length < deskAgents.length) {
+    const used = new Set(deskCells.map((c) => `${c.x},${c.y}`));
+    for (let y = 0; y < scene.rows && deskCells.length < deskAgents.length; y++) {
+      for (let x = 0; x < scene.cols && deskCells.length < deskAgents.length; x++) {
+        if (scene.roomIds?.[y]?.[x] !== 'cubicle-farm') continue;
+        if (scene.wallIds[y][x] || !scene.floorIds[y][x]) continue; // need open floor
+        const key = `${x},${y}`;
+        if (used.has(key)) continue;
+        used.add(key);
+        deskCells.push({ x, y });
+      }
+    }
+  }
+
+  deskAgents.forEach((recipe, i) => {
+    const cell = deskCells[i];
+    if (!cell) return; // cubicle-farm too small even for fallback cells
+    anchors.push({ anchorId: `desk:${recipe.id}`, roomId: 'cubicle-farm', x: cell.x, y: cell.y, kind: 'desk' });
+  });
+
+  return anchors;
+}
+
 export function sceneToLayoutJson(scene: SceneState, project: ProjectState): SceneLayoutJson {
   const wallCells: SceneLayoutJson['walls']['cells'] = [];
   for (let y = 0; y < scene.rows; y++) {
@@ -997,5 +1073,6 @@ export function sceneToLayoutJson(scene: SceneState, project: ProjectState): Sce
           generatedCoworker: entity.refId.startsWith(GENERATED_COWORKER_PREFIX),
         };
       }),
+    anchors: computeOfficeAnchors(scene, project),
   };
 }

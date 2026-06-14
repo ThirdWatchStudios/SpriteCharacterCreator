@@ -997,3 +997,13 @@ textarea {
   margin-top: 10px;
   color: var(--text-dim);
 }
+
+.scenario-valid {
+  color: #3b8a4e;
+  font-weight: 600;
+}
+
+.scenario-invalid {
+  color: #c0603a;
+  font-weight: 600;
+}
