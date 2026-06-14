@@ -13,6 +13,8 @@ import {
 } from './compositor';
 import { sceneToLayoutJson } from './layout';
 import { composeSceneSvg } from './scene';
+import type { EmployeeDefinition } from './employee';
+import { employeeRecipe } from './employee';
 import { PROP_TEMPLATES } from '../props/templates';
 import { maskName } from '../tiles/templates';
 
@@ -450,6 +452,65 @@ export async function scenePosterPng(scene: SceneState, project: ProjectState, s
       cells: [{ svg: composeSceneSvg(scene, project, cellSize), dx: 0, dy: 0, dw: width, dh: height }],
     }),
   );
+}
+
+// ---------------------------------------------------------------------------
+// Employee / population exports (Office Population Generator)
+// ---------------------------------------------------------------------------
+
+/** South-facing full-body sprite for an employee (no overhead badge). */
+export async function employeeSpritePng(recipe: CharacterRecipe, style: StyleSheet, scale: number): Promise<Blob> {
+  const size = style.render.baseSize * scale;
+  const img = await svgToImage(composeCharacter(recipe, style, 'south', size, 'normal', { badge: false }));
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  canvas.getContext('2d')!.drawImage(img, 0, 0, size, size);
+  return canvasToBlob(canvas);
+}
+
+/** Portrait crop (head + upper torso) for an employee profile card. */
+export async function employeePortraitPng(recipe: CharacterRecipe, style: StyleSheet, scale: number): Promise<Blob> {
+  const out = style.render.baseSize * scale;
+  const render = 512; // render the full figure crisply, then crop
+  const img = await svgToImage(composeCharacter(recipe, style, 'south', render, 'normal', { badge: false }));
+  const canvas = document.createElement('canvas');
+  canvas.width = out;
+  canvas.height = out;
+  const ctx = canvas.getContext('2d')!;
+  ctx.imageSmoothingEnabled = true;
+  // crop the 128-unit design region around head+shoulders, scale to output
+  const k = render / 128;
+  ctx.drawImage(img, 24 * k, 14 * k, 80 * k, 80 * k, 0, 0, out, out);
+  return canvasToBlob(canvas);
+}
+
+/**
+ * Unity employee package: one folder per employee with sprite.png, portrait.png,
+ * and employee.json, plus a roster.json. Drag a folder into Unity to use it.
+ */
+export async function employeePackageZip(
+  employees: EmployeeDefinition[],
+  style: StyleSheet,
+  scale: number,
+): Promise<Blob> {
+  const zip = new JSZip();
+  for (const emp of employees) {
+    const recipe = employeeRecipe(emp);
+    const dir = zip.folder(`Employee_${emp.visualSeed}`)!;
+    dir.file('sprite.png', await employeeSpritePng(recipe, style, scale));
+    dir.file('portrait.png', await employeePortraitPng(recipe, style, scale));
+    dir.file('employee.json', JSON.stringify(emp, null, 2));
+  }
+  zip.file(
+    'roster.json',
+    JSON.stringify(
+      employees.map((e) => ({ name: e.name, visualSeed: e.visualSeed, profile: e.profile })),
+      null,
+      2,
+    ),
+  );
+  return zip.generateAsync({ type: 'blob' });
 }
 
 export function downloadBlob(name: string, blob: Blob): void {

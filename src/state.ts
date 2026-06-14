@@ -1,5 +1,6 @@
 import type { Mood, ProjectState } from './core/types';
 import type { SceneBrush, SceneFacing } from './core/scene';
+import type { EmployeeDefinition, Population } from './core/employee';
 import { createDefaultScene } from './core/scene';
 import { migrateProject } from './core/migrations';
 import { defaultProject } from './data/defaults';
@@ -16,7 +17,7 @@ class Store {
   state: ProjectState;
   /** UI selection, not persisted as part of the project. */
   ui = {
-    tab: 'characters' as 'characters' | 'props' | 'tiles' | 'scene' | 'style',
+    tab: 'characters' as 'characters' | 'props' | 'tiles' | 'scene' | 'employees' | 'style',
     selectedCharacterId: '',
     selectedPropId: '',
     selectedTileId: '',
@@ -34,6 +35,13 @@ class Store {
     selectedStylePresetId: '',
     styleCompare: false,
     stylePresetName: '',
+    /** Office Population Generator tab (transient — not persisted in the project). */
+    employeeSeed: '',
+    employeeProfile: 'random',
+    employeeRenderMode: 'full' as 'full' | 'portrait',
+    employee: undefined as EmployeeDefinition | undefined,
+    population: undefined as Population | undefined,
+    populationCount: 25,
   };
   private listeners: Listener[] = [];
 

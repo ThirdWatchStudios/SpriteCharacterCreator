@@ -4,6 +4,7 @@ import { defaultProject } from '../data/defaults';
 import { store } from '../state';
 import { button, clear, el } from './dom';
 import { renderCharacterControls, renderCharacterList, renderCharacterPreview } from './characterPanel';
+import { renderEmployeeControls, renderEmployeeList, renderEmployeePreview } from './employeePanel';
 import { renderPropControls, renderPropList, renderPropPreview } from './propPanel';
 import { renderSceneControls, renderSceneList, renderScenePreview } from './scenePanel';
 import { renderStyleControls, renderStylePreview } from './stylePanel';
@@ -14,6 +15,7 @@ const TABS = [
   { id: 'props', label: 'Props' },
   { id: 'tiles', label: 'Walls & Floors' },
   { id: 'scene', label: 'Scene' },
+  { id: 'employees', label: 'Employees' },
   { id: 'style', label: 'Style' },
 ] as const;
 
@@ -121,6 +123,10 @@ export function mountApp(root: HTMLElement): void {
       renderSceneList(sidebar);
       renderScenePreview(preview);
       if (kind === 'structure') renderSceneControls(controls);
+    } else if (tab === 'employees') {
+      renderEmployeeList(sidebar);
+      renderEmployeePreview(preview);
+      if (kind === 'structure') renderEmployeeControls(controls);
     } else {
       clear(sidebar);
       renderStylePreview(preview);

@@ -337,6 +337,26 @@ old saves and the game's expectations can't drift apart.
 
 ---
 
+## Office Population Generator — DONE (2026-06-13)
+
+New "Employees" tab turning the tool into a procedural office-population pipeline.
+`src/core/employee.ts`: deterministic Visual DNA (`seedToInt` FNV-1a + `mulberry32`;
+seed string ⇒ identical employee), department generation profiles (random/
+accounting/IT/HR/management) as declarative per-part-id weights — bias not lock,
+slot-dynamic so new parts/slots need no code (Feature 8), `EmployeeDefinition`
+(visualSeed/profile/name/recipe/metadata{department,role,agentId,displayName} for
+Water Cooler integration), bulk `generatePopulation` (unique-by-appearance with
+collision retry + exhaustion flag) + variety metrics (unique / near-duplicate
+counts). Exporter: `employeeSpritePng`, `employeePortraitPng` (head+torso crop),
+`employeePackageZip` (`Employee_<seed>/{sprite.png,portrait.png,employee.json}` +
+roster.json — drag-into-Unity). UI (`src/ui/employeePanel.ts`): seed controls
+(generate/randomize/copy), profile dropdown, full-body/portrait toggle, employee
+JSON export/import, population gen + metrics + Unity-package export. Additive —
+existing tabs untouched. Verified: determinism, profile bias (IT 11/40 hoodies 0
+suits; mgmt inverse), 50-unique population, package structure, portrait crop.
+Note: employee JSON uses part ids + palette tokens (the real Unity contract), not
+the spec's illustrative indices.
+
 ## Phase 4 — Engine / content-pack architecture (multi-game reuse)
 
 Full plan in `TOOL_ARCHITECTURE.md`. Turn this from one game's tool into a
