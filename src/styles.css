@@ -1072,3 +1072,95 @@ textarea {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ---------- collapsible sections ---------- */
+
+.section-head {
+  cursor: pointer;
+  user-select: none;
+}
+
+.section-head::before {
+  content: '▾ ';
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.persona-section.collapsed .section-head::before {
+  content: '▸ ';
+}
+
+.persona-section.collapsed .section-body {
+  display: none;
+}
+
+.section-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* ---------- guided validation panel ---------- */
+
+.scenario-issues {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid rgba(192, 96, 58, 0.5);
+  border-radius: 8px;
+  background: rgba(192, 96, 58, 0.08);
+}
+
+.scenario-issue {
+  font-size: 12px;
+  color: #d08a6a;
+}
+
+/* ---------- relationship matrix ---------- */
+
+.rel-matrix {
+  display: grid;
+  gap: 2px;
+  margin-top: 6px;
+  font-size: 11px;
+}
+
+.rel-h,
+.rel-corner {
+  color: var(--text-dim);
+  font-size: 10px;
+  text-align: center;
+  padding: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rel-h:first-child,
+.rel-corner {
+  text-align: left;
+}
+
+.rel-cell,
+.rel-self,
+.rel-empty {
+  text-align: center;
+  padding: 4px 2px;
+  border-radius: 3px;
+}
+
+.rel-self {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.rel-empty {
+  color: var(--text-dim);
+  opacity: 0.4;
+}
+
+.rel-cell.rel-ov {
+  outline: 1px solid #c98a3a;
+  outline-offset: -1px;
+}

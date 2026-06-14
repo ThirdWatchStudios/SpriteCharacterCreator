@@ -64,6 +64,17 @@ https://thirdwatchstudios.github.io/SpriteCharacterCreator/
   Profiles are sparse — a sprite need not have one. See
   [`src/core/profile.ts`](src/core/profile.ts) and the design contract in the
   adjacent game-design-docs (`the-water-cooler/docs/design/character_model.md`).
+- **Scenario** — authors a full Water Cooler *run* (project-level): cast (with
+  per-agent spawn, scenario belief/knowledge seeds, and relationship overrides on
+  the persona baseline), office-bound locations, truth facts, information items,
+  intervention variants, and the corporate objective — exported as
+  `scenarios/<id>.json`. The preview is a live **dry run**: it resolves the run the
+  way the sim will (persona baseline → scenario overrides), shows each agent's
+  effective state, an affinity **relationship matrix**, and an **office map** with
+  every spawn marked — click an office anchor to place a location spatially. Pin an
+  office seed for a reproducible layout. See [`src/core/scenario.ts`](src/core/scenario.ts),
+  [`src/core/scenarioRun.ts`](src/core/scenarioRun.ts), and the design contract in
+  the adjacent game-design-docs (`the-water-cooler/docs/design/scenario_model.md`).
 - **Props** — parametric office objects with sliders and a 3-token palette: water
   cooler, printer, desk, coffee machine, office plant, break room fridge,
   conference table, reception desk, badge reader, door/open door, office window,

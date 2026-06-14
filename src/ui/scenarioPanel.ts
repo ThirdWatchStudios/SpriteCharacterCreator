@@ -10,7 +10,7 @@ import { downloadJson } from '../core/exporter';
 import { GENERATED_COWORKER_PREFIX, computeOfficeAnchors, generateOfficeLayout, type OfficeAnchor } from '../core/layout';
 import { composeSceneSvg } from '../core/scene';
 import { STANCES } from '../core/profile';
-import { resolveScenarioRun, type ResolvedAgent } from '../core/scenarioRun';
+import { resolveScenarioRun, type ResolvedAgent, type ResolvedRun } from '../core/scenarioRun';
 import { setScenePreviewSvg } from './renderPreview';
 import {
   ACCESS_STATES,
@@ -38,6 +38,8 @@ let previewVariantId: string | null = null;
 let previewContainer: HTMLElement | null = null;
 // The location being placed by clicking the office map (transient).
 let placingLocationId: string | null = null;
+// Collapsed editor sections, by title (transient; persists across re-renders).
+const collapsedSections = new Set<string>();
 
 function edit(fn: () => void, kind: ChangeKind = 'data'): void {
   store.mutate(fn, kind);
@@ -84,7 +86,25 @@ function withCurrent(values: string[], current: string): Array<{ value: string; 
 // --- shared bits ------------------------------------------------------------
 
 function section(title: string, ...children: Array<Node | null | undefined>): HTMLElement {
-  return el('section', { className: 'persona-section' }, el('h3', {}, title), ...(children.filter(Boolean) as Node[]));
+  const body = el('div', { className: 'section-body' }, ...(children.filter(Boolean) as Node[]));
+  const sec = el(
+    'section',
+    { className: `persona-section ${collapsedSections.has(title) ? 'collapsed' : ''}` },
+    el(
+      'h3',
+      {
+        className: 'section-head',
+        onClick: () => {
+          const isCollapsed = sec.classList.toggle('collapsed');
+          if (isCollapsed) collapsedSections.add(title);
+          else collapsedSections.delete(title);
+        },
+      },
+      title,
+    ),
+    body,
+  );
+  return sec;
 }
 
 function textField(label: string, value: string, onInput: (v: string) => void): HTMLElement {
@@ -345,7 +365,12 @@ function experimentSection(s: Scenario): HTMLElement {
           ),
         ),
       ),
-      button('Remove variant', () => edit(() => (s.variants = s.variants.filter((x) => x !== v)), 'structure'), 'danger'),
+      el(
+        'div',
+        { className: 'btn-row' },
+        button('Duplicate', () => edit(() => s.variants.push({ variantId: uid('variant'), selections: { ...v.selections } }), 'structure')),
+        button('Remove variant', () => edit(() => (s.variants = s.variants.filter((x) => x !== v)), 'structure'), 'danger'),
+      ),
     ),
   );
   return section(
@@ -420,6 +445,46 @@ function relationshipLine(r: ResolvedAgent['relationships'][number]): HTMLElemen
   );
 }
 
+function affinityBg(aff: number): string {
+  if (aff === 0) return 'rgba(120,120,120,0.18)';
+  return aff > 0 ? `rgba(60,160,90,${(aff / 100) * 0.7})` : `rgba(196,80,60,${(-aff / 100) * 0.7})`;
+}
+
+/** A source×target affinity matrix — the relationship graph for a small cast. */
+function renderRelationshipMatrix(run: ResolvedRun): HTMLElement {
+  const ids = run.agents.map((a) => a.agentId);
+  const relOf = new Map(run.agents.map((a) => [a.agentId, new Map(a.relationships.map((r) => [r.targetAgentId, r]))]));
+  const grid = el('div', { className: 'rel-matrix', style: `grid-template-columns: auto repeat(${ids.length}, 1fr);` });
+  grid.append(el('div', { className: 'rel-corner' }, '→'));
+  for (const t of ids) grid.append(el('div', { className: 'rel-h' }, t));
+  for (const src of ids) {
+    grid.append(el('div', { className: 'rel-h' }, src));
+    for (const tgt of ids) {
+      if (src === tgt) {
+        grid.append(el('div', { className: 'rel-self' }));
+        continue;
+      }
+      const r = relOf.get(src)?.get(tgt);
+      if (!r) {
+        grid.append(el('div', { className: 'rel-cell rel-empty' }, '·'));
+        continue;
+      }
+      grid.append(
+        el(
+          'div',
+          {
+            className: `rel-cell ${r.fromOverride ? 'rel-ov' : ''}`,
+            style: `background:${affinityBg(r.affinity)};`,
+            title: `${src} → ${tgt}: trust ${r.trust} · susp ${r.suspicion} · aff ${r.affinity} · infl ${r.influence} · resp ${r.respect} · fam ${r.familiarity}${r.tags.length ? ' [' + r.tags.join(',') + ']' : ''}${r.fromOverride ? ' (scenario override)' : ''}`,
+          },
+          String(r.affinity),
+        ),
+      );
+    }
+  }
+  return el('div', { className: 'row-card' }, el('div', { className: 'dry-key' }, 'Relationships — affinity (row → column)'), grid);
+}
+
 function dryAgentCard(a: ResolvedAgent): HTMLElement {
   const beliefs = a.beliefs.map((b) => `${b.topic}: ${b.stance}@${b.confidence}`);
   return el(
@@ -475,12 +540,15 @@ function renderDryRun(container: HTMLElement, s: Scenario): void {
   );
 
   container.append(
-    header,
-    variantRow,
-    conditionsLine,
-    ...run.agents.map(dryAgentCard),
-    world,
-    el('div', { className: 'row-card' }, el('div', { className: 'dry-key' }, 'Objective'), el('div', { className: 'hint' }, `${run.objective.label || '—'} · KPI: ${run.objective.kpi || '—'}`)),
+    ...([
+      header,
+      variantRow,
+      conditionsLine,
+      run.agents.length > 1 ? renderRelationshipMatrix(run) : null,
+      ...run.agents.map(dryAgentCard),
+      world,
+      el('div', { className: 'row-card' }, el('div', { className: 'dry-key' }, 'Objective'), el('div', { className: 'hint' }, `${run.objective.label || '—'} · KPI: ${run.objective.kpi || '—'}`)),
+    ].filter(Boolean) as Node[]),
   );
 }
 
@@ -589,6 +657,16 @@ export function renderScenarioPreview(container: HTMLElement): void {
     personaless.length ? el('div', { className: 'scenario-invalid' }, `⚠ no persona: ${personaless.join(', ')}`) : null,
   );
   container.append(summary);
+  if (issues.length) {
+    container.append(
+      el(
+        'div',
+        { className: 'scenario-issues' },
+        el('div', { className: 'dry-key' }, `Validation — ${issues.length} issue(s)`),
+        ...issues.map((i) => el('div', { className: 'scenario-issue' }, i)),
+      ),
+    );
+  }
   renderOfficeMap(container, s);
   renderDryRun(container, s);
 }
@@ -621,6 +699,15 @@ export function renderScenarioControls(container: HTMLElement): void {
         alert(head + (notes ? `\n\n${notes}` : ''));
       }),
       button('Scenario JSON', () => downloadJson(`${s.scenarioId}.json`, serializeScenario(s))),
+      button('Duplicate', () => {
+        store.mutate((st) => {
+          const copy = structuredClone(s);
+          copy.scenarioId = uid('scenario');
+          copy.title = `${s.title || s.scenarioId} copy`;
+          (st.scenarios ??= []).push(copy);
+          store.ui.selectedScenarioId = copy.scenarioId;
+        }, 'structure');
+      }),
       button('Delete scenario', () => {
         if (!confirm(`Delete scenario "${s.title || s.scenarioId}"?`)) return;
         store.mutate((st) => {
