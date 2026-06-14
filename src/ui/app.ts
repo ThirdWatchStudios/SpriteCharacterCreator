@@ -12,19 +12,54 @@ import { renderSceneControls, renderSceneList, renderScenePreview } from './scen
 import { renderStyleControls, renderStylePreview } from './stylePanel';
 import { renderTileControls, renderTileList, renderTilePreview } from './tilePanel';
 
-const TABS = [
-  { id: 'characters', label: 'Characters' },
-  { id: 'persona', label: 'Persona' },
-  { id: 'props', label: 'Props' },
-  { id: 'tiles', label: 'Walls & Floors' },
-  { id: 'scene', label: 'Scene' },
-  { id: 'scenario', label: 'Scenario' },
-  { id: 'employees', label: 'Employees' },
-  { id: 'style', label: 'Style' },
-] as const;
+/**
+ * Two-level navigation: top-level groups, each with sub-tabs. The leaf id (sub
+ * `id`) is what `store.ui.tab` holds and what `render()` dispatches on, so the
+ * per-panel rendering is unchanged — only the grouping is new.
+ */
+type Leaf = typeof store.ui.tab;
+interface NavGroup {
+  id: string;
+  label: string;
+  subs: Array<{ id: Leaf; label: string }>;
+}
+
+const NAV: NavGroup[] = [
+  {
+    id: 'cast',
+    label: 'Cast',
+    subs: [
+      { id: 'characters', label: 'Appearance' },
+      { id: 'persona', label: 'Persona' },
+      { id: 'employees', label: 'Generate' },
+    ],
+  },
+  {
+    id: 'assets',
+    label: 'Assets',
+    subs: [
+      { id: 'props', label: 'Props' },
+      { id: 'tiles', label: 'Walls & Floors' },
+      { id: 'style', label: 'Style' },
+    ],
+  },
+  {
+    id: 'scenario',
+    label: 'Scenario',
+    subs: [
+      { id: 'scenario', label: 'Scenario' },
+      { id: 'scene', label: 'Office' },
+    ],
+  },
+];
+
+function groupForLeaf(leaf: Leaf): NavGroup {
+  return NAV.find((g) => g.subs.some((s) => s.id === leaf)) ?? NAV[0];
+}
 
 export function mountApp(root: HTMLElement): void {
   const tabBar = el('nav', { className: 'tabs' });
+  const subtabBar = el('nav', { className: 'subtabs' });
   const sidebar = el('aside', { className: 'sidebar' });
   const preview = el('section', { className: 'preview' });
   const controls = el('section', { className: 'controls' });
@@ -88,19 +123,51 @@ export function mountApp(root: HTMLElement): void {
   );
 
   const main = el('main', { className: 'layout' }, sidebar, preview, controls);
-  root.append(header, main);
+  root.append(header, subtabBar, main);
+
+  function goToGroup(group: NavGroup): void {
+    const remembered = store.ui.lastSubByGroup[group.id];
+    const target = group.subs.find((s) => s.id === remembered)?.id ?? group.subs[0].id;
+    store.mutateUi((ui) => {
+      ui.tab = target;
+      ui.lastSubByGroup[group.id] = target;
+    });
+  }
+
+  function goToSub(group: NavGroup, leaf: Leaf): void {
+    store.mutateUi((ui) => {
+      ui.tab = leaf;
+      ui.lastSubByGroup[group.id] = leaf;
+    });
+  }
 
   function renderTabs(): void {
+    const activeGroup = groupForLeaf(store.ui.tab);
+
     clear(tabBar);
-    for (const tab of TABS) {
+    for (const group of NAV) {
       tabBar.append(
         el(
           'button',
           {
-            className: `tab ${store.ui.tab === tab.id ? 'active' : ''}`,
-            onClick: () => store.mutateUi((ui) => (ui.tab = tab.id)),
+            className: `tab ${group.id === activeGroup.id ? 'active' : ''}`,
+            onClick: () => goToGroup(group),
           },
-          tab.label,
+          group.label,
+        ),
+      );
+    }
+
+    clear(subtabBar);
+    for (const sub of activeGroup.subs) {
+      subtabBar.append(
+        el(
+          'button',
+          {
+            className: `subtab ${store.ui.tab === sub.id ? 'active' : ''}`,
+            onClick: () => goToSub(activeGroup, sub.id),
+          },
+          sub.label,
         ),
       );
     }

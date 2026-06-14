@@ -16,6 +16,7 @@ import { downloadBlob, downloadJson, scenePosterPng } from '../core/exporter';
 import { PROP_TEMPLATES } from '../props/templates';
 import { store } from '../state';
 import { button, clear, el, labeled, select } from './dom';
+import { exportScaleSelect, listItem } from './controls';
 import { setPreviewSvg, setScenePreviewSvg } from './renderPreview';
 
 const BRUSHES: Array<{ id: SceneBrush; label: string }> = [
@@ -91,21 +92,18 @@ function renderAssetItems(list: HTMLElement, brush: SceneBrush): void {
 
   for (const item of items) {
     list.append(
-      el(
-        'button',
-        {
-          className: `entity-item ${item.id === selectedId ? 'selected' : ''}`,
-          onClick: () =>
-            store.mutateUi((ui) => {
-              ui.sceneBrush = brush;
-              if (brush === 'character') ui.selectedCharacterId = item.id;
-              else if (brush === 'prop') ui.selectedPropId = item.id;
-              else ui.selectedTileId = item.id;
-            }),
-        },
-        thumbForBrush(brush, item.id),
-        el('span', { className: 'entity-name' }, item.name),
-      ),
+      listItem({
+        selected: item.id === selectedId,
+        name: item.name,
+        thumb: thumbForBrush(brush, item.id),
+        onClick: () =>
+          store.mutateUi((ui) => {
+            ui.sceneBrush = brush;
+            if (brush === 'character') ui.selectedCharacterId = item.id;
+            else if (brush === 'prop') ui.selectedPropId = item.id;
+            else ui.selectedTileId = item.id;
+          }),
+      }),
     );
   }
 }
@@ -245,14 +243,7 @@ export function renderSceneControls(container: HTMLElement): void {
 
   container.append(el('h3', {}, 'Placed moods'), placedCharacterRows(current));
 
-  const scaleSelect = select(
-    [1, 2, 4].map((scale) => ({
-      value: String(scale),
-      label: `${scale}x (${store.state.style.render.baseSize * scale}px cells)`,
-    })),
-    String(store.ui.exportScale),
-    (value) => (store.ui.exportScale = Number(value)),
-  );
+  const scaleSelect = exportScaleSelect();
 
   const exportBtn = button('Poster PNG', async () => {
     exportBtn.disabled = true;

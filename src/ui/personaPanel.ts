@@ -50,8 +50,7 @@ import {
   type Relationship,
 } from '../core/profile';
 import { button, clear, el, labeled, select, slider } from './dom';
-
-const uid = (prefix: string): string => `${prefix}-${Math.random().toString(36).slice(2, 8)}`;
+import { collapsibleSection as section, num, tagEditor, textField, uid } from './controls';
 
 /** Mutate the selected profile in place (it's a live reference into the store). */
 function edit(fn: () => void, kind: ChangeKind = 'data'): void {
@@ -62,65 +61,6 @@ function agentOptions(profile: CharacterProfile): Array<{ value: string; label: 
   return store.state.characters
     .filter((c) => c.id !== profile.agentId)
     .map((c) => ({ value: c.id, label: c.name }));
-}
-
-// --- shared bits ------------------------------------------------------------
-
-function section(title: string, ...children: Array<Node | null | undefined>): HTMLElement {
-  return el(
-    'section',
-    { className: 'persona-section' },
-    el('h3', {}, title),
-    ...(children.filter(Boolean) as Node[]),
-  );
-}
-
-/** 0–100 or -100..100 slider bound to a getter/setter. */
-function num(
-  label: string,
-  value: number,
-  onInput: (v: number) => void,
-  min = 0,
-  max = 100,
-): HTMLElement {
-  return labeled(label, slider(value, min, max, 1, onInput));
-}
-
-function textField(label: string, value: string, onInput: (v: string) => void): HTMLElement {
-  return labeled(
-    label,
-    el('input', { type: 'text', value, onInput: (e: Event) => onInput((e.target as HTMLInputElement).value) }),
-  );
-}
-
-/** Removable chips plus an add box backed by a suggestion datalist. */
-function tagEditor(tags: string[], onChange: (next: string[]) => void, suggestions: string[]): HTMLElement {
-  const wrap = el('div', { className: 'tag-editor' });
-  const chips = el('div', { className: 'tag-chips' });
-  for (const tag of tags) {
-    chips.append(
-      el(
-        'span',
-        { className: 'tag-chip' },
-        tag,
-        button('×', () => onChange(tags.filter((t) => t !== tag)), 'tag-remove'),
-      ),
-    );
-  }
-  const listId = uid('dl');
-  const input = el('input', {
-    type: 'text',
-    placeholder: '+ add…',
-    list: listId,
-    onKeydown: (e: Event) => {
-      if ((e as KeyboardEvent).key !== 'Enter') return;
-      const v = (e.target as HTMLInputElement).value.trim();
-      if (v && !tags.includes(v)) onChange([...tags, v]);
-    },
-  });
-  const datalist = el('datalist', { id: listId }, ...suggestions.map((s) => el('option', { value: s })));
-  wrap.append(chips, el('div', { className: 'tag-add' }, input, datalist));
-  return wrap;
 }
 
 // --- sections ---------------------------------------------------------------

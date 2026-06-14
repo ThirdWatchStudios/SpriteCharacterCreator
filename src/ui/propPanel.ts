@@ -1,16 +1,10 @@
-import type { PropPaletteToken } from '../core/types';
 import { composeProp } from '../core/compositor';
 import { downloadBlob, downloadJson, propAtlas, propPng } from '../core/exporter';
 import { PROP_TEMPLATES } from '../props/templates';
 import { store } from '../state';
-import { button, clear, colorInput, el, labeled, select, slider } from './dom';
+import { button, clear, el, labeled, select, slider } from './dom';
+import { exportScaleSelect, listItem, paletteGrid, PROP_PALETTE_LABELS, uid } from './controls';
 import { setPreviewSvg } from './renderPreview';
-
-const PALETTE_LABELS: Record<PropPaletteToken, string> = {
-  primary: 'Primary',
-  secondary: 'Secondary',
-  accent: 'Accent',
-};
 
 function defaultParams(templateId: string): Record<string, number> {
   const template = PROP_TEMPLATES.find((t) => t.id === templateId)!;
@@ -21,19 +15,15 @@ export function renderPropList(container: HTMLElement): void {
   clear(container);
   const list = el('div', { className: 'entity-list' });
   for (const prop of store.state.props) {
-    const selected = prop.id === store.ui.selectedPropId;
     const thumb = el('span', { className: 'thumb checker' });
     thumb.innerHTML = composeProp(prop, store.state.style, 40);
     list.append(
-      el(
-        'button',
-        {
-          className: `entity-item ${selected ? 'selected' : ''}`,
-          onClick: () => store.mutateUi((ui) => (ui.selectedPropId = prop.id)),
-        },
+      listItem({
+        selected: prop.id === store.ui.selectedPropId,
+        name: prop.name,
         thumb,
-        el('span', { className: 'entity-name' }, prop.name),
-      ),
+        onClick: () => store.mutateUi((ui) => (ui.selectedPropId = prop.id)),
+      }),
     );
   }
 
@@ -52,7 +42,7 @@ export function renderPropList(container: HTMLElement): void {
         const templateId = templateSelect.value;
         const template = PROP_TEMPLATES.find((t) => t.id === templateId)!;
         const prop = {
-          id: `prop-${Date.now().toString(36)}`,
+          id: uid('prop'),
           name: template.label,
           templateId,
           params: defaultParams(templateId),
@@ -124,18 +114,14 @@ export function renderPropControls(container: HTMLElement): void {
     );
   }
 
-  const paletteBox = el('div', { className: 'palette-grid' });
-  for (const token of Object.keys(PALETTE_LABELS) as PropPaletteToken[]) {
-    paletteBox.append(
-      el(
-        'span',
-        { className: 'palette-cell' },
-        colorInput(prop.palette[token], (v) => store.mutate(() => (prop.palette[token] = v), 'data')),
-        el('span', { className: 'palette-label' }, PALETTE_LABELS[token]),
+  container.append(
+    labeled(
+      'Palette',
+      paletteGrid(prop.palette, PROP_PALETTE_LABELS, (token, v) =>
+        store.mutate(() => (prop.palette[token] = v), 'data'),
       ),
-    );
-  }
-  container.append(labeled('Palette', paletteBox));
+    ),
+  );
 
   container.append(
     el(
@@ -144,7 +130,7 @@ export function renderPropControls(container: HTMLElement): void {
       button('Duplicate', () =>
         store.mutate((s) => {
           const copy = structuredClone(prop);
-          copy.id = `prop-${Date.now().toString(36)}`;
+          copy.id = uid('prop');
           copy.name = `${prop.name} copy`;
           s.props.push(copy);
           store.ui.selectedPropId = copy.id;
@@ -160,14 +146,9 @@ export function renderPropControls(container: HTMLElement): void {
     ),
   );
 
-  const scaleSelect = select(
-    [1, 2, 4].map((s) => ({ value: String(s), label: `${s}x (${store.state.style.render.baseSize * s}px)` })),
-    String(store.ui.exportScale),
-    (v) => (store.ui.exportScale = Number(v)),
-  );
   container.append(
     el('h3', {}, 'Export'),
-    labeled('Scale', scaleSelect),
+    labeled('Scale', exportScaleSelect()),
     el(
       'div',
       { className: 'btn-row' },

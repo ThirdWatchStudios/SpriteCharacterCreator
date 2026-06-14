@@ -18,6 +18,8 @@ class Store {
   /** UI selection, not persisted as part of the project. */
   ui = {
     tab: 'characters' as 'characters' | 'persona' | 'props' | 'tiles' | 'scene' | 'scenario' | 'employees' | 'style',
+    /** Remembers the last sub-tab visited within each top-level nav group. */
+    lastSubByGroup: {} as Record<string, string>,
     selectedCharacterId: '',
     selectedPropId: '',
     selectedTileId: '',

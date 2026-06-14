@@ -30,9 +30,8 @@ import {
   type ScenarioLocation,
   type TruthFact,
 } from '../core/scenario';
-import { button, clear, el, labeled, select, slider } from './dom';
-
-const uid = (prefix: string): string => `${prefix}-${Math.random().toString(36).slice(2, 6)}`;
+import { button, clear, el, labeled, select } from './dom';
+import { collapsibleSection as section, listItem, num, optNum, tagEditor, textArea, textField, uid } from './controls';
 
 // Which variant the dry-run preview resolves against (transient; resets on reload).
 let previewVariantId: string | null = null;
@@ -41,8 +40,6 @@ let previewContainer: HTMLElement | null = null;
 let placingLocationId: string | null = null;
 // Belief topic the social graph clusters by (transient).
 let graphTopic: string | null = null;
-// Collapsed editor sections, by title (transient; persists across re-renders).
-const collapsedSections = new Set<string>();
 
 function edit(fn: () => void, kind: ChangeKind = 'data'): void {
   store.mutate(fn, kind);
@@ -84,86 +81,6 @@ function castWithoutPersona(s: Scenario): string[] {
 function withCurrent(values: string[], current: string): Array<{ value: string; label: string }> {
   const set = [...new Set([current, ...values].filter((v) => v !== ''))];
   return set.map((v) => ({ value: v, label: v }));
-}
-
-// --- shared bits ------------------------------------------------------------
-
-function section(title: string, ...children: Array<Node | null | undefined>): HTMLElement {
-  const body = el('div', { className: 'section-body' }, ...(children.filter(Boolean) as Node[]));
-  const sec = el(
-    'section',
-    { className: `persona-section ${collapsedSections.has(title) ? 'collapsed' : ''}` },
-    el(
-      'h3',
-      {
-        className: 'section-head',
-        onClick: () => {
-          const isCollapsed = sec.classList.toggle('collapsed');
-          if (isCollapsed) collapsedSections.add(title);
-          else collapsedSections.delete(title);
-        },
-      },
-      title,
-    ),
-    body,
-  );
-  return sec;
-}
-
-function textField(label: string, value: string, onInput: (v: string) => void): HTMLElement {
-  return labeled(
-    label,
-    el('input', { type: 'text', value, onInput: (e: Event) => onInput((e.target as HTMLInputElement).value) }),
-  );
-}
-
-function textArea(label: string, value: string, onInput: (v: string) => void): HTMLElement {
-  return labeled(
-    label,
-    el('textarea', { rows: 2, value, onInput: (e: Event) => onInput((e.target as HTMLTextAreaElement).value) }),
-  );
-}
-
-function num(label: string, value: number, onInput: (v: number) => void, min = 0, max = 100): HTMLElement {
-  return labeled(label, slider(value, min, max, 1, onInput));
-}
-
-/** Optional integer field — empty clears it (for partial relationship overrides). */
-function optNum(label: string, value: number | undefined, set: (v: number | undefined) => void): HTMLElement {
-  return labeled(
-    label,
-    el('input', {
-      type: 'number',
-      value: value === undefined ? '' : String(value),
-      onInput: (e: Event) => {
-        const raw = (e.target as HTMLInputElement).value;
-        set(raw === '' ? undefined : Number(raw));
-      },
-    }),
-  );
-}
-
-function tagEditor(tags: string[], onChange: (next: string[]) => void, suggestions: string[]): HTMLElement {
-  const wrap = el('div', { className: 'tag-editor' });
-  const chips = el('div', { className: 'tag-chips' });
-  for (const tag of tags) {
-    chips.append(
-      el('span', { className: 'tag-chip' }, tag, button('×', () => onChange(tags.filter((t) => t !== tag)), 'tag-remove')),
-    );
-  }
-  const listId = uid('dl');
-  const input = el('input', {
-    type: 'text',
-    placeholder: '+ add…',
-    list: listId,
-    onKeydown: (e: Event) => {
-      if ((e as KeyboardEvent).key !== 'Enter') return;
-      const v = (e.target as HTMLInputElement).value.trim();
-      if (v && !tags.includes(v)) onChange([...tags, v]);
-    },
-  });
-  wrap.append(chips, el('div', { className: 'tag-add' }, input, el('datalist', { id: listId }, ...suggestions.map((s) => el('option', { value: s })))));
-  return wrap;
 }
 
 // --- sections ---------------------------------------------------------------
@@ -408,13 +325,12 @@ export function renderScenarioList(container: HTMLElement): void {
   clear(container);
   const list = el('div', { className: 'entity-list' });
   for (const scenario of store.state.scenarios ?? []) {
-    const selected = scenario.scenarioId === store.ui.selectedScenarioId;
     list.append(
-      el(
-        'button',
-        { className: `entity-item ${selected ? 'selected' : ''}`, onClick: () => store.mutateUi((ui) => (ui.selectedScenarioId = scenario.scenarioId)) },
-        el('span', { className: 'entity-name' }, scenario.title || scenario.scenarioId),
-      ),
+      listItem({
+        selected: scenario.scenarioId === store.ui.selectedScenarioId,
+        name: scenario.title || scenario.scenarioId,
+        onClick: () => store.mutateUi((ui) => (ui.selectedScenarioId = scenario.scenarioId)),
+      }),
     );
   }
   const addScenario = (s: ReturnType<typeof createDefaultScenario>) => {

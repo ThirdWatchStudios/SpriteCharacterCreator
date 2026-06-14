@@ -14,7 +14,8 @@ import {
 import { randomCharacter, rerollPalette } from '../core/random';
 import { partsForSlot } from '../parts/library';
 import { store } from '../state';
-import { button, clear, colorInput, el, labeled, select } from './dom';
+import { button, clear, el, labeled, select } from './dom';
+import { exportScaleSelect, listItem, paletteGrid, uid } from './controls';
 import { setPreviewSvg } from './renderPreview';
 
 const PALETTE_LABELS: Record<PaletteToken, string> = {
@@ -28,20 +29,21 @@ const PALETTE_LABELS: Record<PaletteToken, string> = {
 export function renderCharacterList(container: HTMLElement): void {
   clear(container);
   const list = el('div', { className: 'entity-list' });
+  const personaIds = new Set((store.state.profiles ?? []).map((p) => p.agentId));
   for (const recipe of store.state.characters) {
-    const selected = recipe.id === store.ui.selectedCharacterId;
     const thumb = el('span', { className: 'thumb checker' });
     thumb.innerHTML = composeCharacter(recipe, store.state.style, 'south', 40);
-    const item = el(
-      'button',
-      {
-        className: `entity-item ${selected ? 'selected' : ''}`,
+    list.append(
+      listItem({
+        selected: recipe.id === store.ui.selectedCharacterId,
+        name: recipe.name,
+        thumb,
+        trailing: personaIds.has(recipe.id)
+          ? el('span', { className: 'persona-dot', title: 'Has a persona' })
+          : null,
         onClick: () => store.mutateUi((ui) => (ui.selectedCharacterId = recipe.id)),
-      },
-      thumb,
-      el('span', { className: 'entity-name' }, recipe.name),
+      }),
     );
-    list.append(item);
   }
   container.append(
     list,
@@ -165,18 +167,14 @@ export function renderCharacterControls(container: HTMLElement): void {
   container.append(labeled('Accessories', accBox));
 
   // Palette
-  const paletteBox = el('div', { className: 'palette-grid' });
-  for (const token of Object.keys(PALETTE_LABELS) as PaletteToken[]) {
-    paletteBox.append(
-      el(
-        'span',
-        { className: 'palette-cell' },
-        colorInput(recipe.palette[token], (v) => store.mutate(() => (recipe.palette[token] = v), 'data')),
-        el('span', { className: 'palette-label' }, PALETTE_LABELS[token]),
+  container.append(
+    labeled(
+      'Palette',
+      paletteGrid(recipe.palette, PALETTE_LABELS, (token, v) =>
+        store.mutate(() => (recipe.palette[token] = v), 'data'),
       ),
-    );
-  }
-  container.append(labeled('Palette', paletteBox));
+    ),
+  );
 
   // Actions
   container.append(
@@ -192,7 +190,7 @@ export function renderCharacterControls(container: HTMLElement): void {
       button('Duplicate', () =>
         store.mutate((s) => {
           const copy = structuredClone(recipe);
-          copy.id = `${recipe.id}-copy-${Date.now().toString(36)}`;
+          copy.id = uid(`${recipe.id}-copy`);
           copy.name = `${recipe.name} copy`;
           s.characters.push(copy);
           store.ui.selectedCharacterId = copy.id;
@@ -209,14 +207,9 @@ export function renderCharacterControls(container: HTMLElement): void {
   );
 
   // Export
-  const scaleSelect = select(
-    [1, 2, 4].map((s) => ({ value: String(s), label: `${s}x (${store.state.style.render.baseSize * s}px)` })),
-    String(store.ui.exportScale),
-    (v) => (store.ui.exportScale = Number(v)),
-  );
   container.append(
     el('h3', {}, 'Export'),
-    labeled('Scale', scaleSelect),
+    labeled('Scale', exportScaleSelect()),
     el(
       'div',
       { className: 'btn-row' },

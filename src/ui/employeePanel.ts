@@ -9,8 +9,10 @@ import {
   randomSeed,
 } from '../core/employee';
 import { downloadBlob, downloadJson, employeePackageZip } from '../core/exporter';
+import { createDefaultProfile } from '../core/profile';
 import { store } from '../state';
 import { button, clear, el, labeled, select } from './dom';
+import { exportScaleSelect } from './controls';
 
 /** Crop a composed-character SVG to the head+upper-torso region for portraits. */
 function portraitSvg(svg: string): string {
@@ -31,6 +33,45 @@ function regenerate(seed: string): void {
     ui.employeeSeed = seed;
     ui.employee = generateEmployee(seed, ui.employeeProfile, store.state.style);
   });
+}
+
+/** A character id not already taken in the project (suffixes on collision). */
+function uniqueCharacterId(base: string): string {
+  const taken = new Set(store.state.characters.map((c) => c.id));
+  if (!taken.has(base)) return base;
+  let i = 2;
+  while (taken.has(`${base}-${i}`)) i++;
+  return `${base}-${i}`;
+}
+
+/** A standalone CharacterRecipe (deep-cloned, unique id) from a generated employee. */
+function recipeFromEmployee(emp: EmployeeDefinition) {
+  const recipe = structuredClone(employeeRecipe(emp));
+  recipe.id = uniqueCharacterId(recipe.id);
+  return recipe;
+}
+
+/** Promote a generated employee into the project's cast (optionally with a starter persona). */
+function addEmployeeToCast(emp: EmployeeDefinition, withPersona: boolean): void {
+  store.mutate((s) => {
+    const recipe = recipeFromEmployee(emp);
+    s.characters.push(recipe);
+    if (withPersona) (s.profiles ??= []).push(createDefaultProfile(recipe));
+    store.ui.selectedCharacterId = recipe.id;
+  }, 'structure');
+}
+
+/** Promote a whole generated population into the cast. */
+function addPopulationToCast(emps: EmployeeDefinition[]): void {
+  store.mutate((s) => {
+    let lastId = store.ui.selectedCharacterId;
+    for (const emp of emps) {
+      const recipe = recipeFromEmployee(emp);
+      s.characters.push(recipe);
+      lastId = recipe.id;
+    }
+    store.ui.selectedCharacterId = lastId;
+  }, 'structure');
 }
 
 function renderEmployeeSvg(emp: EmployeeDefinition, size: number): string {
@@ -152,14 +193,15 @@ export function renderEmployeeControls(container: HTMLElement): void {
   );
 
   // Per-employee export
-  const scaleSel = select(
-    [1, 2, 4].map((s) => ({ value: String(s), label: `${s}x (${store.state.style.render.baseSize * s}px)` })),
-    String(store.ui.exportScale),
-    (v) => (store.ui.exportScale = Number(v)),
-  );
   container.append(
     el('h3', {}, 'Employee'),
-    labeled('Export scale', scaleSel),
+    el(
+      'div',
+      { className: 'btn-row' },
+      button('Add to cast', () => addEmployeeToCast(emp, false), 'primary'),
+      button('Add to cast + persona', () => addEmployeeToCast(emp, true)),
+    ),
+    labeled('Export scale', exportScaleSelect()),
     el(
       'div',
       { className: 'btn-row' },
@@ -205,6 +247,14 @@ export function renderEmployeeControls(container: HTMLElement): void {
     container.append(
       el('p', { className: 'preview-caption' },
         `Unique employees: ${pop.unique} / ${pop.employees.length}   ·   Near duplicates: ${pop.nearDuplicates}${pop.exhausted ? '   ·   ⚠ pool exhausted' : ''}`),
+      el(
+        'div',
+        { className: 'btn-row' },
+        button(`Add all ${pop.employees.length} to cast`, () => {
+          if (!confirm(`Add all ${pop.employees.length} generated employees to the project cast?`)) return;
+          addPopulationToCast(pop.employees);
+        }, 'primary'),
+      ),
       el(
         'div',
         { className: 'btn-row' },

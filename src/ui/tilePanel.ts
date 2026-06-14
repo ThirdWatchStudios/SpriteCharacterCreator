@@ -1,4 +1,4 @@
-import type { PropPaletteToken, TileInstance } from '../core/types';
+import type { TileInstance } from '../core/types';
 import { composeFloorRepeat, composeFloorTile, composeWallRoom, composeWallTile } from '../core/compositor';
 import {
   downloadBlob,
@@ -10,14 +10,9 @@ import {
 } from '../core/exporter';
 import { FLOOR_TEMPLATES, WALL_TEMPLATES, maskName } from '../tiles/templates';
 import { store } from '../state';
-import { button, clear, colorInput, el, labeled, select, slider } from './dom';
+import { button, clear, el, labeled, select, slider } from './dom';
+import { exportScaleSelect, listItem, paletteGrid, PROP_PALETTE_LABELS, uid } from './controls';
 import { setPreviewSvg, setScenePreviewSvg } from './renderPreview';
-
-const PALETTE_LABELS: Record<PropPaletteToken, string> = {
-  primary: 'Primary',
-  secondary: 'Secondary',
-  accent: 'Accent',
-};
 
 const slugName = (name: string) => name.toLowerCase().replace(/\s+/g, '-');
 
@@ -39,7 +34,6 @@ export function renderTileList(container: HTMLElement): void {
   const list = el('div', { className: 'entity-list' });
 
   const item = (tile: TileInstance, kind: 'wall' | 'floor') => {
-    const selected = tile.id === store.ui.selectedTileId;
     const thumb = el('span', { className: 'thumb checker' });
     setPreviewSvg(
       thumb,
@@ -50,15 +44,12 @@ export function renderTileList(container: HTMLElement): void {
       40,
     );
     list.append(
-      el(
-        'button',
-        {
-          className: `entity-item ${selected ? 'selected' : ''}`,
-          onClick: () => store.mutateUi((ui) => (ui.selectedTileId = tile.id)),
-        },
+      listItem({
+        selected: tile.id === store.ui.selectedTileId,
+        name: tile.name,
         thumb,
-        el('span', { className: 'entity-name' }, tile.name),
-      ),
+        onClick: () => store.mutateUi((ui) => (ui.selectedTileId = tile.id)),
+      }),
     );
   };
 
@@ -83,7 +74,7 @@ export function renderTileList(container: HTMLElement): void {
         const [kind, templateId] = templateSelect.value.split(':') as ['wall' | 'floor', string];
         const template = (kind === 'wall' ? WALL_TEMPLATES : FLOOR_TEMPLATES).find((t) => t.id === templateId)!;
         const tile: TileInstance = {
-          id: `${kind}-${Date.now().toString(36)}`,
+          id: uid(kind),
           name: template.label,
           templateId,
           params: Object.fromEntries(template.params.map((p) => [p.key, p.default])),
@@ -175,18 +166,14 @@ export function renderTileControls(container: HTMLElement): void {
     );
   }
 
-  const paletteBox = el('div', { className: 'palette-grid' });
-  for (const token of Object.keys(PALETTE_LABELS) as PropPaletteToken[]) {
-    paletteBox.append(
-      el(
-        'span',
-        { className: 'palette-cell' },
-        colorInput(tile.palette[token], (v) => store.mutate(() => (tile.palette[token] = v), 'data')),
-        el('span', { className: 'palette-label' }, PALETTE_LABELS[token]),
+  container.append(
+    labeled(
+      'Palette',
+      paletteGrid(tile.palette, PROP_PALETTE_LABELS, (token, v) =>
+        store.mutate(() => (tile.palette[token] = v), 'data'),
       ),
-    );
-  }
-  container.append(labeled('Palette', paletteBox));
+    ),
+  );
 
   container.append(
     el(
@@ -195,7 +182,7 @@ export function renderTileControls(container: HTMLElement): void {
       button('Duplicate', () =>
         store.mutate((s) => {
           const copy = structuredClone(tile);
-          copy.id = `${kind}-${Date.now().toString(36)}`;
+          copy.id = uid(kind);
           copy.name = `${tile.name} copy`;
           (kind === 'wall' ? s.walls : s.floors).push(copy);
           store.ui.selectedTileId = copy.id;
@@ -212,14 +199,9 @@ export function renderTileControls(container: HTMLElement): void {
     ),
   );
 
-  const scaleSelect = select(
-    [1, 2, 4].map((s) => ({ value: String(s), label: `${s}x (${store.state.style.render.baseSize * s}px)` })),
-    String(store.ui.exportScale),
-    (v) => (store.ui.exportScale = Number(v)),
-  );
   container.append(
     el('h3', {}, 'Export'),
-    labeled('Scale', scaleSelect),
+    labeled('Scale', exportScaleSelect()),
     el(
       'div',
       { className: 'btn-row' },
