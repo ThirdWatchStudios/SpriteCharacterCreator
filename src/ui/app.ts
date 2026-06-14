@@ -4,6 +4,7 @@ import { defaultProject } from '../data/defaults';
 import { store } from '../state';
 import { button, clear, el } from './dom';
 import { renderCharacterControls, renderCharacterList, renderCharacterPreview } from './characterPanel';
+import { renderPersonaControls, renderPersonaPreview } from './personaPanel';
 import { renderEmployeeControls, renderEmployeeList, renderEmployeePreview } from './employeePanel';
 import { renderPropControls, renderPropList, renderPropPreview } from './propPanel';
 import { renderSceneControls, renderSceneList, renderScenePreview } from './scenePanel';
@@ -12,6 +13,7 @@ import { renderTileControls, renderTileList, renderTilePreview } from './tilePan
 
 const TABS = [
   { id: 'characters', label: 'Characters' },
+  { id: 'persona', label: 'Persona' },
   { id: 'props', label: 'Props' },
   { id: 'tiles', label: 'Walls & Floors' },
   { id: 'scene', label: 'Scene' },
@@ -111,6 +113,11 @@ export function mountApp(root: HTMLElement): void {
       renderCharacterList(sidebar);
       renderCharacterPreview(preview);
       if (kind === 'structure') renderCharacterControls(controls);
+    } else if (tab === 'persona') {
+      // Persona is authored per selected character, so reuse the character list.
+      renderCharacterList(sidebar);
+      renderPersonaPreview(preview);
+      if (kind === 'structure') renderPersonaControls(controls);
     } else if (tab === 'props') {
       renderPropList(sidebar);
       renderPropPreview(preview);

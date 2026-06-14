@@ -15,6 +15,7 @@ import { sceneToLayoutJson } from './layout';
 import { composeSceneSvg } from './scene';
 import type { EmployeeDefinition } from './employee';
 import { employeeRecipe } from './employee';
+import { serializeProfile } from './profile';
 import { PROP_TEMPLATES } from '../props/templates';
 import { maskName } from '../tiles/templates';
 
@@ -584,6 +585,10 @@ export async function exportAll(
       tick(`${recipe.name} moods`);
     }
     await write(`${dir}/recipe.json`, JSON.stringify(recipe, null, 2));
+    // The full-game persona (sim-consumer form: derived fields resolved to plain
+    // numbers). Keyed by agentId == recipe id; emitted only when authored.
+    const profile = project.profiles?.find((p) => p.agentId === recipe.id);
+    if (profile) await write(`${dir}/profile.json`, JSON.stringify(serializeProfile(profile), null, 2));
   }
 
   // Re-tintable layer atlases (Phase 2.2 / runtime NPC compositor input). Kept

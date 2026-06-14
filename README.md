@@ -54,6 +54,16 @@ https://thirdwatchstudios.github.io/SpriteCharacterCreator/
   or hit *+ Random coworker*. Preview shows all four facings, with a mood picker for
   the six emotional states (normal, suspicious, curious, defensive, hostile, confused).
   Moods are face overlays applied at render time — they are never part of a recipe.
+- **Persona** — authors a full-game *character profile* alongside the selected
+  sprite, keyed by the same id (`agentId`). OCEAN personality spine + office game
+  axes, needs, drives, preferences (loves/hates), skills, multi-axis
+  relationships, starting beliefs, reaction tendencies, routine, temperament,
+  and formative events (whose effects can be folded into the starting state in
+  one click). Derived fields (temper, grudge-holding, reaction tendencies,
+  volatility) are computed from the personality spine and can be hand-overridden.
+  Profiles are sparse — a sprite need not have one. See
+  [`src/core/profile.ts`](src/core/profile.ts) and the design contract in the
+  adjacent game-design-docs (`the-water-cooler/docs/design/character_model.md`).
 - **Props** — parametric office objects with sliders and a 3-token palette: water
   cooler, printer, desk, coffee machine, office plant, break room fridge,
   conference table, reception desk, badge reader, door/open door, office window,
@@ -101,6 +111,7 @@ characters/<name>/atlas@{1,2,4}x.json       # frame rects + pivot
 characters/<name>/moods@{1,2,4}x.png        # 6 mood rows x 4 facing columns
 characters/<name>/moods-atlas@{1,2,4}x.json # frames keyed "<mood>_<facing>"
 characters/<name>/recipe.json
+characters/<name>/profile.json            # full-game persona (only when authored); derived fields resolved to numbers
 character-layers/<name>/layers@{1,2,4}x.png # re-tintable part layers (rows) x facings (cols)
 character-layers/<name>/manifest@{1,2,4}x.json # layer z/tint/mood + frame rects; baked outline layer
 props/<name>/sprite@{1,2,4}x.png

@@ -1,6 +1,6 @@
 import type { ProjectState } from './types';
 import { CURRENT_SCHEMA_VERSION } from './types';
-import { DEFAULT_FLOORS, DEFAULT_PROPS, DEFAULT_STYLE_PRESETS, DEFAULT_WALLS } from '../data/defaults';
+import { DEFAULT_FLOORS, DEFAULT_PROFILES, DEFAULT_PROPS, DEFAULT_STYLE_PRESETS, DEFAULT_WALLS } from '../data/defaults';
 
 // Re-export so callers can keep importing the version from the migration module.
 export { CURRENT_SCHEMA_VERSION } from './types';
@@ -50,8 +50,25 @@ export function migrateProject(raw: unknown): ProjectState | null {
   // manager) so the exported atlas family matches the agent the game spawns.
   if (version < 2) reconcileLegacyCastIds(project as ProjectState);
 
+  // v2 → v3: ensure the profiles collection exists and seed the default cast's
+  // personas for saves that predate it (matched by agentId, so user-authored
+  // profiles are never clobbered).
+  backfillV3(project as ProjectState);
+
   project.version = CURRENT_SCHEMA_VERSION;
   return project as ProjectState;
+}
+
+/** v3 step: ensure `profiles` exists and the default cast personas are present. */
+function backfillV3(project: ProjectState): void {
+  project.profiles ??= [];
+  const present = new Set(project.profiles.map((p) => p.agentId));
+  const castIds = new Set(project.characters.map((c) => c.id));
+  for (const profile of DEFAULT_PROFILES) {
+    if (!present.has(profile.agentId) && castIds.has(profile.agentId)) {
+      project.profiles.push(structuredClone(profile));
+    }
+  }
 }
 
 /** v2 step: rename legacy cast recipe ids and remap any scene refs to them. */

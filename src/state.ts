@@ -17,7 +17,7 @@ class Store {
   state: ProjectState;
   /** UI selection, not persisted as part of the project. */
   ui = {
-    tab: 'characters' as 'characters' | 'props' | 'tiles' | 'scene' | 'employees' | 'style',
+    tab: 'characters' as 'characters' | 'persona' | 'props' | 'tiles' | 'scene' | 'employees' | 'style',
     selectedCharacterId: '',
     selectedPropId: '',
     selectedTileId: '',
@@ -107,6 +107,11 @@ class Store {
 
   get selectedCharacter() {
     return this.state.characters.find((c) => c.id === this.ui.selectedCharacterId);
+  }
+
+  /** The persona for the selected character (Persona tab), if one is authored. */
+  get selectedProfile() {
+    return this.state.profiles?.find((p) => p.agentId === this.ui.selectedCharacterId);
   }
 
   get selectedProp() {

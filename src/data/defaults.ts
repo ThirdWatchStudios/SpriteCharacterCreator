@@ -1,5 +1,7 @@
 import type { CharacterRecipe, ProjectState, PropInstance, StylePreset, StyleSheet, TileInstance } from '../core/types';
 import { CURRENT_SCHEMA_VERSION } from '../core/types';
+import type { CharacterProfile, Relationship } from '../core/profile';
+import { applyDerived, createDefaultProfile } from '../core/profile';
 
 export const DEFAULT_STYLE: StyleSheet = {
   outline: {
@@ -403,6 +405,198 @@ export const DEFAULT_FLOORS: TileInstance[] = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Default character profiles — the Experiment 001 cast authored up into the
+// full-game character model (game-design-docs .../design/character_model.md).
+// Prototype data maps up: traits → trait tags, goals → drives, the relationship
+// matrix → directed multi-axis relationships, Carl's suspicion seed → a starting
+// belief (confidence 1/3 → 33). A neutral base from createDefaultProfile is
+// customized, then applyDerived fills the derived axes/tendencies/volatility.
+// ---------------------------------------------------------------------------
+
+/** Build a relationship, defaulting the unset axes to neutral. */
+function rel(targetAgentId: string, over: Partial<Relationship>): Relationship {
+  return {
+    targetAgentId,
+    trust: 50,
+    suspicion: 0,
+    affinity: 0,
+    influence: 0,
+    respect: 50,
+    familiarity: 50,
+    tags: [],
+    ...over,
+  };
+}
+
+function buildDefaultProfiles(): CharacterProfile[] {
+  const byId = Object.fromEntries(DEFAULT_CAST.map((c) => [c.id, c]));
+
+  const janice = createDefaultProfile(byId.janice);
+  janice.identity = {
+    ...janice.identity,
+    roleTitle: 'Senior Analyst',
+    department: 'Operations',
+    seniority: 'senior',
+    pronouns: 'she/her',
+    prototypeRole: 'Promotion Recipient',
+    bio: 'Just promoted. Determined to show it was earned.',
+  };
+  janice.personality.ocean = { openness: 55, conscientiousness: 82, extraversion: 55, agreeableness: 60, neuroticism: 52 };
+  janice.personality.axes = { ambition: 85, integrity: 75, loyalty: 60, discretion: 62 };
+  janice.personality.traitTags = ['ambitious', 'hard_working', 'recognition_seeking'];
+  janice.needs.recognition = { baseline: 45, sensitivity: 85 };
+  janice.needs.competence = { baseline: 72, sensitivity: 70 };
+  janice.needs.security = { baseline: 60, sensitivity: 60 };
+  janice.drives = {
+    primary: 'prove_readiness',
+    secondary: 'avoid_reputational_damage',
+    objectives: [
+      {
+        id: 'janice-prove-earned',
+        sourceDrive: 'prove_readiness',
+        targetOrConcern: 'Demonstrate the promotion was earned',
+        expectedBehaviorTendency: 'support',
+        status: 'active',
+      },
+    ],
+  };
+  janice.startingBeliefs = [
+    { topic: 'janice_promotion', claim: 'I earned the promotion legitimately.', stance: 'accepts', confidence: 90 },
+  ];
+  janice.relationships = [
+    rel('manager', { trust: 80, affinity: 50, influence: 40, respect: 75, familiarity: 60 }),
+    rel('carl', { trust: 40, suspicion: 40, affinity: 0, respect: 45, familiarity: 70 }),
+  ];
+
+  const carl = createDefaultProfile(byId.carl);
+  carl.identity = {
+    ...carl.identity,
+    roleTitle: 'Analyst',
+    department: 'Operations',
+    seniority: 'senior',
+    pronouns: 'he/him',
+    prototypeRole: 'Promotion Skeptic',
+    bio: 'Been here longer than most. Felt the last promotion should have been his.',
+  };
+  carl.personality.ocean = { openness: 45, conscientiousness: 50, extraversion: 70, agreeableness: 30, neuroticism: 60 };
+  carl.personality.axes = { ambition: 75, integrity: 40, loyalty: 35, discretion: 25 };
+  carl.personality.traitTags = ['cynical', 'competitive', 'socially_connected'];
+  carl.needs.recognition = { baseline: 40, sensitivity: 80 };
+  carl.needs.security = { baseline: 55, sensitivity: 65 };
+  carl.needs.belonging = { baseline: 65, sensitivity: 60 };
+  carl.drives = {
+    primary: 'protect_status',
+    secondary: 'challenge_unfair_advancement',
+    objectives: [
+      {
+        id: 'carl-scrutinize-promotion',
+        sourceDrive: 'challenge_unfair_advancement',
+        targetOrConcern: "Janice's promotion",
+        expectedBehaviorTendency: 'share',
+        status: 'active',
+      },
+    ],
+  };
+  carl.startingBeliefs = [
+    { topic: 'janice_promotion', claim: 'The promotion was probably rigged.', stance: 'suspects', confidence: 33 },
+  ];
+  carl.relationships = [
+    rel('janice', { trust: 33, suspicion: 100, affinity: -50, influence: 33, respect: 30, familiarity: 70, tags: ['rival'] }),
+    rel('manager', { trust: 33, suspicion: 66, affinity: 0, influence: 0, respect: 40, familiarity: 55 }),
+  ];
+  carl.formativeEvents = [
+    {
+      id: 'carl-passed-over',
+      title: 'Passed over for the promotion Janice got',
+      description: 'Carl believed the role was his. It went to Janice after a closed-door meeting.',
+      when: 'recent',
+      involvedAgentIds: ['janice', 'manager'],
+      visibility: 'private',
+      knownToAgentIds: ['carl'],
+      effects: [
+        { targetKind: 'relationship_axis', targetRef: 'janice:suspicion', op: 'add', value: 40 },
+        { targetKind: 'need_baseline', targetRef: 'recognition', op: 'add', value: -20 },
+      ],
+    },
+  ];
+
+  const linda = createDefaultProfile(byId.linda);
+  linda.identity = {
+    ...linda.identity,
+    roleTitle: 'Coordinator',
+    department: 'Operations',
+    seniority: 'junior',
+    pronouns: 'she/her',
+    prototypeRole: 'Information Amplifier',
+    bio: 'Knows everyone and everything. The office switchboard.',
+  };
+  linda.personality.ocean = { openness: 70, conscientiousness: 50, extraversion: 80, agreeableness: 75, neuroticism: 45 };
+  linda.personality.axes = { ambition: 40, integrity: 60, loyalty: 65, discretion: 28 };
+  linda.personality.traitTags = ['social', 'trusting', 'curious'];
+  linda.needs.belonging = { baseline: 60, sensitivity: 85 };
+  linda.needs.recognition = { baseline: 60, sensitivity: 50 };
+  linda.drives = {
+    primary: 'maintain_social_access',
+    secondary: 'reduce_uncertainty',
+    objectives: [
+      {
+        id: 'linda-stay-informed',
+        sourceDrive: 'maintain_social_access',
+        targetOrConcern: 'Stay in the loop on the promotion',
+        expectedBehaviorTendency: 'confirm',
+        status: 'active',
+      },
+    ],
+  };
+  linda.startingBeliefs = [
+    { topic: 'janice_promotion', claim: 'Janice was promoted.', stance: 'unknown', confidence: 0 },
+  ];
+  linda.relationships = [
+    rel('carl', { trust: 100, suspicion: 0, affinity: 50, influence: 66, respect: 60, familiarity: 80, tags: ['friend'] }),
+    rel('janice', { trust: 66, suspicion: 0, affinity: 0, influence: 0, respect: 55, familiarity: 50 }),
+  ];
+
+  const manager = createDefaultProfile(byId.manager);
+  manager.identity = {
+    ...manager.identity,
+    roleTitle: 'Office Manager',
+    department: 'Management',
+    seniority: 'manager',
+    prototypeRole: 'Source Of Truth',
+    bio: 'Practical, busy, and protective of a stable team.',
+  };
+  manager.personality.ocean = { openness: 45, conscientiousness: 80, extraversion: 50, agreeableness: 55, neuroticism: 35 };
+  manager.personality.axes = { ambition: 55, integrity: 75, loyalty: 60, discretion: 82 };
+  manager.personality.traitTags = ['practical', 'busy'];
+  manager.needs.security = { baseline: 70, sensitivity: 60 };
+  manager.needs.autonomy = { baseline: 70, sensitivity: 55 };
+  manager.drives = {
+    primary: 'preserve_leadership_confidence',
+    secondary: 'contain_variance',
+    objectives: [
+      {
+        id: 'manager-keep-stable',
+        sourceDrive: 'preserve_leadership_confidence',
+        targetOrConcern: 'Team stability after the promotion',
+        expectedBehaviorTendency: 'support',
+        status: 'active',
+      },
+    ],
+  };
+  manager.startingBeliefs = [
+    { topic: 'janice_promotion', claim: 'Janice earned the promotion legitimately.', stance: 'accepts', confidence: 100 },
+  ];
+  manager.relationships = [
+    rel('janice', { trust: 100, affinity: 50, influence: 66, respect: 80, familiarity: 60 }),
+    rel('carl', { trust: 50, suspicion: 33, affinity: 0, respect: 45, familiarity: 60 }),
+  ];
+
+  return [janice, carl, linda, manager].map(applyDerived);
+}
+
+export const DEFAULT_PROFILES: CharacterProfile[] = buildDefaultProfiles();
+
 export function defaultProject(): ProjectState {
   return {
     version: CURRENT_SCHEMA_VERSION,
@@ -412,5 +606,6 @@ export function defaultProject(): ProjectState {
     props: structuredClone(DEFAULT_PROPS),
     walls: structuredClone(DEFAULT_WALLS),
     floors: structuredClone(DEFAULT_FLOORS),
+    profiles: structuredClone(DEFAULT_PROFILES),
   };
 }

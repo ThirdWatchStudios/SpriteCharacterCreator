@@ -197,6 +197,12 @@ export interface ProjectState {
   props: PropInstance[];
   walls: TileInstance[];
   floors: TileInstance[];
+  /**
+   * Full-game character profiles, keyed by agentId (== a character recipe id).
+   * Optional and sparse — a character need not have one. See core/profile.ts and
+   * game-design-docs/the-water-cooler/docs/design/character_model.md.
+   */
+  profiles?: import('./profile').CharacterProfile[];
   /** The scene canvas — persisted so hand-edits survive reloads. */
   scene?: import('./scene').SceneState;
 }
@@ -206,8 +212,9 @@ export interface ProjectState {
  * so both the defaults and the migration code can read it without a cycle.
  * Bump it and add an ordered step in migrateProject() on any breaking shape
  * change. v2 reconciled the manager recipe id to the game's AgentId.
+ * v3 added the optional `profiles` collection (full-game character personas).
  */
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 /** Design-space canvas size. Parts are authored against this; never changes. */
 export const CANVAS = 128;
