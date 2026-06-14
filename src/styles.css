@@ -805,6 +805,17 @@ select:focus {
   color: var(--text);
 }
 
+/* Scenario preview wrapper around the office map — full width so the frame
+   inside expands like it does on the Office tab (otherwise it shrinks to its
+   own content width and the map renders tiny). */
+.office-map {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
 .scene-frame {
   position: relative;
   width: min(100%, 960px);
