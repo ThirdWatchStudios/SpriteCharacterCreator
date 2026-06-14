@@ -70,8 +70,8 @@ export function mountApp(root: HTMLElement): void {
   const header = el(
     'header',
     { className: 'topbar' },
-    el('h1', {}, 'Third Watch Sprite Studio'),
-    el('span', { className: 'subtitle' }, 'The Water Cooler'),
+    el('h1', {}, 'Terrarium'),
+    el('span', { className: 'subtitle' }, 'The Water Cooler scenario studio'),
     tabBar,
     el(
       'div',

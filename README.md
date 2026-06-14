@@ -1,7 +1,18 @@
-# Sprite Character Creator
+# Terrarium
 
-A sprite compositor toolkit for **The Water Cooler** — generate RimWorld-style office
-characters and props as PNG sprite sheets, with a globally tweakable art style.
+The **scenario seed authoring studio** for **The Water Cooler**. Terrarium authors the
+state of the office at 8:00 AM — employees, departments, office layout, props, visual
+identities, and starting social conditions (relationships, beliefs, knowledge) — and
+exports it as a scenario package the game loads. *The tool creates the terrarium; the
+game creates the stories.* It only authors the starting state — it never scripts
+behavior, dialogue, or outcomes; the simulation owns everything after 8:00 AM.
+
+> The repo, package name (`sprite-character-creator`), GitHub Pages URL, and export
+> `generator` ids keep their original names for compatibility; "Terrarium" is the
+> product brand.
+
+It began as (and still contains) a sprite compositor: generate RimWorld-style office
+characters and props as PNG sprite sheets with a globally tweakable art style.
 
 This is not a drawing tool. Characters are **data** (a recipe of part ids + a palette),
 composited from a shared vector part library at export time. That means:

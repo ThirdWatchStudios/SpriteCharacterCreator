@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
-  "description": "Sprite compositor toolkit for The Water Cooler — characters, props, and office style",
+  "description": "Terrarium — the scenario seed authoring studio for The Water Cooler (employees, office, and starting social conditions). Package name kept as sprite-character-creator for compatibility.",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
