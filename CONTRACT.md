@@ -120,14 +120,14 @@ All numeric ranges are `0–100` unless noted. `affinity` is bipolar `-100..100`
                    "volatility": 0 },           // volatility DERIVED (§4)
   "spriteBinding": { "layerAtlasId": "", "characterConfigId": "<agentId>",
                      "fallbackSpriteId": null, "paletteSource": "default-from-recipe|override" },
-  "meta": { "generator": "sprite-character-creator", "schema": "character_model.md" }
+  "meta": { "generator": "sprite-character-creator", "schema": "character_model.md", "schemaVersion": 7 }
 }
 ```
 
 > Note: beliefs/knowledge are **not** in the persona — they're scenario state (cast `beliefSeeds` / `knowledgeSeeds`). The persona owns the durable character; the scenario owns the situation.
 
 ### 3.3 `scenario.json` — `serializeScenario` (the `Scenario` verbatim + `meta`)
-Top level: `scenarioId, title, summary, officeSeed?, cast[], locations[], truthFacts[], informationItems[], interventionTypes[], variants[], defaultVariantId, objective`.
+`meta`: `{ generator, schema: "scenario_model.md", schemaVersion: 7 }`. Top level: `scenarioId, title, summary, officeSeed?, cast[], locations[], truthFacts[], informationItems[], interventionTypes[], variants[], defaultVariantId, objective`.
 - `cast[]`: `{ agentId, spawnLocationId, prototypeRole, relationshipOverrides[], beliefSeeds[], knowledgeSeeds[] }`
 - `locations[]`: `{ locationId, displayName, tags[], accessState, fallbackLocationId, bindTo:{ anchorId, roomId } }`
 - `truthFacts[]`: `{ truthId, topic, statement, subjectAgentIds[], objectiveValue:bool, sourceAgentId }`
@@ -234,5 +234,6 @@ Things the sim will likely need that the tool does **not** capture yet — decid
 ## 7. Compatibility rules
 
 - **Adding** a suggestion to a free-text vocabulary (drive, trait tag, KPI, location) is **non-breaking** — it only affects authoring autocomplete, never validation or export shape.
-- **Renaming/removing a field** in §3 **is** breaking — bump the relevant `meta.schema` and update the sim loader.
+- **Version gating:** `profile.json` and `scenario.json` carry `meta.schemaVersion` (currently **7**, the project schema version). The sim version-gates on these — `scenario.json` gates a whole scenario package (the bundled `drives.json`/`traits.json` are resolved within that already-versioned context); `profile.json` gates the per-character visual-import path. Bare-array catalogs are intentionally unversioned — they never travel without a versioned `scenario.json` or `project.json`.
+- **Renaming/removing a field** in §3 **is** breaking — bump `CURRENT_SCHEMA_VERSION` (which flows into `meta.schemaVersion`), add a migration step, and update the sim loader.
 - The sim should **fallback + log**, never hard-fail, on an unrecognized free-text id (drive, KPI, activity). That tolerance is what lets the tool ship a richer vocabulary without lockstep sim releases.

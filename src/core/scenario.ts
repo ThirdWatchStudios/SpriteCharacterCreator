@@ -14,6 +14,7 @@
  * loader applies persona baseline first, then the scenario seeds/overrides.
  */
 import type { CharacterRecipe } from './types';
+import { CURRENT_SCHEMA_VERSION } from './types';
 import { STANCES, type Stance } from './profile';
 
 // --- enums ------------------------------------------------------------------
@@ -310,6 +311,6 @@ export function validateScenario(s: Scenario, ctx: ScenarioValidationContext): s
 export function serializeScenario(s: Scenario): unknown {
   return {
     ...structuredClone(s),
-    meta: { generator: 'sprite-character-creator', schema: 'scenario_model.md' },
+    meta: { generator: 'sprite-character-creator', schema: 'scenario_model.md', schemaVersion: CURRENT_SCHEMA_VERSION },
   };
 }

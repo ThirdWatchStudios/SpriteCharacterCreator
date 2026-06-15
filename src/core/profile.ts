@@ -22,6 +22,7 @@
  */
 import type { CharacterRecipe } from './types';
 import type { Mood } from './types';
+import { CURRENT_SCHEMA_VERSION } from './types';
 
 // --- scale helpers ----------------------------------------------------------
 
@@ -853,6 +854,6 @@ export function serializeProfile(input: CharacterProfile): unknown {
       volatility: p.temperament.volatility.value,
     },
     spriteBinding: p.spriteBinding,
-    meta: { generator: 'sprite-character-creator', schema: 'character_model.md' },
+    meta: { generator: 'sprite-character-creator', schema: 'character_model.md', schemaVersion: CURRENT_SCHEMA_VERSION },
   };
 }
