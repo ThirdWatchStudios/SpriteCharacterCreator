@@ -10,7 +10,7 @@ import { DEFAULT_CAST, DEFAULT_SCENARIOS, defaultProject } from '../src/data/def
 import { migrateProject, CURRENT_SCHEMA_VERSION } from '../src/core/migrations';
 import { computeOfficeAnchors, generateOfficeLayout } from '../src/core/layout';
 import { exportAll, type ExportSink } from '../src/core/exporter';
-import { resolveScenarioRun } from '../src/core/scenarioRun';
+import { buildScenarioPackage, resolveScenarioRun } from '../src/core/scenarioRun';
 
 const agentIds = DEFAULT_CAST.map((c) => c.id);
 const promo = DEFAULT_SCENARIOS.find((s) => s.scenarioId === 'promotion_rumor_001')!;
@@ -178,9 +178,20 @@ describe('scenario export', () => {
     const rasterizer = { rasterizeSheet: async () => new Uint8Array([0]) };
     await exportAll(project, { sink, rasterizer });
     const dir = 'scenarios/promotion-rumor-001';
-    for (const file of ['scenario.json', 'employees.json', 'relationships.json', 'beliefs.json', 'knowledge.json', 'interaction-anchors.json', 'office-layout.json']) {
+    for (const file of ['scenario.json', 'employees.json', 'relationships.json', 'relationshipTypes.json', 'beliefs.json', 'knowledge.json', 'interaction-anchors.json', 'office-layout.json']) {
       expect(paths).toContain(`${dir}/${file}`);
     }
+  });
+
+  it('ships the relationship-type catalog and the typed/secret edges in the package', () => {
+    const project = defaultProject();
+    const pkg = buildScenarioPackage(DEFAULT_SCENARIOS[0], project);
+    const types = pkg['relationshipTypes.json'] as Array<{ id: string; thirdParty?: unknown }>;
+    expect(types.some((t) => t.id === 'romance' && t.thirdParty)).toBe(true);
+    const edges = pkg['relationships.json'] as Array<{ sourceAgentId: string; targetAgentId: string; relationshipType: string | null; secret: boolean }>;
+    const lindaCarl = edges.find((e) => e.sourceAgentId === 'linda' && e.targetAgentId === 'carl');
+    expect(lindaCarl?.relationshipType).toBe('romance');
+    expect(lindaCarl?.secret).toBe(true);
   });
 });
 

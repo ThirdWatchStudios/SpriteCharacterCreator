@@ -94,6 +94,21 @@ describe('migrateProject', () => {
     expect(migrated.stylePresets.every((p) => typeof p.style.render.ambientTint === 'number')).toBe(true);
   });
 
+  it('seeds the relationship-type catalog and absorbs edge-referenced ids (v9)', () => {
+    const legacy = defaultProject();
+    legacy.version = 8;
+    delete (legacy as { relationshipTypes?: unknown }).relationshipTypes; // pre-v9 save
+    // An edge referencing a custom bond type not in the default catalog.
+    legacy.profiles![0].relationships = [
+      { targetAgentId: legacy.characters[1].id, trust: 50, suspicion: 0, affinity: 0, influence: 0, respect: 50, familiarity: 50, relationshipType: 'frenemy', tags: [] },
+    ];
+    const migrated = migrateProject(legacy)!;
+    expect(migrated.version).toBe(CURRENT_SCHEMA_VERSION);
+    expect(migrated.relationshipTypes.length).toBeGreaterThan(0);
+    expect(migrated.relationshipTypes.some((t) => t.id === 'romance')).toBe(true); // seeded
+    expect(migrated.relationshipTypes.some((t) => t.id === 'frenemy')).toBe(true); // absorbed
+  });
+
   it('refuses a project from a newer schema version', () => {
     const future = { ...defaultProject(), version: CURRENT_SCHEMA_VERSION + 1 };
     expect(migrateProject(future)).toBeNull();

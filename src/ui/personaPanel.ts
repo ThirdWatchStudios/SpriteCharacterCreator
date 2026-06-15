@@ -29,7 +29,6 @@ import {
   PRONOUNS,
   REACTION_CATEGORIES,
   RELATIONSHIP_TAG_SUGGESTIONS,
-  RELATIONSHIP_TYPES,
   SENIORITY,
   SKILL_TRACKS,
   SUBJECT_CATALOG,
@@ -266,14 +265,59 @@ function skillsSection(p: CharacterProfile): HTMLElement {
   );
 }
 
+/** A simple inline checkbox + label, returned as one control for `labeled`. */
+function checkbox(checked: boolean, onChange: (next: boolean) => void): HTMLElement {
+  return el('input', {
+    type: 'checkbox',
+    checked,
+    onChange: (e: Event) => onChange((e.target as HTMLInputElement).checked),
+  });
+}
+
+/** Coupling badge text for a relationship type, so the editor hints at its effect. */
+function relTypeHint(typeId: string | undefined): string {
+  if (!typeId) return '';
+  const def = store.state.relationshipTypes.find((t) => t.id === typeId);
+  if (!def) return `Unknown type "${typeId}" (not in catalog).`;
+  const biases = Object.entries(def.biasesReactions).filter(([, v]) => v);
+  const parts: string[] = [];
+  if (biases.length) parts.push('reacts ' + biases.map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`).join(', '));
+  if (def.thirdParty) parts.push(`jealousy ${def.thirdParty.sensitivity}${def.thirdParty.intensifiesTowardDisliked ? ' (worse toward rivals)' : ''}`);
+  return parts.join(' · ') || 'no reaction coupling';
+}
+
+/** Create or update the reverse edge in the target's profile (reciprocity helper). */
+function mirrorRelationship(source: CharacterProfile, r: Relationship): void {
+  const target = store.state.profiles?.find((pr) => pr.agentId === r.targetAgentId);
+  if (!target) {
+    alert(`No persona for "${r.targetAgentId}" to mirror into.`);
+    return;
+  }
+  edit(() => {
+    let back = target.relationships.find((x) => x.targetAgentId === source.agentId);
+    if (!back) {
+      back = { targetAgentId: source.agentId, trust: 50, suspicion: 0, affinity: 0, influence: 0, respect: 50, familiarity: 50, tags: [] };
+      target.relationships.push(back);
+    }
+    // Mirror the durable, symmetric-ish fields; leave the rest for hand-tuning.
+    back.relationshipType = r.relationshipType;
+    back.secret = r.secret;
+    back.affinity = r.affinity;
+    back.familiarity = r.familiarity;
+  }, 'structure');
+}
+
 function relationshipsSection(p: CharacterProfile): HTMLElement {
   const opts = agentOptions(p);
+  const typeOpts = [{ value: '', label: '—' }, ...store.state.relationshipTypes.map((t) => ({ value: t.id, label: t.label }))];
   const rows = p.relationships.map((r) =>
     el(
       'div',
       { className: 'row-card' },
       labeled('Toward', select(opts, r.targetAgentId, (v) => edit(() => (r.targetAgentId = v), 'structure'))),
-      labeled('Type', select([{ value: '', label: '—' }, ...RELATIONSHIP_TYPES.map((t) => ({ value: t, label: t }))], r.relationshipType ?? '', (v) => edit(() => (r.relationshipType = v === '' ? undefined : (v as typeof r.relationshipType))))),
+      labeled('Type', select(typeOpts, r.relationshipType ?? '', (v) => edit(() => (r.relationshipType = v === '' ? undefined : v), 'structure'))),
+      r.relationshipType ? el('p', { className: 'hint' }, relTypeHint(r.relationshipType)) : null,
+      labeled('Secret', checkbox(r.secret ?? false, (next) => edit(() => (r.secret = next ? true : undefined), 'structure'))),
       num('Trust', r.trust, (v) => edit(() => (r.trust = v))),
       num('Suspicion', r.suspicion, (v) => edit(() => (r.suspicion = v))),
       num('Affinity (dislike ↔ like)', r.affinity, (v) => edit(() => (r.affinity = v)), -100, 100),
@@ -281,7 +325,12 @@ function relationshipsSection(p: CharacterProfile): HTMLElement {
       num('Respect', r.respect, (v) => edit(() => (r.respect = v))),
       num('Familiarity', r.familiarity, (v) => edit(() => (r.familiarity = v))),
       labeled('Tags', tagEditor(r.tags, (next) => edit(() => (r.tags = next), 'structure'), RELATIONSHIP_TAG_SUGGESTIONS)),
-      button('Remove', () => edit(() => (p.relationships = p.relationships.filter((x) => x !== r)), 'structure'), 'danger'),
+      el(
+        'div',
+        { className: 'btn-row' },
+        button('Mirror to ' + r.targetAgentId, () => mirrorRelationship(p, r)),
+        button('Remove', () => edit(() => (p.relationships = p.relationships.filter((x) => x !== r)), 'structure'), 'danger'),
+      ),
     ),
   );
   return section(

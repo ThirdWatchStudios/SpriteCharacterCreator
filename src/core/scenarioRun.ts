@@ -180,6 +180,7 @@ export function buildScenarioPackage(scenario: Scenario, project: ProjectState):
       respect: r.respect,
       familiarity: r.familiarity,
       relationshipType: r.relationshipType ?? null,
+      secret: r.secret ?? false,
       tags: r.tags,
       fromOverride: r.fromOverride,
     })),
@@ -201,10 +202,12 @@ export function buildScenarioPackage(scenario: Scenario, project: ProjectState):
     'relationships.json': relationships,
     'beliefs.json': beliefs,
     'knowledge.json': knowledge,
-    // The drive + trait catalogs personas reference by id — shipped with the
-    // package so a scenario bundle is self-contained for the sim to resolve them.
+    // The drive + trait + relationship-type catalogs personas/edges reference by
+    // id — shipped with the package so a scenario bundle is self-contained for the
+    // sim to resolve them.
     'drives.json': project.drives,
     'traits.json': project.traits,
+    'relationshipTypes.json': project.relationshipTypes,
   };
   if (project.scene) {
     pkg['office-layout.json'] = sceneToLayoutJson(project.scene, project);

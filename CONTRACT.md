@@ -24,6 +24,7 @@ pin down what data we must capture here so the sim has what it needs.
 | Needs, preferences, skills, baseline relationships, routine, formative events | **Tool** | Authored / exported. Mostly inert metadata here (not computed on). |
 | Drive catalog (structured, reusable; `amplifiesNeeds`) | **Tool** | Project-level catalog (§3.5); personas reference by id. The need coupling is tool-authored data the sim acts on. |
 | Trait catalog (structured, reusable; `biasesReactions`) | **Tool** | Project-level catalog (§3.6); persona `traitTags` are ids into it. Reaction nudges are tool-authored data the sim applies on top of the spine-derived tendencies. |
+| Relationship-type catalog (structured, reusable; `biasesReactions` + `thirdParty`) | **Tool** | Project-level catalog (§3.7); relationship edges' `relationshipType` are ids into it. Carries reaction bias toward the target *and* the third-party (jealousy/protectiveness) coupling — tool-authored data the sim applies at interaction time. |
 | Scenario situation (truth, information, experiment, objective, seeds) | **Tool** | Authored + exported. |
 | **Behavior** — how any of the above turns into decisions, need depletion, relationship drift, belief spread, KPI scoring | **Sim** | Not implemented in this repo. See §5. |
 | The meaning of a free-text id (a `drive`, a `trait_tag`, a `locationId`, a routine `activity`) | **Sim** | The tool deliberately does not enforce these vocabularies — it ships strings; the sim decides what they do (and should log/fallback on ids it doesn't implement). |
@@ -48,6 +49,7 @@ Coordinate convention: scene grids are row-major `[y][x]`; anchors/spawns carry 
 | `knowledge.json` | `buildScenarioPackage` | scenario | Truth facts, information items, per-agent `knows`. |
 | `drives.json` | `project.drives` (verbatim) | project | Reusable drive catalog personas reference by id (§3.5). Also embedded in each scenario package. |
 | `traits.json` | `project.traits` (verbatim) | project | Reusable trait catalog persona `traitTags` reference by id (§3.6). Also embedded in each scenario package. |
+| `relationshipTypes.json` | `project.relationshipTypes` (verbatim) | project | Reusable relationship-type catalog edges' `relationshipType` reference by id (§3.7). Also embedded in each scenario package. |
 | `office-layout.json` | `sceneToLayoutJson` | scene | Rooms, floors, walls, props, spawns, anchors, interaction anchors (§3.4). |
 | `interaction-anchors.json` | `computeInteractionAnchors` | scene | Interaction points derived from placed props. |
 
@@ -104,7 +106,9 @@ All numeric ranges are `0–100` unless noted. `affinity` is bipolar `-100..100`
   "relationships": [                            // baseline, persona-owned
     { "targetAgentId": "carl", "trust": 50, "suspicion": 0, "affinity": 0,
       "influence": 0, "respect": 50, "familiarity": 50,
-      "relationshipType": "coworker|friend|manager|direct-report|mentor|rival|null", "tags": [] }
+      "relationshipType": "romance",            // id into relationshipTypes catalog (§3.7), or null
+      "secret": false,                          // hidden bond (secret romance / covert alliance)
+      "tags": [] }
   ],
   "formativeEvents": [                          // authored memory; effects already folded into the spine
     { "id": "...", "title": "", "description": "", "when": "years_ago",
@@ -120,14 +124,14 @@ All numeric ranges are `0–100` unless noted. `affinity` is bipolar `-100..100`
                    "volatility": 0 },           // volatility DERIVED (§4)
   "spriteBinding": { "layerAtlasId": "", "characterConfigId": "<agentId>",
                      "fallbackSpriteId": null, "paletteSource": "default-from-recipe|override" },
-  "meta": { "generator": "sprite-character-creator", "schema": "character_model.md", "schemaVersion": 7 }
+  "meta": { "generator": "sprite-character-creator", "schema": "character_model.md", "schemaVersion": 9 }
 }
 ```
 
 > Note: beliefs/knowledge are **not** in the persona — they're scenario state (cast `beliefSeeds` / `knowledgeSeeds`). The persona owns the durable character; the scenario owns the situation.
 
 ### 3.3 `scenario.json` — `serializeScenario` (the `Scenario` verbatim + `meta`)
-`meta`: `{ generator, schema: "scenario_model.md", schemaVersion: 7 }`. Top level: `scenarioId, title, summary, officeSeed?, cast[], locations[], truthFacts[], informationItems[], interventionTypes[], variants[], defaultVariantId, objective`.
+`meta`: `{ generator, schema: "scenario_model.md", schemaVersion: 9 }`. Top level: `scenarioId, title, summary, officeSeed?, cast[], locations[], truthFacts[], informationItems[], interventionTypes[], variants[], defaultVariantId, objective`.
 - `cast[]`: `{ agentId, spawnLocationId, prototypeRole, relationshipOverrides[], beliefSeeds[], knowledgeSeeds[] }`
 - `locations[]`: `{ locationId, displayName, tags[], accessState, fallbackLocationId, bindTo:{ anchorId, roomId } }`
 - `truthFacts[]`: `{ truthId, topic, statement, subjectAgentIds[], objectiveValue:bool, sourceAgentId }`
@@ -163,6 +167,22 @@ The shared set of personality tags persona `traitTags` reference by id. `biasesR
 ]
 ```
 As with drives, a persona may carry a trait id absent from the catalog — fallback + log (§7). Shipped at the bundle root and in each scenario package.
+
+### 3.7 `relationshipTypes.json` (reusable relationship-type catalog) — project-level
+The shared set of bond types a relationship edge references by id (`relationships[].relationshipType`). `biasesReactions` are signed **−2..+2** nudges (only non-zero stored) to the holder's reactions *toward the target* — the sim applies them like trait biases (§5.3). `thirdParty` is the optional **triangular (jealousy/protectiveness) coupling**: when the *target* of this relationship engages a third party, the holder reacts — `sensitivity` (0–100) is how strongly, `biasesReactions` is the reaction shape, and `intensifiesTowardDisliked` tells the sim to scale it up when that third party is someone the holder regards negatively (a rival / low affinity). Behavior selection stays in the sim (§5.4); the tool ships the coupling.
+```jsonc
+[
+  { "id": "romance", "label": "Romance", "description": "Romantic partner; devoted — and possessive.",
+    "category": "professional|social|romantic|adversarial",
+    "secretByDefault": true,                                // seeds the per-edge `secret` flag
+    "biasesReactions": { "reassure": 2, "confront": -1 },   // toward the target
+    "thirdParty": {                                          // optional jealousy hook
+      "sensitivity": 80,
+      "biasesReactions": { "confront": 1, "withdraw": 1, "escalate": 1 },
+      "intensifiesTowardDisliked": true } }
+]
+```
+As with drives/traits, an edge may carry a type id absent from the catalog — fallback + log (§7). Shipped at the bundle root and in each scenario package.
 
 ---
 
@@ -206,10 +226,10 @@ Drives are now a **structured, reusable catalog** (`drives.json`, §3.5) that pe
 `needs[id] = { baseline, sensitivity }`. Sketch: satisfaction starts at `baseline`, depletes over time scaled by `sensitivity`, and the most-deprived need (optionally weighted by active drives, §5.1) sets current motivation. The tool already surfaces "top needs" by `sensitivity` for preview only.
 
 ### 5.3 Reaction selection
-On an event, the sim picks among the 7 `reactionTendencies` (already numeric, §4) — likely a weighted/softmax draw, modulated by `temperament.volatility`, current mood, and the triggering relationship. **Trait biases (§3.6) apply here:** for each trait the persona carries, add its `biasesReactions` nudges (scaled) to the corresponding tendencies before selecting. Tool provides the base tendencies + trait nudges; sim provides the combine + selection rule.
+On an event, the sim picks among the 7 `reactionTendencies` (already numeric, §4) — likely a weighted/softmax draw, modulated by `temperament.volatility`, current mood, and the triggering relationship. **Trait biases (§3.6) apply here:** for each trait the persona carries, add its `biasesReactions` nudges (scaled) to the corresponding tendencies before selecting. **Relationship-type biases (§3.7) also apply here when there's a triggering relationship:** look up the edge's `relationshipType` in the catalog and add its `biasesReactions` (toward-the-target nudges) the same way — this is what makes a character react *differently to different people*. Tool provides the base tendencies + trait nudges + relationship-type nudges; sim provides the combine + selection rule.
 
 ### 5.4 Relationship dynamics
-`relationships[]` (resolved baseline + overrides) are the **starting** edges. The sim evolves them over the run (trust/suspicion/affinity/influence/respect/familiarity drift from interactions, gated by `grudgeHolding` for how long slights persist). Tool ships start state + `grudgeHolding`; sim owns the drift model.
+`relationships[]` (resolved baseline + overrides) are the **starting** edges; each carries a `relationshipType` id (§3.7) and an optional `secret` flag. The sim evolves the edges over the run (trust/suspicion/affinity/influence/respect/familiarity drift from interactions, gated by `grudgeHolding` for how long slights persist). **Third-party / jealousy is sim-owned behavior the tool feeds:** when agent B (the target of A's `romance`/`mentor`/… edge) interacts with a third agent C, the sim looks up that edge's relationship type, and if it carries a `thirdParty` coupling, biases A's reaction by `thirdParty.biasesReactions` scaled by `sensitivity` — scaled up further when `intensifiesTowardDisliked` and A regards C negatively (low affinity / rival). Example: Linda has a secret `romance` edge → Carl; Carl talks to Janice (whom Linda is cool on) → Linda's jealousy fires, intensified. Tool ships the start edges + the typed coupling; sim owns the drift model and the triangular evaluation.
 
 ### 5.5 Belief & information propagation
 `beliefs.json` (per-agent stance+confidence) and `knowledge.json` (truths, information items, who-knows-what) are start state. The sim owns spread: who shares with whom (gated by `gossip` tendency, `discretion`, affinity, `accessState` of shared locations), and how `truthAlignment`/`originType` shift a receiver's `confidence`/`stance`.
@@ -234,6 +254,6 @@ Things the sim will likely need that the tool does **not** capture yet — decid
 ## 7. Compatibility rules
 
 - **Adding** a suggestion to a free-text vocabulary (drive, trait tag, KPI, location) is **non-breaking** — it only affects authoring autocomplete, never validation or export shape.
-- **Version gating:** `profile.json` and `scenario.json` carry `meta.schemaVersion` (currently **7**, the project schema version). The sim version-gates on these — `scenario.json` gates a whole scenario package (the bundled `drives.json`/`traits.json` are resolved within that already-versioned context); `profile.json` gates the per-character visual-import path. Bare-array catalogs are intentionally unversioned — they never travel without a versioned `scenario.json` or `project.json`.
+- **Version gating:** `profile.json` and `scenario.json` carry `meta.schemaVersion` (currently **9**, the project schema version). The sim version-gates on these — `scenario.json` gates a whole scenario package (the bundled `drives.json`/`traits.json` are resolved within that already-versioned context); `profile.json` gates the per-character visual-import path. Bare-array catalogs are intentionally unversioned — they never travel without a versioned `scenario.json` or `project.json`.
 - **Renaming/removing a field** in §3 **is** breaking — bump `CURRENT_SCHEMA_VERSION` (which flows into `meta.schemaVersion`), add a migration step, and update the sim loader.
 - The sim should **fallback + log**, never hard-fail, on an unrecognized free-text id (drive, KPI, activity). That tolerance is what lets the tool ship a richer vocabulary without lockstep sim releases.

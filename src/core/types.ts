@@ -237,6 +237,13 @@ export interface ProjectState {
    * by id (personality.traitTags). See core/profile.ts (TraitDefinition).
    */
   traits: import('./profile').TraitDefinition[];
+  /**
+   * The reusable relationship-type catalog — structured bond types a relationship
+   * edge references by id (relationship.relationshipType). Each carries reaction
+   * biases + an optional third-party (jealousy) coupling the sim applies. See
+   * core/profile.ts (RelationshipTypeDefinition) and CONTRACT.md §3.7.
+   */
+  relationshipTypes: import('./profile').RelationshipTypeDefinition[];
   /** The scene canvas — persisted so hand-edits survive reloads. */
   scene?: import('./scene').SceneState;
 }
@@ -252,8 +259,12 @@ export interface ProjectState {
  * persona↔scenario boundary); the step strips the legacy persona fields.
  * v6 added the reusable `drives` catalog; personas now reference drive ids.
  * v7 added the reusable `traits` catalog; persona traitTags are trait ids.
+ * v8 added render-style contactShadow + ambientTint fields.
+ * v9 added the reusable `relationshipTypes` catalog (bond types carrying reaction
+ * biases + a third-party jealousy coupling); relationship edges reference its ids
+ * and gain an optional `secret` flag.
  */
-export const CURRENT_SCHEMA_VERSION = 8;
+export const CURRENT_SCHEMA_VERSION = 9;
 
 /** Design-space canvas size. Parts are authored against this; never changes. */
 export const CANVAS = 128;

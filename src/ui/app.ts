@@ -7,6 +7,7 @@ import { renderCharacterControls, renderCharacterList, renderCharacterPreview } 
 import { renderPersonaControls, renderPersonaPreview } from './personaPanel';
 import { renderDriveControls, renderDriveList, renderDrivePreview } from './drivePanel';
 import { renderTraitControls, renderTraitList, renderTraitPreview } from './traitPanel';
+import { renderRelationshipTypeControls, renderRelationshipTypeList, renderRelationshipTypePreview } from './relationshipTypePanel';
 import { renderScenarioControls, renderScenarioList, renderScenarioPreview } from './scenarioPanel';
 import { renderEmployeeControls, renderEmployeeList, renderEmployeePreview } from './employeePanel';
 import { renderPropControls, renderPropList, renderPropPreview } from './propPanel';
@@ -35,6 +36,7 @@ const NAV: NavGroup[] = [
       { id: 'persona', label: 'Persona' },
       { id: 'drives', label: 'Drives' },
       { id: 'traits', label: 'Traits' },
+      { id: 'relationships', label: 'Bonds' },
       { id: 'employees', label: 'Generate' },
     ],
   },
@@ -67,7 +69,7 @@ function groupForLeaf(leaf: Leaf): NavGroup {
  * editor joins them (analysis becomes a tabbed inspector); the Office tab keeps
  * its paint canvas in the center instead.
  */
-const SWAP_TABS = new Set<Leaf>(['characters', 'persona', 'drives', 'traits', 'employees', 'props', 'tiles', 'style', 'scenario']);
+const SWAP_TABS = new Set<Leaf>(['characters', 'persona', 'drives', 'traits', 'relationships', 'employees', 'props', 'tiles', 'style', 'scenario']);
 
 export function mountApp(root: HTMLElement): void {
   const tabBar = el('nav', { className: 'tabs' });
@@ -210,6 +212,10 @@ export function mountApp(root: HTMLElement): void {
       renderTraitList(sidebar);
       renderTraitPreview(preview);
       if (kind === 'structure') renderTraitControls(controls);
+    } else if (tab === 'relationships') {
+      renderRelationshipTypeList(sidebar);
+      renderRelationshipTypePreview(preview);
+      if (kind === 'structure') renderRelationshipTypeControls(controls);
     } else if (tab === 'props') {
       renderPropList(sidebar);
       renderPropPreview(preview);

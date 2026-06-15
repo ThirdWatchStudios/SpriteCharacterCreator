@@ -1,6 +1,6 @@
 import type { ProjectState } from './types';
 import { CURRENT_SCHEMA_VERSION } from './types';
-import { DEFAULT_DRIVES, DEFAULT_FLOORS, DEFAULT_PROFILES, DEFAULT_PROPS, DEFAULT_SCENARIOS, DEFAULT_STYLE, DEFAULT_STYLE_PRESETS, DEFAULT_TRAITS, DEFAULT_WALLS } from '../data/defaults';
+import { DEFAULT_DRIVES, DEFAULT_FLOORS, DEFAULT_PROFILES, DEFAULT_PROPS, DEFAULT_RELATIONSHIP_TYPES, DEFAULT_SCENARIOS, DEFAULT_STYLE, DEFAULT_STYLE_PRESETS, DEFAULT_TRAITS, DEFAULT_WALLS } from '../data/defaults';
 
 // Re-export so callers can keep importing the version from the migration module.
 export { CURRENT_SCHEMA_VERSION } from './types';
@@ -77,8 +77,36 @@ export function migrateProject(raw: unknown): ProjectState | null {
   // would surprise; we seed the DEFAULT_STYLE values) controls.
   backfillV8(project as ProjectState);
 
+  // v8 → v9: the reusable relationshipTypes catalog. Same treatment as drives/
+  // traits — seed defaults and absorb any type ids relationship edges already
+  // reference, so no authored bond type is lost when it becomes an id reference.
+  backfillV9(project as ProjectState);
+
   project.version = CURRENT_SCHEMA_VERSION;
   return project as ProjectState;
+}
+
+/** v9 step: ensure the `relationshipTypes` catalog exists, seed defaults, absorb referenced ids. */
+function backfillV9(project: ProjectState): void {
+  project.relationshipTypes ??= [];
+  const present = new Set(project.relationshipTypes.map((t) => t.id));
+  for (const def of DEFAULT_RELATIONSHIP_TYPES) {
+    if (!present.has(def.id)) {
+      project.relationshipTypes.push(structuredClone(def));
+      present.add(def.id);
+    }
+  }
+  // Any type id an edge carries but the catalog lacks (a custom one, or the old
+  // hardcoded union's values from a pre-v9 save) is added as a minimal entry.
+  for (const profile of project.profiles ?? []) {
+    for (const r of profile.relationships) {
+      const id = r.relationshipType;
+      if (id && !present.has(id)) {
+        project.relationshipTypes.push({ id, label: id, description: '', category: 'professional', biasesReactions: {} });
+        present.add(id);
+      }
+    }
+  }
 }
 
 /** v8 step: seed the new render fields (contactShadow, ambientTint) everywhere a style lives. */

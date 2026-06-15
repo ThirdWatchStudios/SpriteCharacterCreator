@@ -1,6 +1,6 @@
 import type { CharacterRecipe, ProjectState, PropInstance, StylePreset, StyleSheet, TileInstance } from '../core/types';
 import { CURRENT_SCHEMA_VERSION } from '../core/types';
-import type { CharacterProfile, DriveDefinition, Relationship, TraitDefinition } from '../core/profile';
+import type { CharacterProfile, DriveDefinition, Relationship, RelationshipTypeDefinition, TraitDefinition } from '../core/profile';
 import { applyDerived, createDefaultProfile } from '../core/profile';
 import type { Scenario } from '../core/scenario';
 
@@ -590,8 +590,10 @@ function buildDefaultProfiles(): CharacterProfile[] {
   // (suspicion 100 / affinity -50) is a scenario relationshipOverride in
   // promotion_rumor_001, applied on top of this at load.
   carl.relationships = [
-    rel('janice', { trust: 40, suspicion: 30, affinity: -20, influence: 33, respect: 35, familiarity: 70, tags: ['rival'] }),
+    rel('janice', { trust: 40, suspicion: 30, affinity: -20, influence: 33, respect: 35, familiarity: 70, relationshipType: 'rival', tags: ['rival'] }),
     rel('manager', { trust: 33, suspicion: 66, affinity: 0, influence: 0, respect: 40, familiarity: 55 }),
+    // Mirror of Linda's secret romance.
+    rel('linda', { trust: 100, suspicion: 0, affinity: 80, influence: 50, respect: 60, familiarity: 90, relationshipType: 'romance', secret: true }),
   ];
   carl.formativeEvents = [
     {
@@ -638,8 +640,11 @@ function buildDefaultProfiles(): CharacterProfile[] {
     ],
   };
   linda.relationships = [
-    rel('carl', { trust: 100, suspicion: 0, affinity: 50, influence: 66, respect: 60, familiarity: 80, tags: ['friend'] }),
-    rel('janice', { trust: 66, suspicion: 0, affinity: 0, influence: 0, respect: 55, familiarity: 50 }),
+    // A secret office romance with Carl — the live demo of the third-party
+    // (jealousy) coupling: when Carl engages Janice (whom Linda is cool on), the
+    // 'romance' type's thirdParty hook fires for Linda.
+    rel('carl', { trust: 100, suspicion: 0, affinity: 80, influence: 66, respect: 60, familiarity: 90, relationshipType: 'romance', secret: true, tags: ['friend'] }),
+    rel('janice', { trust: 66, suspicion: 0, affinity: -10, influence: 0, respect: 55, familiarity: 50, relationshipType: 'coworker' }),
   ];
 
   const manager = createDefaultProfile(byId.manager);
@@ -943,6 +948,62 @@ export const DEFAULT_TRAITS: TraitDefinition[] = [
   trait('prickly', 'status', { confront: 1, reassure: -1 }, 'Prickly', 'Easily irritated; sharp edges.'),
 ];
 
+/**
+ * The shared relationship-type catalog. Bond types relationship edges reference by
+ * id (`relationship.relationshipType`). `biasesReactions` colors the holder's
+ * reactions toward the target (sim applies, like trait biases); `thirdParty` is
+ * the optional jealousy/protectiveness coupling — when the target engages a third
+ * party, the holder reacts per `sensitivity` + `biasesReactions`, scaled up toward
+ * disliked third parties when `intensifiesTowardDisliked`. Behavior stays sim-side;
+ * the tool ships the coupling. Free to extend.
+ */
+const relType = (
+  id: string,
+  category: RelationshipTypeDefinition['category'],
+  biasesReactions: RelationshipTypeDefinition['biasesReactions'],
+  label: string,
+  description: string,
+  extra?: Partial<Pick<RelationshipTypeDefinition, 'secretByDefault' | 'thirdParty'>>,
+): RelationshipTypeDefinition => ({ id, label, description, category, biasesReactions, ...extra });
+
+export const DEFAULT_RELATIONSHIP_TYPES: RelationshipTypeDefinition[] = [
+  // Professional
+  relType('coworker', 'professional', {}, 'Coworker', 'Neutral colleague; no strong pull either way.'),
+  relType('manager', 'professional', { reassure: 1, confront: -1 }, 'Manager', 'Target is the holder’s boss; defers, avoids open conflict.'),
+  relType('direct-report', 'professional', { reassure: 1, verify: 1 }, 'Direct report', 'Target reports to the holder; checks in, keeps tabs.'),
+  relType('mentor', 'professional', { reassure: 1, verify: 1 }, 'Mentor', 'Target guides the holder; trusts and defers to their read.'),
+  relType('protege', 'professional', { reassure: 1 }, 'Protégé', 'Target is the holder’s mentee; protective of them.', {
+    thirdParty: { sensitivity: 45, biasesReactions: { verify: 1, confront: 1 }, intensifiesTowardDisliked: true },
+  }),
+  // Social
+  relType('friend', 'social', { reassure: 1 }, 'Friend', 'Genuinely likes the target; gives benefit of the doubt.'),
+  relType('close-friend', 'social', { reassure: 2, confront: -1 }, 'Close friend', 'Tight bond; backs them, slow to suspect them.', {
+    thirdParty: { sensitivity: 30, biasesReactions: { withdraw: 1 }, intensifiesTowardDisliked: true },
+  }),
+  relType('confidant', 'social', { reassure: 1, gossip: 1 }, 'Confidant', 'Trades secrets with the target; shares freely with them.'),
+  relType('ally', 'social', { reassure: 1, escalate: 1 }, 'Ally', 'Mutual-favor partner; takes their side, amplifies them.'),
+  // Romantic (secret by default — office romances usually are)
+  relType('romance', 'romantic', { reassure: 2, confront: -1 }, 'Romance', 'Romantic partner; devoted, soft on them — and possessive.', {
+    secretByDefault: true,
+    thirdParty: { sensitivity: 80, biasesReactions: { confront: 1, withdraw: 1, escalate: 1 }, intensifiesTowardDisliked: true },
+  }),
+  relType('crush', 'romantic', { reassure: 1, withdraw: 1 }, 'Crush', 'One-sided pining; nervous around them, watchful of rivals.', {
+    secretByDefault: true,
+    thirdParty: { sensitivity: 60, biasesReactions: { withdraw: 1, gossip: 1 }, intensifiesTowardDisliked: true },
+  }),
+  relType('work-spouse', 'romantic', { reassure: 2 }, 'Work spouse', 'Platonic-but-exclusive office pairing; playfully territorial.', {
+    thirdParty: { sensitivity: 40, biasesReactions: { gossip: 1 }, intensifiesTowardDisliked: false },
+  }),
+  relType('ex-partner', 'romantic', { confront: 1, withdraw: 1 }, 'Ex-partner', 'Former romance; lingering charge, easily set off.', {
+    thirdParty: { sensitivity: 50, biasesReactions: { gossip: 1, escalate: 1 }, intensifiesTowardDisliked: true },
+  }),
+  // Adversarial
+  relType('rival', 'adversarial', { confront: 1, escalate: 1, verify: 1 }, 'Rival', 'Competes with the target; scrutinizes, pushes back.', {
+    thirdParty: { sensitivity: 40, biasesReactions: { gossip: 1, escalate: 1 }, intensifiesTowardDisliked: false },
+  }),
+  relType('nemesis', 'adversarial', { confront: 2, escalate: 1, reassure: -1 }, 'Nemesis', 'Active antagonist; opposes them on reflex.'),
+];
+
 export function defaultProject(): ProjectState {
   return {
     version: CURRENT_SCHEMA_VERSION,
@@ -956,5 +1017,6 @@ export function defaultProject(): ProjectState {
     scenarios: structuredClone(DEFAULT_SCENARIOS),
     drives: structuredClone(DEFAULT_DRIVES),
     traits: structuredClone(DEFAULT_TRAITS),
+    relationshipTypes: structuredClone(DEFAULT_RELATIONSHIP_TYPES),
   };
 }

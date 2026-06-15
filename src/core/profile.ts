@@ -227,9 +227,46 @@ export const RELATIONSHIP_TAG_SUGGESTIONS = [
   'confidant',
 ];
 
-/** A coarse relationship category, on top of the numeric axes + free tags. */
-export const RELATIONSHIP_TYPES = ['coworker', 'friend', 'manager', 'direct-report', 'mentor', 'rival'] as const;
-export type RelationshipType = (typeof RELATIONSHIP_TYPES)[number];
+/** Top-level grouping for the relationship-type catalog. */
+export const RELATIONSHIP_TYPE_CATEGORIES = ['professional', 'social', 'romantic', 'adversarial'] as const;
+export type RelationshipTypeCategory = (typeof RELATIONSHIP_TYPE_CATEGORIES)[number];
+
+/**
+ * The triangular (third-party) coupling on a relationship type — the data the sim
+ * needs to model jealousy/protectiveness. When the *target* of a relationship of
+ * this type engages a third party, the holder reacts: `sensitivity` is how
+ * strongly, `biasesReactions` is the shape of the reaction (−2..+2 nudges, same
+ * scale as trait biases), and `intensifiesTowardDisliked` tells the sim to scale
+ * the reaction up when that third party is someone the holder regards negatively
+ * (a rival / low affinity). Tool authors the coupling; the sim applies it.
+ */
+export interface ThirdPartyCoupling {
+  /** 0–100: how strongly the holder reacts to the target engaging others. */
+  sensitivity: number;
+  biasesReactions: Partial<Record<ReactionCategory, number>>;
+  intensifiesTowardDisliked: boolean;
+}
+
+/**
+ * A reusable relationship type, defined once in the project catalog and
+ * referenced by a relationship edge's `relationshipType` id (the same pattern as
+ * drives and traits). `biasesReactions` colors the holder's reactions *toward the
+ * target* (sim applies it alongside trait biases, §5.3); `thirdParty` is the
+ * optional jealousy/protectiveness hook (§5.4). Behavior selection stays in the
+ * sim — the tool ships the structured coupling.
+ */
+export interface RelationshipTypeDefinition {
+  id: string;
+  label: string;
+  description: string;
+  category: RelationshipTypeCategory;
+  /** Typically hidden (secret romance, covert alliance) — seeds the per-edge toggle. */
+  secretByDefault?: boolean;
+  /** −2..+2 nudges to the holder's reactions toward the target. Only non-zero stored. */
+  biasesReactions: Partial<Record<ReactionCategory, number>>;
+  /** Triangular coupling for jealousy/protectiveness; omit for neutral bonds. */
+  thirdParty?: ThirdPartyCoupling;
+}
 
 export interface Relationship {
   targetAgentId: string;
@@ -240,8 +277,10 @@ export interface Relationship {
   influence: number;
   respect: number;
   familiarity: number;
-  /** Coarse durable category; the numeric axes carry the nuance. */
-  relationshipType?: RelationshipType;
+  /** Id into the project relationshipTypes catalog; the numeric axes carry the nuance. */
+  relationshipType?: string;
+  /** Hidden bond (secret romance, covert alliance). Exported for the sim. */
+  secret?: boolean;
   tags: string[];
 }
 
