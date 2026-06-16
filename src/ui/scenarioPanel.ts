@@ -11,6 +11,8 @@ import { GENERATED_COWORKER_PREFIX, computeInteractionAnchors, computeOfficeAnch
 import { STANCES } from '../core/profile';
 import { resolveScenarioRun, type ResolvedAgent, type ResolvedRun } from '../core/scenarioRun';
 import { SCENARIO_TEMPLATES } from '../data/scenarioTemplates';
+import { ROLE_TEMPLATES } from '../data/roleTemplates';
+import { analyzeTemplateCoverage, castTemplate, type ScenarioTemplate } from '../core/scenarioTemplate';
 import {
   ACCESS_STATES,
   OBJECTIVE_CATEGORIES,
@@ -339,6 +341,37 @@ export function renderScenarioList(container: HTMLElement): void {
     store.mutate((st) => (st.scenarios ??= []).push(s), 'data');
     store.mutateUi((ui) => (ui.selectedScenarioId = s.scenarioId));
   };
+  // Test-cast a cast-agnostic role template onto the current cast (the project
+  // profiles) for an authoring preview — author against roles, preview against
+  // whoever's here. A clean cast can be added as a concrete scenario, which then
+  // flows into the normal dry-run preview. See core/scenarioTemplate.ts.
+  const castRoleTemplate = (template: ScenarioTemplate) => {
+    const profiles = store.state.profiles ?? [];
+    const anchors = anchorIds();
+    const result = castTemplate(template, profiles, {
+      anchorIds: anchors.length ? anchors : undefined,
+      scenarioId: uid('scenario'),
+    });
+    const cov = analyzeTemplateCoverage(template, profiles);
+    const lines = [
+      `Template "${template.title}" cast onto ${profiles.length} persona(s).`,
+      `Emotional payload: ${template.emotionalPayload.targetEmotions.join(', ')}`,
+      '',
+      'Roles:',
+      ...result.report.assignments.map((a) => `  ${a.roleId}${a.required ? '' : ' (optional)'} → ${a.agentId ?? '— unfilled'}`),
+      result.report.unfilledRequired.length ? `\n⚠ unfilled REQUIRED: ${result.report.unfilledRequired.join(', ')}` : '',
+      result.report.unfilledOptional.length ? `Skipped optional: ${result.report.unfilledOptional.join(', ')}` : '',
+      '',
+      `Coverage: ${cov.fullyCastable ? '✓ castable' : '✗ not castable'}`,
+      ...cov.notes.map((n) => `  • ${n}`),
+      result.report.issues.length ? `\nIssues:\n${result.report.issues.map((i) => '  ' + i).join('\n')}` : '',
+    ].filter(Boolean);
+    if (result.ok && result.scenario) {
+      if (confirm(`${lines.join('\n')}\n\nAdd this cast scenario to the project?`)) addScenario(result.scenario);
+    } else {
+      alert(lines.join('\n'));
+    }
+  };
   container.append(
     list,
     el(
@@ -353,6 +386,17 @@ export function renderScenarioList(container: HTMLElement): void {
           (id) => {
             const t = SCENARIO_TEMPLATES.find((x) => x.id === id);
             if (t) addScenario(t.build());
+          },
+        ),
+      ),
+      labeled(
+        'Cast role template',
+        select(
+          [{ value: '', label: 'test-cast…' }, ...ROLE_TEMPLATES.map((t) => ({ value: t.templateId, label: t.title }))],
+          '',
+          (id) => {
+            const t = ROLE_TEMPLATES.find((x) => x.templateId === id);
+            if (t) castRoleTemplate(t);
           },
         ),
       ),

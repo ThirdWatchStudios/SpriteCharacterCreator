@@ -357,6 +357,25 @@ suits; mgmt inverse), 50-unique population, package structure, portrait crop.
 Note: employee JSON uses part ids + palette tokens (the real Unity contract), not
 the spec's illustrative indices.
 
+## Scenario templates — cast/scenario decoupling (additive, 2026-06-15)
+
+The Scenario tab authored fully-**bound** scenarios (cast named by `agentId`),
+right for the prototype's one fixed cast. The full game needs three independent
+axes — Cast (who) / Office (where) / Scenario (what could happen) — so a scenario
+becomes a **cast-agnostic, role-slotted template**: role slots + per-slot
+preconditions (over traits/drives/relationship axes/OCEAN+game axes/needs) + a seed
++ an emotional payload, cast onto whoever best fits. Implemented tool-side:
+`src/core/scenarioTemplate.ts` (`ScenarioTemplate`, `castTemplate`,
+`validateScenarioTemplate`, `analyzeTemplateCoverage`, `serializeScenarioTemplate`),
+the reference `THE_OFFICE_ROMANCE` template (`src/data/roleTemplates.ts`), a
+"Cast role template" authoring-preview affordance in the Scenario panel, and
+`tests/scenarioTemplate.test.ts`. **Additive:** the bound-`Scenario` path
+(`promotion_rumor_001`, `validateScenario`, `serializeScenario`, the export) is
+untouched — casting emits a bound scenario that loads identically. Design note:
+`docs/scenario-template-model.md`; contract: `CONTRACT.md` §3.8/§5.7. The sim-side
+runtime caster (consuming `scenario-template.json` directly) is a **separate, not-yet-built**
+"Scenario Loading" epic — flagged, not implemented here.
+
 ## Phase 4 — Engine / content-pack architecture (multi-game reuse)
 
 Full plan in `TOOL_ARCHITECTURE.md`. Turn this from one game's tool into a

@@ -26,6 +26,7 @@ pin down what data we must capture here so the sim has what it needs.
 | Trait catalog (structured, reusable; `biasesReactions`) | **Tool** | Project-level catalog (§3.6); persona `traitTags` are ids into it. Reaction nudges are tool-authored data the sim applies on top of the spine-derived tendencies. |
 | Relationship-type catalog (structured, reusable; `biasesReactions` + `thirdParty`) | **Tool** | Project-level catalog (§3.7); relationship edges' `relationshipType` are ids into it. Carries reaction bias toward the target *and* the third-party (jealousy/protectiveness) coupling — tool-authored data the sim applies at interaction time. |
 | Scenario situation (truth, information, experiment, objective, seeds) | **Tool** | Authored + exported. |
+| Scenario **templates** (role slots + preconditions + emotional payload) | **Tool** | Cast-agnostic authoring (§3.8). The tool casts a template → a bound scenario at authoring time and exports the bound `scenario.json`; runtime casting is a future sim concern (§5.7). |
 | **Behavior** — how any of the above turns into decisions, need depletion, relationship drift, belief spread, KPI scoring | **Sim** | Not implemented in this repo. See §5. |
 | The meaning of a free-text id (a `drive`, a `trait_tag`, a `locationId`, a routine `activity`) | **Sim** | The tool deliberately does not enforce these vocabularies — it ships strings; the sim decides what they do (and should log/fallback on ids it doesn't implement). |
 
@@ -184,6 +185,61 @@ The shared set of bond types a relationship edge references by id (`relationship
 ```
 As with drives/traits, an edge may carry a type id absent from the catalog — fallback + log (§7). Shipped at the bundle root and in each scenario package.
 
+### 3.8 `scenario-template.json` (cast-agnostic template) — **authoring-only today**
+A **role-slotted, cast-agnostic** scenario: the full-game third axis (Cast / Office /
+Scenario). It references **roles, not agent ids** — every truth/info/seed/spawn names
+a `roleId`, and **casting** rewrites roles → agents to emit a bound `Scenario` (§3.3).
+Authored in `src/core/scenarioTemplate.ts`; serialized by `serializeScenarioTemplate`
+(`meta.artifact = "scenario-template"`, same `meta.schemaVersion`). **Not emitted in
+the export bundle yet** — the tool casts to a bound `scenario.json` and exports that;
+the template artifact lands when the sim grows a runtime caster (§5.7). See
+`docs/scenario-template-model.md`.
+```jsonc
+{
+  "templateId": "the_office_romance",
+  "triggering": "emerge",                          // emerge | provoke
+  "emotionalPayload": { "targetEmotions": ["infatuation","jealousy","heartbreak"], "description": "…" },
+  "roles": [
+    { "roleId": "loverA", "label": "Lover A", "required": true,
+      "preconditions": [ /* see the precondition vocabulary below */ ] }
+  ],
+  "roleSeeds":  [ { "roleId": "loverA", "beliefSeeds": [...], "knowledgeSeeds": ["love_note"],
+                    "relationshipOverrides": [ { "toRole": "loverB", "affinity": 90 } ] } ],
+  "locations":  [ { "locationId": "loverA_desk", "bindRoomId": "cubicle-farm", "bindDeskOfRole": "loverA", … } ],
+  "roleSpawns": [ { "roleId": "loverA", "locationId": "loverA_desk" } ],
+  "truthFacts": [ { "truthId": "…", "subjectRoles": ["loverA","loverB"], "sourceRole": "loverA", … } ],
+  "informationItems": [ { "informationId": "love_note", "sourceRole": "loverA", "initialHolderRoles": ["loverA","loverB"], … } ],
+  "interventionTypes": [...], "variants": [...], "defaultVariantId": "…", "objective": { … }   // as §3.3
+}
+```
+
+**Precondition vocabulary (the persona ↔ scenario casting contract).** Built only on
+the catalogs §3.5–§3.7 already define — no parallel vocabulary. Discriminated by `kind`:
+```jsonc
+{ "kind": "trait", "trait": "gossip", "mode": "has" }            // trait id (§3.6)
+{ "kind": "axis",  "axis": "discretion", "op": "lte", "value": 35 }   // OCEAN + game + derived axis, 0–100
+{ "kind": "need",  "need": "recognition", "field": "sensitivity", "op": "gte", "value": 70 }
+{ "kind": "drive", "anyOf": ["maintain_social_access"] }         // drive ids (§3.5)
+{ "kind": "relationship", "toRole": "loverB", "direction": "mutual", "axis": "affinity", "op": "gte", "value": 30 }
+{ "kind": "aggregate", "axis": "familiarity", "reduce": "avg", "direction": "outgoing", "op": "lte", "value": 30 }
+}                                                                // axis ∈ trust|suspicion|affinity|influence|respect|familiarity; type/typeAnyOf = relationshipType id (§3.7)
+```
+`relationship` constrains a candidate **relative to the agent assigned to `toRole`**
+(`direction`: outgoing | incoming | mutual). `aggregate` is the **"to-everyone"**
+condition — it reduces (min/max/avg) the axis over the *whole cast* (a missing edge =
+`missingAs`, default 0), e.g. an outsider with low familiarity to everybody.
+**Proximity is the `familiarity` axis** at authoring time — the persona-level proxy the
+sim refines with live spatial state (§5.4/§5.7).
+
+**Role presence + family.** A role carries `presence: "present" | "absent"` (default
+present). An **absent** ("negative") role is resolved — for distinctness and so the
+seed/truth/info can reference its agent id — but kept **out of the emitted cast/spawns**
+and reported as *the one to keep out* (the Scapegoat's off-scene culprit, the Power
+Vacuum's removed authority). A template also carries an optional `family` (free-text
+grouping). Both are tool-side authoring concerns; the emitted bound `scenario.json` is
+unaffected (an absent role simply contributes no cast member, only the references it's
+named in).
+
 ---
 
 ## 4. Formulas computed **in the tool** (authoritative)
@@ -236,6 +292,14 @@ On an event, the sim picks among the 7 `reactionTendencies` (already numeric, §
 
 ### 5.6 Objective / KPI scoring
 `objective.kpi` + `expectedEvidence[]` + the active `variant`'s `selections` define what a run is measured against. The sim owns the measurement; the tool owns the definition. KPI strings are free-text — same registry/fallback discipline as drives.
+
+### 5.7 Scenario-template casting (sim-owned **future** — flagged, not implemented either side)
+The full-game direction has the **engine cast templates at runtime** — bind a cast-agnostic `scenario-template.json` (§3.8) onto the live cast/office by precondition match. Today the **tool** does this at authoring time (`castTemplate` in `scenarioTemplate.ts`: greedy-best-with-backtracking over the precondition vocabulary, strongest-fit wins ties; required roles must fill or the cast fails; optional roles skip) and exports the resulting **bound** `scenario.json` — so **the prototype loader is unchanged**. When the sim adopts runtime casting (the separate "Scenario Loading" epic):
+- a new optional input artifact `scenario-template.json` joins today's bound `scenario.json`;
+- the sim gains a **runtime caster** = the port of `castTemplate`, same precondition vocabulary (§3.8), evaluating against **live** persona + relationship + **real spatial proximity** (the one precondition the sim does better than the tool's `familiarity` proxy);
+- a bound `scenario.json` keeps loading as-is — it is the already-cast special case (single-candidate roles).
+
+Nothing in this section obligates a sim change to ship the current tool work.
 
 ---
 
