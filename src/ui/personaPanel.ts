@@ -50,6 +50,7 @@ import {
   type ReactionCategory,
   type Relationship,
 } from '../core/profile';
+import { generateRoutine, resolveRoutineContext } from '../core/routineGenerator';
 import { button, clear, el, labeled, select, slider } from './dom';
 import { collapsibleSection as section, enumField, num, tagEditor, textField, uid } from './controls';
 
@@ -537,11 +538,27 @@ function routineSection(p: CharacterProfile): HTMLElement {
       button('Remove', () => edit(() => (p.routine = p.routine.filter((x) => x !== blk)), 'structure'), 'danger'),
     ),
   );
+  const generate = () => {
+    if (p.routine.length && !confirm('Replace the current routine with a generated default?')) return;
+    edit(() => {
+      const ctx = resolveRoutineContext(p, store.selectedScenario);
+      p.routine = generateRoutine(p, ctx);
+    }, 'structure');
+  };
+  const scenarioNote = store.selectedScenario
+    ? `Locations resolve against scenario "${store.selectedScenario.title || store.selectedScenario.scenarioId}".`
+    : 'No scenario selected — falls back to the canonical office (break_room, hallway, <agent>_desk).';
   return section(
     'Routine',
     el('p', { className: 'hint' }, 'Default daily schedule — blocks create encounters and put preferences/needs in space.'),
     el('datalist', { id: locList }, ...LOCATION_SUGGESTIONS.map((l) => el('option', { value: l }))),
     el('datalist', { id: actList }, ...ACTIVITY_SUGGESTIONS.map((a) => el('option', { value: a }))),
+    el(
+      'div',
+      { className: 'btn-row' },
+      button('✨ Generate routine', generate, 'primary'),
+      el('span', { className: 'hint' }, scenarioNote),
+    ),
     ...rows,
     button('+ Routine block', () =>
       edit(() => {
