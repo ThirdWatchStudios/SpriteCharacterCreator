@@ -51,6 +51,8 @@ class Store {
      * Order is honored left-to-right. Transient (not persisted in the project).
      */
     sceneWingDepartmentIds: [] as string[],
+    /** Wing over-capacity warnings from the last office generation (F3.4); transient. */
+    sceneOccupancy: [] as string[],
     selectedStylePresetId: '',
     styleCompare: false,
     stylePresetName: '',

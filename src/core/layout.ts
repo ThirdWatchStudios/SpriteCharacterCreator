@@ -54,6 +54,8 @@ export interface GeneratedOfficeLayout {
   coworkers: CharacterRecipe[];
   seed: number;
   templateId: string;
+  /** Wing over-capacity warnings for the generated population (F3.4); empty when every agent seated. */
+  occupancy: string[];
 }
 
 /**
@@ -954,6 +956,29 @@ function createGeneratedCoworkers(project: ProjectState, count: number, rng: Rng
   });
 }
 
+/**
+ * The promoted generated population (Epic 3) to seat by department (F3.4): cast
+ * members carrying a non-empty department profile, excluding the scripted base cast
+ * (janice/carl/linda/manager, which keep their authored spawns) and the throwaway
+ * layout coworkers. Returned in cast order, with the agentId→department map.
+ */
+function collectGeneratedPopulation(project: ProjectState): { agents: CharacterRecipe[]; deptOf: Map<string, string> } {
+  const baseCast = project.characters.filter((r) => !r.id.startsWith(GENERATED_COWORKER_PREFIX));
+  const scripted = new Set(
+    [
+      baseCast.find((r) => r.id === 'janice') ?? baseCast[0],
+      baseCast.find((r) => r.id === 'carl') ?? baseCast[1],
+      baseCast.find((r) => r.id === 'linda') ?? baseCast[2],
+      baseCast.find((r) => r.id === 'manager') ?? baseCast[3],
+    ]
+      .filter((r): r is CharacterRecipe => Boolean(r))
+      .map((r) => r.id),
+  );
+  const deptOf = new Map((project.profiles ?? []).map((p) => [p.agentId, p.identity.department || '']));
+  const agents = baseCast.filter((r) => !scripted.has(r.id) && (deptOf.get(r.id) ?? '') !== '');
+  return { agents, deptOf };
+}
+
 function furnishReception(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): void {
   const box = interior(room);
   const area = (box.x1 - box.x0 + 1) * (box.y1 - box.y0 + 1);
@@ -1231,9 +1256,18 @@ export function generateOfficeLayout(
   const actualSeed = seed ?? Math.floor(Math.random() * 0x7fffffff);
   const rng = mulberry32(actualSeed);
 
-  // Branch on the options, NOT on rng, so the single-office path's rng stream
-  // (template pick first) is untouched and its output stays byte-identical.
-  const wingDepartmentIds = (options?.wingDepartmentIds ?? []).filter(Boolean);
+  // F3.4: the promoted generated population seats into its department's wing. Auto-
+  // derive a wing per department present in the population (catalog order), unless
+  // the caller overrides via the F1.4 control. Branch on data, NOT rng, so the
+  // single-office path's rng stream (template pick first) stays byte-identical.
+  const { agents: population, deptOf: populationDeptOf } = collectGeneratedPopulation(project);
+  const populationMode = population.length > 0;
+  const override = (options?.wingDepartmentIds ?? []).filter(Boolean);
+  const wingDepartmentIds = override.length
+    ? override
+    : (project.departments ?? [])
+        .map((d) => d.id)
+        .filter((id) => population.some((r) => populationDeptOf.get(r.id) === id));
   let rooms: RoomSpec[];
   let doors: Array<[number, number]>;
   let cols: number;
@@ -1308,7 +1342,9 @@ export function generateOfficeLayout(
   }
 
   const baseCast = project.characters.filter((recipe) => !recipe.id.startsWith(GENERATED_COWORKER_PREFIX));
-  const coworkers = createGeneratedCoworkers(project, coworkerCount, rng, actualSeed);
+  // Population mode seats the existing promoted cast (already in project.characters),
+  // so no throwaway coworkers are fabricated; otherwise keep the quick-office filler.
+  const coworkers = populationMode ? [] : createGeneratedCoworkers(project, coworkerCount, rng, actualSeed);
   spawnCharacter(scene, project, baseCast.find((r) => r.id === 'janice') ?? baseCast[0], 'hallway', 'suspicious', pick(rng, FACINGS), rng);
   spawnCharacter(scene, project, baseCast.find((r) => r.id === 'carl') ?? baseCast[1], chance(rng, 0.5) ? 'break-room' : 'cubicle-farm', 'curious', pick(rng, FACINGS), rng);
   spawnCharacter(scene, project, baseCast.find((r) => r.id === 'linda') ?? baseCast[2], chance(rng, 0.5) ? 'conference-room' : 'cubicle-farm', 'defensive', pick(rng, FACINGS), rng);
@@ -1316,28 +1352,33 @@ export function generateOfficeLayout(
   if (managerSeat) addCharacter(scene, project, manager, managerSeat.x, managerSeat.y, 'hostile', managerSeat.facing);
   else spawnCharacter(scene, project, manager, 'manager-office', 'hostile', pick(rng, FACINGS), rng);
 
-  const coworkerRooms: RoomId[] = [
-    'cubicle-farm',
-    'hallway',
-    'break-room',
-    'conference-room',
-    'copy-room',
-    'focus-room',
-    'waiting-nook',
-  ];
-  const freeSeats = [...seats];
-  for (const coworker of coworkers) {
-    // most coworkers sit at their cubicle, facing the desk
-    if (freeSeats.length > 0 && chance(rng, 0.7)) {
-      const seat = freeSeats.splice(Math.floor(rng() * freeSeats.length), 1)[0];
-      addCharacter(scene, project, coworker, seat.x, seat.y, pick(rng, AMBIENT_MOODS), seat.facing);
-      continue;
+  if (populationMode) {
+    // Seat each generated agent into its department's wing (F3.4).
+    seatGeneratedPopulation(scene, project, population, populationDeptOf, seats, rng);
+  } else {
+    const coworkerRooms: RoomId[] = [
+      'cubicle-farm',
+      'hallway',
+      'break-room',
+      'conference-room',
+      'copy-room',
+      'focus-room',
+      'waiting-nook',
+    ];
+    const freeSeats = [...seats];
+    for (const coworker of coworkers) {
+      // most coworkers sit at their cubicle, facing the desk
+      if (freeSeats.length > 0 && chance(rng, 0.7)) {
+        const seat = freeSeats.splice(Math.floor(rng() * freeSeats.length), 1)[0];
+        addCharacter(scene, project, coworker, seat.x, seat.y, pick(rng, AMBIENT_MOODS), seat.facing);
+        continue;
+      }
+      const cell = pickSpawnCell(scene, project, rng, pick(rng, coworkerRooms));
+      if (cell) addCharacter(scene, project, coworker, cell.x, cell.y, pick(rng, AMBIENT_MOODS), pick(rng, FACINGS));
     }
-    const cell = pickSpawnCell(scene, project, rng, pick(rng, coworkerRooms));
-    if (cell) addCharacter(scene, project, coworker, cell.x, cell.y, pick(rng, AMBIENT_MOODS), pick(rng, FACINGS));
   }
 
-  return { scene, coworkers, seed: actualSeed, templateId };
+  return { scene, coworkers, seed: actualSeed, templateId, occupancy: validatePopulationOccupancy(scene, project) };
 }
 
 /** A seatable cell in a wing — a desk prop cell, then open floor as fallback. */
@@ -1492,6 +1533,108 @@ export function validateDeskCoverage(scene: SceneState, project: ProjectState): 
   return planDesks(scene, project)
     .filter((plan) => plan.shortfall > 0)
     .map((plan) => `Wing "${plan.wing.label}" must seat ${plan.assigned.length + plan.shortfall} agents but has only ${plan.cells.length} desk(s) — ${plan.shortfall} short.`);
+}
+
+/** Office-chair prop cells inside a wing, grouped by the wing they sit in. */
+function chairsByWing(scene: SceneState, project: ProjectState, wings: LayoutWing[]): Map<string, number> {
+  const wingOfRoom = new Map<string, string>();
+  for (const w of wings) for (const rid of w.roomIds) wingOfRoom.set(rid, w.id);
+  const roomAt = (x: number, y: number): string => scene.roomIds?.[y]?.[x] ?? '';
+  const counts = new Map<string, number>();
+  for (const e of scene.entities) {
+    if (e.kind !== 'prop') continue;
+    if (project.props.find((p) => p.id === e.refId)?.templateId !== 'office-chair') continue;
+    const wingId = wingOfRoom.get(roomAt(e.x, e.y));
+    if (wingId) counts.set(wingId, (counts.get(wingId) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/** The wing a department's agents seat in — the department's own wing, else the common/main wing. */
+function wingIdForDept(wings: LayoutWing[], dep: string): string | undefined {
+  if (!wings.length) return undefined;
+  return wings.find((w) => w.departmentId === dep)?.id ?? wings.find((w) => w.departmentId === null)?.id ?? wings[0].id;
+}
+
+/**
+ * Seat the generated population (F3.4): partition the wing chair `seats` by wing,
+ * then assign each agent to a free chair in its department's wing (cast order ×
+ * seat y,x), leaving SPARE_DESKS_PER_WING chairs per wing as transfer headroom.
+ * Deterministic — only the mood is an rng draw. Agents over capacity stay unseated
+ * (surfaced by validatePopulationOccupancy).
+ */
+function seatGeneratedPopulation(
+  scene: SceneState,
+  project: ProjectState,
+  population: CharacterRecipe[],
+  deptOf: Map<string, string>,
+  seats: SeatCell[],
+  rng: Rng,
+): void {
+  const wings = computeWings(scene, project);
+  if (!wings.length) return;
+  const wingOfRoom = new Map<string, string>();
+  for (const w of wings) for (const rid of w.roomIds) wingOfRoom.set(rid, w.id);
+  const roomAt = (x: number, y: number): string => scene.roomIds?.[y]?.[x] ?? '';
+
+  const seatsByWing = new Map<string, SeatCell[]>();
+  for (const seat of [...seats].sort((a, b) => a.y - b.y || a.x - b.x)) {
+    const wingId = wingOfRoom.get(roomAt(seat.x, seat.y));
+    if (!wingId) continue;
+    (seatsByWing.get(wingId) ?? seatsByWing.set(wingId, []).get(wingId)!).push(seat);
+  }
+
+  // A chair cell carries an office-chair prop you sit ON; only a CHARACTER already
+  // there (e.g. a base-cast spawn) blocks the seat.
+  const takenByCharacter = (x: number, y: number): boolean =>
+    scene.entities.some((e) => e.kind === 'character' && e.x === x && e.y === y);
+
+  const cursor = new Map<string, number>();
+  for (const agent of population) {
+    const wingId = wingIdForDept(wings, deptOf.get(agent.id) ?? '');
+    if (!wingId) continue;
+    const wingSeats = seatsByWing.get(wingId) ?? [];
+    const capacity = Math.max(0, wingSeats.length - SPARE_DESKS_PER_WING);
+    let i = cursor.get(wingId) ?? 0;
+    while (i < capacity && takenByCharacter(wingSeats[i].x, wingSeats[i].y)) i++;
+    cursor.set(wingId, i + 1);
+    if (i >= capacity) continue; // over capacity — reported by validatePopulationOccupancy
+    const seat = wingSeats[i];
+    addCharacter(scene, project, agent, seat.x, seat.y, pick(rng, AMBIENT_MOODS), seat.facing);
+  }
+}
+
+/**
+ * Flag wings whose generated population (F3.4) exceeds the seatable chairs minus
+ * the transfer headroom. Empty array = every generated agent has a plausible home.
+ * Auto-derived wings guarantee no empty wing, so this covers the over-capacity end.
+ * Surfaced in the studio before export.
+ */
+export function validatePopulationOccupancy(scene: SceneState, project: ProjectState): string[] {
+  const { agents, deptOf } = collectGeneratedPopulation(project);
+  if (!agents.length) return [];
+  const wings = computeWings(scene, project);
+  if (!wings.length) return [];
+
+  const chairs = chairsByWing(scene, project, wings);
+  const labelOf = (id: string): string => wings.find((w) => w.id === id)?.label ?? id;
+  const demand = new Map<string, number>();
+  for (const agent of agents) {
+    const wingId = wingIdForDept(wings, deptOf.get(agent.id) ?? '');
+    if (wingId) demand.set(wingId, (demand.get(wingId) ?? 0) + 1);
+  }
+
+  const issues: string[] = [];
+  for (const [wingId, want] of demand) {
+    const chairCount = chairs.get(wingId) ?? 0;
+    const capacity = Math.max(0, chairCount - SPARE_DESKS_PER_WING);
+    if (want > capacity) {
+      issues.push(
+        `Wing "${labelOf(wingId)}" must seat ${want} generated agent(s) but has ${chairCount} chair(s) (${capacity} after headroom) — ${want - capacity} unseated.`,
+      );
+    }
+  }
+  return issues;
 }
 
 export function sceneToLayoutJson(scene: SceneState, project: ProjectState): SceneLayoutJson {

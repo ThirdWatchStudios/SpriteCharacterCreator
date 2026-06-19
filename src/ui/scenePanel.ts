@@ -580,6 +580,7 @@ function renderSceneGenerate(container: HTMLElement): void {
       wingDepartmentIds: store.ui.sceneWingDepartmentIds,
     });
     store.ui.sceneSeed = String(generated.seed);
+    store.ui.sceneOccupancy = generated.occupancy;
     store.mutate((state) => {
       state.characters = state.characters
         .filter((recipe) => !recipe.id.startsWith(GENERATED_COWORKER_PREFIX))
@@ -625,7 +626,19 @@ function renderSceneGenerate(container: HTMLElement): void {
     labeled('Random coworkers', coworkerInput),
     labeled('Seed (same seed = same office)', seedInput),
     labeled('Department wings (optional)', wingBox),
-    el('p', { className: 'hint' }, 'Check departments to pack a multi-wing office that grows with the count; leave all unchecked for a single office.'),
+    el('p', { className: 'hint' }, 'Leave unchecked to auto-derive a wing per department in the generated cast; check departments to override the wing set. Unchecked + no population = a single office.'),
     el('div', { className: 'btn-row' }, randomBtn, generateBtn),
   );
+
+  // F3.4: warn when a wing can't seat all of its generated population.
+  if (store.ui.sceneOccupancy.length > 0) {
+    container.append(
+      el(
+        'div',
+        { className: 'warning' },
+        el('strong', {}, 'Wing over capacity:'),
+        ...store.ui.sceneOccupancy.map((msg) => el('p', { className: 'hint' }, msg)),
+      ),
+    );
+  }
 }
