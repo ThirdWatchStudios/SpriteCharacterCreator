@@ -376,6 +376,23 @@ untouched — casting emits a bound scenario that loads identically. Design note
 runtime caster (consuming `scenario-template.json` directly) is a **separate, not-yet-built**
 "Scenario Loading" epic — flagged, not implemented here.
 
+## Office-Scale Authoring — the growing office (own project, DRAFT)
+
+The full-game "office-scale" direction makes the authored starting state **bigger and
+structured**: a multi-department organization with an org chart, a populated
+cross-department social graph, and a layout with real wings — so The Water Cooler's office
+**grows over a long playthrough** (the player is granted fog-of-war reach into a pre-existing
+org). This is a substantial, content-heavy body of work, pulled out into its own doc set and
+its own GitHub project, to be decomposed separately. Downstream of the sim proving its harvest
+loop is fun; not urgent, but two items (a structured/mutable `department` field and the
+scenario-template export) are parallel-safe and worth landing early.
+
+Scope and work areas: **[`docs/office-scale/`](docs/office-scale/README.md)** —
+multi-department layout, org-structure/org-chart artifact, structured departments & population
+generation, and scenario-template export + department-aware preconditions. Sim-side source of
+truth lives in the `game-design-docs` repo (`14_OFFICE_SCALE_DIRECTION.md` + epics 38–41).
+Mostly `modern-office` content-pack work; contract changes are additive (`CONTRACT.md` §7).
+
 ## Phase 4 — Engine / content-pack architecture (multi-game reuse)
 
 Full plan in `TOOL_ARCHITECTURE.md`. Turn this from one game's tool into a
