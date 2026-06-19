@@ -1,0 +1,2782 @@
+{
+  "version": 3,
+  "source": "generated",
+  "generated": {
+    "templateId": "cross-hall-compact",
+    "seed": 7
+  },
+  "cols": 22,
+  "rows": 14,
+  "rooms": [
+    {
+      "id": "reception",
+      "label": "Reception",
+      "x": 0,
+      "y": 0,
+      "cols": 6,
+      "rows": 6,
+      "kind": "reception"
+    },
+    {
+      "id": "focus-room",
+      "label": "Focus room",
+      "x": 5,
+      "y": 0,
+      "cols": 5,
+      "rows": 6,
+      "kind": "focus-room"
+    },
+    {
+      "id": "cubicle-farm",
+      "label": "Cubicle farm",
+      "x": 9,
+      "y": 0,
+      "cols": 8,
+      "rows": 6,
+      "kind": "cubicle-farm"
+    },
+    {
+      "id": "manager-office",
+      "label": "Manager office",
+      "x": 16,
+      "y": 0,
+      "cols": 6,
+      "rows": 6,
+      "kind": "manager-office"
+    },
+    {
+      "id": "hallway",
+      "label": "Hallway",
+      "x": 0,
+      "y": 5,
+      "cols": 22,
+      "rows": 5,
+      "kind": "hallway"
+    },
+    {
+      "id": "copy-room",
+      "label": "Copy room",
+      "x": 0,
+      "y": 9,
+      "cols": 5,
+      "rows": 5,
+      "kind": "copy-room"
+    },
+    {
+      "id": "break-room",
+      "label": "Break room",
+      "x": 4,
+      "y": 9,
+      "cols": 6,
+      "rows": 5,
+      "kind": "break-room"
+    },
+    {
+      "id": "conference-room",
+      "label": "Conference room",
+      "x": 9,
+      "y": 9,
+      "cols": 13,
+      "rows": 5,
+      "kind": "conference-room"
+    }
+  ],
+  "roomGrid": [
+    [
+      "reception",
+      "reception",
+      "reception",
+      "reception",
+      "reception",
+      "focus-room",
+      "focus-room",
+      "focus-room",
+      "focus-room",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office"
+    ],
+    [
+      "reception",
+      "reception",
+      "reception",
+      "reception",
+      "reception",
+      "focus-room",
+      "focus-room",
+      "focus-room",
+      "focus-room",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office"
+    ],
+    [
+      "reception",
+      "reception",
+      "reception",
+      "reception",
+      "reception",
+      "focus-room",
+      "focus-room",
+      "focus-room",
+      "focus-room",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office"
+    ],
+    [
+      "reception",
+      "reception",
+      "reception",
+      "reception",
+      "reception",
+      "focus-room",
+      "focus-room",
+      "focus-room",
+      "focus-room",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office"
+    ],
+    [
+      "reception",
+      "reception",
+      "reception",
+      "reception",
+      "reception",
+      "focus-room",
+      "focus-room",
+      "focus-room",
+      "focus-room",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "cubicle-farm",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office",
+      "manager-office"
+    ],
+    [
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway"
+    ],
+    [
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway"
+    ],
+    [
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway"
+    ],
+    [
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway",
+      "hallway"
+    ],
+    [
+      "copy-room",
+      "copy-room",
+      "copy-room",
+      "copy-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room"
+    ],
+    [
+      "copy-room",
+      "copy-room",
+      "copy-room",
+      "copy-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room"
+    ],
+    [
+      "copy-room",
+      "copy-room",
+      "copy-room",
+      "copy-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room"
+    ],
+    [
+      "copy-room",
+      "copy-room",
+      "copy-room",
+      "copy-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room"
+    ],
+    [
+      "copy-room",
+      "copy-room",
+      "copy-room",
+      "copy-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "break-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room",
+      "conference-room"
+    ]
+  ],
+  "floors": [
+    [
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood"
+    ],
+    [
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood"
+    ],
+    [
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood"
+    ],
+    [
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood"
+    ],
+    [
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-carpet-tiles",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-quiet-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood"
+    ],
+    [
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet"
+    ],
+    [
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet"
+    ],
+    [
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet"
+    ],
+    [
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet",
+      "floor-carpet"
+    ],
+    [
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood"
+    ],
+    [
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood"
+    ],
+    [
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood"
+    ],
+    [
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood"
+    ],
+    [
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-utility-vinyl",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-linoleum",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood",
+      "floor-wood"
+    ]
+  ],
+  "walls": {
+    "grid": [
+      [
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office"
+      ],
+      [
+        "wall-office",
+        null,
+        null,
+        null,
+        null,
+        "wall-glass",
+        null,
+        null,
+        null,
+        "wall-office",
+        null,
+        null,
+        "wall-cubicle",
+        null,
+        null,
+        null,
+        "wall-glass",
+        null,
+        null,
+        null,
+        null,
+        "wall-office"
+      ],
+      [
+        "wall-office",
+        null,
+        null,
+        null,
+        null,
+        "wall-glass",
+        null,
+        null,
+        null,
+        "wall-office",
+        null,
+        null,
+        "wall-cubicle",
+        null,
+        null,
+        null,
+        "wall-glass",
+        null,
+        null,
+        null,
+        null,
+        "wall-office"
+      ],
+      [
+        "wall-office",
+        null,
+        null,
+        null,
+        null,
+        "wall-glass",
+        null,
+        null,
+        null,
+        "wall-office",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "wall-glass",
+        null,
+        null,
+        null,
+        null,
+        "wall-office"
+      ],
+      [
+        "wall-office",
+        null,
+        null,
+        null,
+        null,
+        "wall-glass",
+        null,
+        null,
+        null,
+        "wall-office",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "wall-glass",
+        null,
+        null,
+        null,
+        null,
+        "wall-office"
+      ],
+      [
+        "wall-office",
+        "wall-office",
+        null,
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        null,
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        null,
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        null,
+        "wall-office",
+        "wall-office",
+        "wall-office"
+      ],
+      [
+        "wall-office",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "wall-office"
+      ],
+      [
+        "wall-office",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "wall-office"
+      ],
+      [
+        "wall-office",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "wall-office"
+      ],
+      [
+        "wall-office",
+        "wall-office",
+        null,
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        null,
+        "wall-office",
+        "wall-glass",
+        "wall-glass",
+        "wall-glass",
+        "wall-glass",
+        "wall-glass",
+        "wall-glass",
+        null,
+        "wall-glass",
+        "wall-glass",
+        "wall-glass",
+        "wall-glass",
+        "wall-glass",
+        "wall-office"
+      ],
+      [
+        "wall-office",
+        null,
+        null,
+        null,
+        "wall-office",
+        null,
+        null,
+        null,
+        null,
+        "wall-glass",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "wall-office"
+      ],
+      [
+        "wall-office",
+        null,
+        null,
+        null,
+        "wall-office",
+        null,
+        null,
+        null,
+        null,
+        "wall-glass",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "wall-office"
+      ],
+      [
+        "wall-office",
+        null,
+        null,
+        null,
+        "wall-office",
+        null,
+        null,
+        null,
+        null,
+        "wall-glass",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        "wall-office"
+      ],
+      [
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office",
+        "wall-office"
+      ]
+    ],
+    "cells": [
+      {
+        "x": 0,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 6
+      },
+      {
+        "x": 1,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 2,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 3,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 4,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 5,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 14
+      },
+      {
+        "x": 6,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 7,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 8,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 9,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 14
+      },
+      {
+        "x": 10,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 11,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 12,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 14
+      },
+      {
+        "x": 13,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 14,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 15,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 16,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 14
+      },
+      {
+        "x": 17,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 18,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 19,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 20,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 21,
+        "y": 0,
+        "wallId": "wall-office",
+        "mask": 12
+      },
+      {
+        "x": 0,
+        "y": 1,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 5,
+        "y": 1,
+        "wallId": "wall-glass",
+        "mask": 5
+      },
+      {
+        "x": 9,
+        "y": 1,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 12,
+        "y": 1,
+        "wallId": "wall-cubicle",
+        "mask": 5
+      },
+      {
+        "x": 16,
+        "y": 1,
+        "wallId": "wall-glass",
+        "mask": 5
+      },
+      {
+        "x": 21,
+        "y": 1,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 0,
+        "y": 2,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 5,
+        "y": 2,
+        "wallId": "wall-glass",
+        "mask": 5
+      },
+      {
+        "x": 9,
+        "y": 2,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 12,
+        "y": 2,
+        "wallId": "wall-cubicle",
+        "mask": 1
+      },
+      {
+        "x": 16,
+        "y": 2,
+        "wallId": "wall-glass",
+        "mask": 5
+      },
+      {
+        "x": 21,
+        "y": 2,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 0,
+        "y": 3,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 5,
+        "y": 3,
+        "wallId": "wall-glass",
+        "mask": 5
+      },
+      {
+        "x": 9,
+        "y": 3,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 16,
+        "y": 3,
+        "wallId": "wall-glass",
+        "mask": 5
+      },
+      {
+        "x": 21,
+        "y": 3,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 0,
+        "y": 4,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 5,
+        "y": 4,
+        "wallId": "wall-glass",
+        "mask": 5
+      },
+      {
+        "x": 9,
+        "y": 4,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 16,
+        "y": 4,
+        "wallId": "wall-glass",
+        "mask": 5
+      },
+      {
+        "x": 21,
+        "y": 4,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 0,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 7
+      },
+      {
+        "x": 1,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 8
+      },
+      {
+        "x": 3,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 2
+      },
+      {
+        "x": 4,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 5,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 11
+      },
+      {
+        "x": 6,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 8
+      },
+      {
+        "x": 8,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 2
+      },
+      {
+        "x": 9,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 11
+      },
+      {
+        "x": 10,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 11,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 12,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 8
+      },
+      {
+        "x": 14,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 2
+      },
+      {
+        "x": 15,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 16,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 11
+      },
+      {
+        "x": 17,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 8
+      },
+      {
+        "x": 19,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 2
+      },
+      {
+        "x": 20,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 21,
+        "y": 5,
+        "wallId": "wall-office",
+        "mask": 13
+      },
+      {
+        "x": 0,
+        "y": 6,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 21,
+        "y": 6,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 0,
+        "y": 7,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 21,
+        "y": 7,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 0,
+        "y": 8,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 21,
+        "y": 8,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 0,
+        "y": 9,
+        "wallId": "wall-office",
+        "mask": 7
+      },
+      {
+        "x": 1,
+        "y": 9,
+        "wallId": "wall-office",
+        "mask": 8
+      },
+      {
+        "x": 3,
+        "y": 9,
+        "wallId": "wall-office",
+        "mask": 2
+      },
+      {
+        "x": 4,
+        "y": 9,
+        "wallId": "wall-office",
+        "mask": 14
+      },
+      {
+        "x": 5,
+        "y": 9,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 6,
+        "y": 9,
+        "wallId": "wall-office",
+        "mask": 8
+      },
+      {
+        "x": 8,
+        "y": 9,
+        "wallId": "wall-office",
+        "mask": 2
+      },
+      {
+        "x": 9,
+        "y": 9,
+        "wallId": "wall-glass",
+        "mask": 14
+      },
+      {
+        "x": 10,
+        "y": 9,
+        "wallId": "wall-glass",
+        "mask": 10
+      },
+      {
+        "x": 11,
+        "y": 9,
+        "wallId": "wall-glass",
+        "mask": 10
+      },
+      {
+        "x": 12,
+        "y": 9,
+        "wallId": "wall-glass",
+        "mask": 10
+      },
+      {
+        "x": 13,
+        "y": 9,
+        "wallId": "wall-glass",
+        "mask": 10
+      },
+      {
+        "x": 14,
+        "y": 9,
+        "wallId": "wall-glass",
+        "mask": 8
+      },
+      {
+        "x": 16,
+        "y": 9,
+        "wallId": "wall-glass",
+        "mask": 2
+      },
+      {
+        "x": 17,
+        "y": 9,
+        "wallId": "wall-glass",
+        "mask": 10
+      },
+      {
+        "x": 18,
+        "y": 9,
+        "wallId": "wall-glass",
+        "mask": 10
+      },
+      {
+        "x": 19,
+        "y": 9,
+        "wallId": "wall-glass",
+        "mask": 10
+      },
+      {
+        "x": 20,
+        "y": 9,
+        "wallId": "wall-glass",
+        "mask": 10
+      },
+      {
+        "x": 21,
+        "y": 9,
+        "wallId": "wall-office",
+        "mask": 13
+      },
+      {
+        "x": 0,
+        "y": 10,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 4,
+        "y": 10,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 9,
+        "y": 10,
+        "wallId": "wall-glass",
+        "mask": 5
+      },
+      {
+        "x": 21,
+        "y": 10,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 0,
+        "y": 11,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 4,
+        "y": 11,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 9,
+        "y": 11,
+        "wallId": "wall-glass",
+        "mask": 5
+      },
+      {
+        "x": 21,
+        "y": 11,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 0,
+        "y": 12,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 4,
+        "y": 12,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 9,
+        "y": 12,
+        "wallId": "wall-glass",
+        "mask": 5
+      },
+      {
+        "x": 21,
+        "y": 12,
+        "wallId": "wall-office",
+        "mask": 5
+      },
+      {
+        "x": 0,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 3
+      },
+      {
+        "x": 1,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 2,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 3,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 4,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 11
+      },
+      {
+        "x": 5,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 6,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 7,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 8,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 9,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 11
+      },
+      {
+        "x": 10,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 11,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 12,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 13,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 14,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 15,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 16,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 17,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 18,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 19,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 20,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 10
+      },
+      {
+        "x": 21,
+        "y": 13,
+        "wallId": "wall-office",
+        "mask": 9
+      }
+    ]
+  },
+  "props": [
+    {
+      "id": "generated-prop-open-door-2-5",
+      "propId": "prop-open-door",
+      "templateId": "door",
+      "name": "Open door",
+      "x": 2,
+      "y": 5,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-closed-door-7-5",
+      "propId": "prop-door",
+      "templateId": "door",
+      "name": "Door",
+      "x": 7,
+      "y": 5,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-door-badge-reader-6-5",
+      "propId": "prop-badge-reader",
+      "templateId": "badge-reader",
+      "name": "Badge reader",
+      "x": 6,
+      "y": 5,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-open-door-13-5",
+      "propId": "prop-open-door",
+      "templateId": "door",
+      "name": "Open door",
+      "x": 13,
+      "y": 5,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-door-badge-reader-14-5",
+      "propId": "prop-badge-reader",
+      "templateId": "badge-reader",
+      "name": "Badge reader",
+      "x": 14,
+      "y": 5,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-closed-door-18-5",
+      "propId": "prop-door",
+      "templateId": "door",
+      "name": "Door",
+      "x": 18,
+      "y": 5,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-door-badge-reader-17-5",
+      "propId": "prop-badge-reader",
+      "templateId": "badge-reader",
+      "name": "Badge reader",
+      "x": 17,
+      "y": 5,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-closed-door-2-9",
+      "propId": "prop-door",
+      "templateId": "door",
+      "name": "Door",
+      "x": 2,
+      "y": 9,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-door-badge-reader-1-9",
+      "propId": "prop-badge-reader",
+      "templateId": "badge-reader",
+      "name": "Badge reader",
+      "x": 1,
+      "y": 9,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-open-door-7-9",
+      "propId": "prop-open-door",
+      "templateId": "door",
+      "name": "Open door",
+      "x": 7,
+      "y": 9,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-door-badge-reader-8-9",
+      "propId": "prop-badge-reader",
+      "templateId": "badge-reader",
+      "name": "Badge reader",
+      "x": 8,
+      "y": 9,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-open-door-15-9",
+      "propId": "prop-open-door",
+      "templateId": "door",
+      "name": "Open door",
+      "x": 15,
+      "y": 9,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-focus-room-window-5-4",
+      "propId": "prop-window",
+      "templateId": "window",
+      "name": "Office window",
+      "x": 5,
+      "y": 4,
+      "rotation": 90,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-focus-room-nameplate-6-5",
+      "propId": "prop-nameplate",
+      "templateId": "nameplate",
+      "name": "Nameplate",
+      "x": 6,
+      "y": 5,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-manager-office-window-19-5",
+      "propId": "prop-window",
+      "templateId": "window",
+      "name": "Office window",
+      "x": 19,
+      "y": 5,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-manager-office-nameplate-16-3",
+      "propId": "prop-nameplate",
+      "templateId": "nameplate",
+      "name": "Nameplate",
+      "x": 16,
+      "y": 3,
+      "rotation": 90,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-hallway-hvac-0-7",
+      "propId": "prop-hvac-vent",
+      "templateId": "hvac-vent",
+      "name": "HVAC vent",
+      "x": 0,
+      "y": 7,
+      "rotation": 90,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-copy-room-hvac-4-10",
+      "propId": "prop-hvac-vent",
+      "templateId": "hvac-vent",
+      "name": "HVAC vent",
+      "x": 4,
+      "y": 10,
+      "rotation": 90,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-reception-desk-3-2",
+      "propId": "prop-reception-desk",
+      "templateId": "reception-desk",
+      "name": "Reception desk",
+      "x": 3,
+      "y": 2,
+      "rotation": 180,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-reception-rug-3-4",
+      "propId": "prop-rug",
+      "templateId": "rug",
+      "name": "Office rug",
+      "x": 3,
+      "y": 4,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-reception-couch-3-4",
+      "propId": "prop-couch",
+      "templateId": "couch",
+      "name": "Lobby couch",
+      "x": 3,
+      "y": 4,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-reception-chair-2-3",
+      "propId": "prop-office-chair",
+      "templateId": "office-chair",
+      "name": "Office chair",
+      "x": 2,
+      "y": 3,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-reception-plant-4-1",
+      "propId": "prop-office-plant",
+      "templateId": "office-plant",
+      "name": "Office plant",
+      "x": 4,
+      "y": 1,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-reception-printer-2-2",
+      "propId": "prop-printer",
+      "templateId": "printer",
+      "name": "Printer",
+      "x": 2,
+      "y": 2,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-focus-desk-7-1",
+      "propId": "prop-desk",
+      "templateId": "desk",
+      "name": "Desk",
+      "x": 7,
+      "y": 1,
+      "rotation": 180,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-focus-desk-clutter-7-1",
+      "propId": "prop-desk-clutter",
+      "templateId": "desk-clutter",
+      "name": "Desk clutter",
+      "x": 7,
+      "y": 1,
+      "rotation": 180,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-focus-chair-7-2",
+      "propId": "prop-office-chair",
+      "templateId": "office-chair",
+      "name": "Office chair",
+      "x": 7,
+      "y": 2,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-cubicle-desk-1-0-10-1",
+      "propId": "prop-desk",
+      "templateId": "desk",
+      "name": "Desk",
+      "x": 10,
+      "y": 1,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-cubicle-clutter-1-0-10-1",
+      "propId": "prop-desk-clutter",
+      "templateId": "desk-clutter",
+      "name": "Desk clutter",
+      "x": 10,
+      "y": 1,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-cubicle-chair-2-0-10-2",
+      "propId": "prop-office-chair",
+      "templateId": "office-chair",
+      "name": "Office chair",
+      "x": 10,
+      "y": 2,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-cubicle-desk-1-1-13-1",
+      "propId": "prop-desk",
+      "templateId": "desk",
+      "name": "Desk",
+      "x": 13,
+      "y": 1,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-cubicle-chair-2-1-13-2",
+      "propId": "prop-office-chair",
+      "templateId": "office-chair",
+      "name": "Office chair",
+      "x": 13,
+      "y": 2,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-cubicle-printer-15-3",
+      "propId": "prop-printer",
+      "templateId": "printer",
+      "name": "Printer",
+      "x": 15,
+      "y": 3,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-manager-desk-19-1",
+      "propId": "prop-desk",
+      "templateId": "desk",
+      "name": "Desk",
+      "x": 19,
+      "y": 1,
+      "rotation": 180,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-manager-desk-clutter-19-1",
+      "propId": "prop-desk-clutter",
+      "templateId": "desk-clutter",
+      "name": "Desk clutter",
+      "x": 19,
+      "y": 1,
+      "rotation": 180,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-manager-chair-19-2",
+      "propId": "prop-office-chair",
+      "templateId": "office-chair",
+      "name": "Office chair",
+      "x": 19,
+      "y": 2,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-manager-files-20-2",
+      "propId": "prop-filing-cabinet",
+      "templateId": "filing-cabinet",
+      "name": "Filing cabinet",
+      "x": 20,
+      "y": 2,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-manager-plant-17-3",
+      "propId": "prop-office-plant",
+      "templateId": "office-plant",
+      "name": "Office plant",
+      "x": 17,
+      "y": 3,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-hall-badge-reader-9-9",
+      "propId": "prop-badge-reader",
+      "templateId": "badge-reader",
+      "name": "Badge reader",
+      "x": 9,
+      "y": 9,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "wall-slot"
+    },
+    {
+      "id": "generated-prop-hall-supply-cabinet-6-6",
+      "propId": "prop-supply-cabinet",
+      "templateId": "supply-cabinet",
+      "name": "Supply cabinet",
+      "x": 6,
+      "y": 6,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-hall-mail-station-12-6",
+      "propId": "prop-mail-station",
+      "templateId": "mail-station",
+      "name": "Mail station",
+      "x": 12,
+      "y": 6,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-hall-plant-2-7",
+      "propId": "prop-office-plant",
+      "templateId": "office-plant",
+      "name": "Office plant",
+      "x": 2,
+      "y": 7,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-copy-printer-1-11",
+      "propId": "prop-printer",
+      "templateId": "printer",
+      "name": "Printer",
+      "x": 1,
+      "y": 11,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-copy-files-3-11",
+      "propId": "prop-filing-cabinet",
+      "templateId": "filing-cabinet",
+      "name": "Filing cabinet",
+      "x": 3,
+      "y": 11,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-fridge-6-11",
+      "propId": "prop-fridge",
+      "templateId": "fridge",
+      "name": "Break room fridge",
+      "x": 6,
+      "y": 11,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-coffee-machine-7-11",
+      "propId": "prop-coffee-machine",
+      "templateId": "coffee-machine",
+      "name": "Coffee machine",
+      "x": 7,
+      "y": 11,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-water-cooler-8-12",
+      "propId": "prop-water-cooler",
+      "templateId": "water-cooler",
+      "name": "Water cooler",
+      "x": 8,
+      "y": 12,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-break-table-7-12",
+      "propId": "prop-break-table",
+      "templateId": "break-table",
+      "name": "Break room table",
+      "x": 7,
+      "y": 12,
+      "rotation": 0,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-break-vending-6-10",
+      "propId": "prop-vending-machine",
+      "templateId": "vending-machine",
+      "name": "Vending machine",
+      "x": 6,
+      "y": 10,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-conference-rug-16-11",
+      "propId": "prop-rug",
+      "templateId": "rug",
+      "name": "Office rug",
+      "x": 16,
+      "y": 11,
+      "rotation": 90,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-conference-table-16-11",
+      "propId": "prop-conference-table",
+      "templateId": "conference-table",
+      "name": "Conference table",
+      "x": 16,
+      "y": 11,
+      "rotation": 90,
+      "projection": "plan",
+      "placement": "floor"
+    },
+    {
+      "id": "generated-prop-conference-whiteboard-19-11",
+      "propId": "prop-whiteboard",
+      "templateId": "whiteboard",
+      "name": "Whiteboard",
+      "x": 19,
+      "y": 11,
+      "rotation": 0,
+      "projection": "elevation",
+      "placement": "floor"
+    }
+  ],
+  "characterSpawns": [
+    {
+      "id": "generated-character-janice-14-6",
+      "characterId": "janice",
+      "name": "Janice",
+      "x": 14,
+      "y": 6,
+      "facing": "south",
+      "mood": "suspicious",
+      "generatedCoworker": false
+    },
+    {
+      "id": "generated-character-carl-5-12",
+      "characterId": "carl",
+      "name": "Carl",
+      "x": 5,
+      "y": 12,
+      "facing": "east",
+      "mood": "curious",
+      "generatedCoworker": false
+    },
+    {
+      "id": "generated-character-linda-14-12",
+      "characterId": "linda",
+      "name": "Linda",
+      "x": 14,
+      "y": 12,
+      "facing": "east",
+      "mood": "defensive",
+      "generatedCoworker": false
+    },
+    {
+      "id": "generated-character-manager-19-2",
+      "characterId": "manager",
+      "name": "The Manager",
+      "x": 19,
+      "y": 2,
+      "facing": "north",
+      "mood": "hostile",
+      "generatedCoworker": false
+    },
+    {
+      "id": "generated-character-layout-coworker-7-1-6-3",
+      "characterId": "layout-coworker-7-1",
+      "name": "Missing character",
+      "x": 6,
+      "y": 3,
+      "facing": "east",
+      "mood": "suspicious",
+      "generatedCoworker": true
+    },
+    {
+      "id": "generated-character-layout-coworker-7-2-7-2",
+      "characterId": "layout-coworker-7-2",
+      "name": "Missing character",
+      "x": 7,
+      "y": 2,
+      "facing": "north",
+      "mood": "curious",
+      "generatedCoworker": true
+    },
+    {
+      "id": "generated-character-layout-coworker-7-3-14-2",
+      "characterId": "layout-coworker-7-3",
+      "name": "Missing character",
+      "x": 14,
+      "y": 2,
+      "facing": "west",
+      "mood": "suspicious",
+      "generatedCoworker": true
+    },
+    {
+      "id": "generated-character-layout-coworker-7-4-10-11",
+      "characterId": "layout-coworker-7-4",
+      "name": "Missing character",
+      "x": 10,
+      "y": 11,
+      "facing": "east",
+      "mood": "suspicious",
+      "generatedCoworker": true
+    },
+    {
+      "id": "generated-character-layout-coworker-7-5-10-2",
+      "characterId": "layout-coworker-7-5",
+      "name": "Missing character",
+      "x": 10,
+      "y": 2,
+      "facing": "north",
+      "mood": "suspicious",
+      "generatedCoworker": true
+    },
+    {
+      "id": "generated-character-layout-coworker-7-6-13-2",
+      "characterId": "layout-coworker-7-6",
+      "name": "Missing character",
+      "x": 13,
+      "y": 2,
+      "facing": "north",
+      "mood": "curious",
+      "generatedCoworker": true
+    }
+  ],
+  "anchors": [
+    {
+      "anchorId": "reception",
+      "roomId": "reception",
+      "x": 3,
+      "y": 3,
+      "kind": "room",
+      "wingId": "wing-main",
+      "departmentId": null
+    },
+    {
+      "anchorId": "focus-room",
+      "roomId": "focus-room",
+      "x": 7,
+      "y": 3,
+      "kind": "room",
+      "wingId": "wing-main",
+      "departmentId": null
+    },
+    {
+      "anchorId": "cubicle-farm",
+      "roomId": "cubicle-farm",
+      "x": 13,
+      "y": 3,
+      "kind": "room",
+      "wingId": "wing-main",
+      "departmentId": null
+    },
+    {
+      "anchorId": "manager-office",
+      "roomId": "manager-office",
+      "x": 19,
+      "y": 3,
+      "kind": "room",
+      "wingId": "wing-main",
+      "departmentId": null
+    },
+    {
+      "anchorId": "hallway",
+      "roomId": "hallway",
+      "x": 11,
+      "y": 7,
+      "kind": "room",
+      "wingId": "wing-main",
+      "departmentId": null
+    },
+    {
+      "anchorId": "copy-room",
+      "roomId": "copy-room",
+      "x": 2,
+      "y": 11,
+      "kind": "room",
+      "wingId": "wing-main",
+      "departmentId": null
+    },
+    {
+      "anchorId": "break-room",
+      "roomId": "break-room",
+      "x": 7,
+      "y": 11,
+      "kind": "room",
+      "wingId": "wing-main",
+      "departmentId": null
+    },
+    {
+      "anchorId": "conference-room",
+      "roomId": "conference-room",
+      "x": 15,
+      "y": 11,
+      "kind": "room",
+      "wingId": "wing-main",
+      "departmentId": null
+    },
+    {
+      "anchorId": "desk:janice",
+      "roomId": "focus-room",
+      "x": 7,
+      "y": 1,
+      "kind": "desk",
+      "wingId": "wing-main",
+      "departmentId": null
+    },
+    {
+      "anchorId": "desk:carl",
+      "roomId": "cubicle-farm",
+      "x": 10,
+      "y": 1,
+      "kind": "desk",
+      "wingId": "wing-main",
+      "departmentId": null
+    },
+    {
+      "anchorId": "desk:linda",
+      "roomId": "cubicle-farm",
+      "x": 13,
+      "y": 1,
+      "kind": "desk",
+      "wingId": "wing-main",
+      "departmentId": null
+    },
+    {
+      "anchorId": "spare-desk:wing-main:1",
+      "roomId": "focus-room",
+      "x": 6,
+      "y": 1,
+      "kind": "spare-desk",
+      "wingId": "wing-main",
+      "departmentId": null
+    },
+    {
+      "anchorId": "spare-desk:wing-main:2",
+      "roomId": "focus-room",
+      "x": 8,
+      "y": 1,
+      "kind": "spare-desk",
+      "wingId": "wing-main",
+      "departmentId": null
+    }
+  ],
+  "interactionAnchors": [
+    {
+      "id": "generated-prop-open-door-2-5",
+      "interactionType": "door",
+      "roomId": "hallway",
+      "x": 2,
+      "y": 5
+    },
+    {
+      "id": "generated-prop-closed-door-7-5",
+      "interactionType": "door",
+      "roomId": "hallway",
+      "x": 7,
+      "y": 5
+    },
+    {
+      "id": "generated-prop-open-door-13-5",
+      "interactionType": "door",
+      "roomId": "hallway",
+      "x": 13,
+      "y": 5
+    },
+    {
+      "id": "generated-prop-closed-door-18-5",
+      "interactionType": "door",
+      "roomId": "hallway",
+      "x": 18,
+      "y": 5
+    },
+    {
+      "id": "generated-prop-closed-door-2-9",
+      "interactionType": "door",
+      "roomId": "copy-room",
+      "x": 2,
+      "y": 9
+    },
+    {
+      "id": "generated-prop-open-door-7-9",
+      "interactionType": "door",
+      "roomId": "break-room",
+      "x": 7,
+      "y": 9
+    },
+    {
+      "id": "generated-prop-open-door-15-9",
+      "interactionType": "door",
+      "roomId": "conference-room",
+      "x": 15,
+      "y": 9
+    },
+    {
+      "id": "generated-prop-reception-desk-3-2",
+      "interactionType": "reception_desk",
+      "roomId": "reception",
+      "x": 3,
+      "y": 2
+    },
+    {
+      "id": "generated-prop-reception-printer-2-2",
+      "interactionType": "printer",
+      "roomId": "reception",
+      "x": 2,
+      "y": 2
+    },
+    {
+      "id": "generated-prop-cubicle-printer-15-3",
+      "interactionType": "printer",
+      "roomId": "cubicle-farm",
+      "x": 15,
+      "y": 3
+    },
+    {
+      "id": "generated-prop-hall-supply-cabinet-6-6",
+      "interactionType": "supply_cabinet",
+      "roomId": "hallway",
+      "x": 6,
+      "y": 6
+    },
+    {
+      "id": "generated-prop-hall-mail-station-12-6",
+      "interactionType": "mail_station",
+      "roomId": "hallway",
+      "x": 12,
+      "y": 6
+    },
+    {
+      "id": "generated-prop-copy-printer-1-11",
+      "interactionType": "printer",
+      "roomId": "copy-room",
+      "x": 1,
+      "y": 11
+    },
+    {
+      "id": "generated-prop-fridge-6-11",
+      "interactionType": "break_room_fridge",
+      "roomId": "break-room",
+      "x": 6,
+      "y": 11
+    },
+    {
+      "id": "generated-prop-coffee-machine-7-11",
+      "interactionType": "coffee_machine",
+      "roomId": "break-room",
+      "x": 7,
+      "y": 11
+    },
+    {
+      "id": "generated-prop-water-cooler-8-12",
+      "interactionType": "water_cooler",
+      "roomId": "break-room",
+      "x": 8,
+      "y": 12
+    },
+    {
+      "id": "generated-prop-break-vending-6-10",
+      "interactionType": "vending_machine",
+      "roomId": "break-room",
+      "x": 6,
+      "y": 10
+    },
+    {
+      "id": "generated-prop-conference-table-16-11",
+      "interactionType": "conference_table",
+      "roomId": "conference-room",
+      "x": 16,
+      "y": 11
+    },
+    {
+      "id": "generated-prop-conference-whiteboard-19-11",
+      "interactionType": "whiteboard",
+      "roomId": "conference-room",
+      "x": 19,
+      "y": 11
+    }
+  ],
+  "wings": [
+    {
+      "id": "wing-main",
+      "departmentId": null,
+      "label": "Main office",
+      "roomIds": [
+        "reception",
+        "focus-room",
+        "cubicle-farm",
+        "manager-office",
+        "hallway",
+        "copy-room",
+        "break-room",
+        "conference-room"
+      ],
+      "bounds": {
+        "x": 0,
+        "y": 0,
+        "cols": 22,
+        "rows": 14
+      }
+    }
+  ],
+  "connectivity": []
+}
