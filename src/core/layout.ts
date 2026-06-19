@@ -44,13 +44,17 @@ export interface GeneratedOfficeLayout {
  * anchors are per-agent (`desk:<agentId>`), resolving the long-standing desk
  * granularity seam so the cast no longer collapses into one anonymous room.
  */
-export type OfficeAnchorKind = 'room' | 'desk';
+export type OfficeAnchorKind = 'room' | 'desk' | 'spare-desk';
 export interface OfficeAnchor {
   anchorId: string;
   roomId: string;
   x: number;
   y: number;
   kind: OfficeAnchorKind;
+  /** Which wing this anchor sits in (Epic 1 F1.2). Rooms + desks carry it. */
+  wingId?: string;
+  /** The wing's department id (null for the common/main wing). */
+  departmentId?: string | null;
 }
 
 /**
@@ -81,6 +85,79 @@ export interface InteractionAnchor {
   y: number;
 }
 
+/**
+ * A department **wing** — the addressable layout grouping of the rooms that
+ * belong to one department (Epic 1 F1.1). The physical projection of the org
+ * structure: the sim reveals the office wing by wing and measures distance
+ * between them. `departmentId` is null for the implicit common/main wing (shared
+ * rooms with no department, or the whole single-office default). `bounds` is the
+ * wing's bounding box in grid cells.
+ */
+export interface LayoutWing {
+  id: string;
+  departmentId: string | null;
+  label: string;
+  roomIds: string[];
+  bounds: { x: number; y: number; cols: number; rows: number };
+}
+
+/** Bounding box over a set of rooms. */
+function wingBounds(rooms: SceneRoom[]): LayoutWing['bounds'] {
+  if (!rooms.length) return { x: 0, y: 0, cols: 0, rows: 0 };
+  const x0 = Math.min(...rooms.map((r) => r.x));
+  const y0 = Math.min(...rooms.map((r) => r.y));
+  const x1 = Math.max(...rooms.map((r) => r.x + r.cols));
+  const y1 = Math.max(...rooms.map((r) => r.y + r.rows));
+  return { x: x0, y: y0, cols: x1 - x0, rows: y1 - y0 };
+}
+
+/**
+ * Group a scene's rooms into department wings (F1.1). Rooms carrying a
+ * `departmentId` form one wing per department (labeled from the project catalog);
+ * rooms without one fall into a single catch-all wing — `wing-main` ("Main
+ * office") when it's the only wing (the backward-compatible single-office
+ * default), or `wing-common` ("Common areas") alongside department wings.
+ * Deterministic: wings follow first-appearance room order.
+ */
+export function computeWings(scene: SceneState, project?: ProjectState): LayoutWing[] {
+  const rooms = scene.rooms ?? [];
+  const labelOf = (id: string): string => project?.departments?.find((d) => d.id === id)?.label ?? id;
+
+  const order: string[] = [];
+  const byDept = new Map<string, SceneRoom[]>();
+  const unassigned: SceneRoom[] = [];
+  for (const room of rooms) {
+    const dep = room.departmentId;
+    if (dep) {
+      if (!byDept.has(dep)) { byDept.set(dep, []); order.push(dep); }
+      byDept.get(dep)!.push(room);
+    } else {
+      unassigned.push(room);
+    }
+  }
+
+  const wings: LayoutWing[] = order.map((dep) => ({
+    id: `wing-${dep}`,
+    departmentId: dep,
+    label: labelOf(dep),
+    roomIds: byDept.get(dep)!.map((r) => r.id),
+    bounds: wingBounds(byDept.get(dep)!),
+  }));
+
+  if (unassigned.length) {
+    const onlyWing = wings.length === 0;
+    wings.push({
+      id: onlyWing ? 'wing-main' : 'wing-common',
+      departmentId: null,
+      label: onlyWing ? 'Main office' : 'Common areas',
+      roomIds: unassigned.map((r) => r.id),
+      bounds: wingBounds(unassigned),
+    });
+  }
+
+  return wings;
+}
+
 /** Derive interaction anchors from placed interaction props in a scene. */
 export function computeInteractionAnchors(scene: SceneState, project: ProjectState): InteractionAnchor[] {
   const anchors: InteractionAnchor[] = [];
@@ -101,7 +178,7 @@ export function computeInteractionAnchors(scene: SceneState, project: ProjectSta
 }
 
 export interface SceneLayoutJson {
-  version: 1;
+  version: 2;
   source: SceneState['source'];
   generated: { templateId: string; seed: number } | null;
   cols: number;
@@ -138,6 +215,8 @@ export interface SceneLayoutJson {
   anchors: OfficeAnchor[];
   /** Meaningful interactive locations derived from placed props (printer, water cooler, …). */
   interactionAnchors: InteractionAnchor[];
+  /** Department wings — the rooms grouped by department (Epic 1 F1.1). */
+  wings: LayoutWing[];
 }
 
 const COLS = 22;
@@ -1088,63 +1167,154 @@ export function generateOfficeLayout(
   return { scene, coworkers, seed: actualSeed, templateId: template.id };
 }
 
+/** A seatable cell in a wing — a desk prop cell, then open floor as fallback. */
+interface DeskCell {
+  x: number;
+  y: number;
+  roomId: string;
+}
+
+/** Rooms whose floor is seating space; a wing seats its cast here (never in the manager's office). */
+const SEATING_ROOM_IDS = new Set<string>(['cubicle-farm', 'focus-room']);
+/** Spare desk anchors emitted per wing for later transfers (E41). */
+const SPARE_DESKS_PER_WING = 2;
+
+/**
+ * The deterministic seat cells of one wing: its desk-prop cells first (y,x order),
+ * then open floor in the wing's seating rooms as fallback — generalizing the old
+ * cubicle-farm-only logic to any wing (F1.2). The manager's office is never a
+ * seating room.
+ */
+function wingSeatCells(scene: SceneState, project: ProjectState, wing: LayoutWing): DeskCell[] {
+  const roomsInWing = (scene.rooms ?? []).filter((r) => wing.roomIds.includes(r.id));
+  const seating = roomsInWing.filter((r) => SEATING_ROOM_IDS.has(r.id));
+  const useIds = new Set((seating.length ? seating : roomsInWing).map((r) => r.id));
+  useIds.delete('manager-office');
+
+  const roomAt = (x: number, y: number): string => scene.roomIds?.[y]?.[x] ?? '';
+  const cells: DeskCell[] = [];
+  const used = new Set<string>();
+
+  const deskCells = scene.entities
+    .filter((e) => e.kind === 'prop' && project.props.find((p) => p.id === e.refId)?.templateId === 'desk')
+    .map((e) => ({ x: e.x, y: e.y, roomId: roomAt(e.x, e.y) }))
+    .filter((c) => useIds.has(c.roomId))
+    .sort((a, b) => a.y - b.y || a.x - b.x);
+  for (const c of deskCells) {
+    const k = `${c.x},${c.y}`;
+    if (!used.has(k)) { used.add(k); cells.push(c); }
+  }
+
+  // Floor fallback — open floor in the seating rooms, deterministic y,x order.
+  for (let y = 0; y < scene.rows; y++) {
+    for (let x = 0; x < scene.cols; x++) {
+      const rid = roomAt(x, y);
+      if (!useIds.has(rid) || scene.wallIds[y][x] || !scene.floorIds[y][x]) continue;
+      const k = `${x},${y}`;
+      if (!used.has(k)) { used.add(k); cells.push({ x, y, roomId: rid }); }
+    }
+  }
+  return cells;
+}
+
+interface WingDeskPlan {
+  wing: LayoutWing;
+  cells: DeskCell[];
+  assigned: Array<{ agentId: string; cell: DeskCell }>;
+  /** Assigned agents that didn't get a cell (wing over capacity). */
+  shortfall: number;
+}
+
+/**
+ * Plan desk assignments per wing: each non-manager base-cast agent is seated in
+ * its **department's** wing (the catch-all wing when its department has none),
+ * deterministically (cast order × y,x cell order). Shared by the anchor emitter
+ * and the coverage validator.
+ */
+function planDesks(scene: SceneState, project: ProjectState): WingDeskPlan[] {
+  const wings = computeWings(scene, project);
+  if (!wings.length) return [];
+  const deptOf = new Map((project.profiles ?? []).map((p) => [p.agentId, p.identity.department || '']));
+  const deskAgents = project.characters.filter(
+    (recipe) => !recipe.id.startsWith(GENERATED_COWORKER_PREFIX) && recipe.id !== 'manager',
+  );
+  const fallbackWing = wings.find((w) => w.departmentId === null) ?? wings[0];
+  const wingForDept = (dep: string): LayoutWing => wings.find((w) => w.departmentId === dep) ?? fallbackWing;
+
+  const cellsByWing = new Map(wings.map((w) => [w.id, wingSeatCells(scene, project, w)]));
+  const cursor = new Map<string, number>();
+  const assignedByWing = new Map<string, Array<{ agentId: string; cell: DeskCell }>>();
+  const wantByWing = new Map<string, number>();
+
+  for (const recipe of deskAgents) {
+    const wing = wingForDept(deptOf.get(recipe.id) ?? '');
+    wantByWing.set(wing.id, (wantByWing.get(wing.id) ?? 0) + 1);
+    const cells = cellsByWing.get(wing.id) ?? [];
+    const i = cursor.get(wing.id) ?? 0;
+    cursor.set(wing.id, i + 1);
+    const cell = cells[i];
+    if (!cell) continue; // wing over capacity — surfaced as shortfall
+    (assignedByWing.get(wing.id) ?? assignedByWing.set(wing.id, []).get(wing.id)!).push({ agentId: recipe.id, cell });
+  }
+
+  return wings.map((wing) => {
+    const cells = cellsByWing.get(wing.id) ?? [];
+    const want = wantByWing.get(wing.id) ?? 0;
+    return { wing, cells, assigned: assignedByWing.get(wing.id) ?? [], shortfall: Math.max(0, want - cells.length) };
+  });
+}
+
 /**
  * Derive the named anchors a scenario binds to from a scene. Emits one `room`
- * anchor per room (centered on the room interior) and one `desk:<agentId>` anchor
- * per base-cast member (excluding the manager, who binds to their office), mapped
- * onto the cubicle-farm desks in a deterministic order. Stable ids so an authored
- * scenario resolves against any generated office.
+ * anchor per room, one `desk:<agentId>` anchor per base-cast member seated **in
+ * its own department's wing** (the manager binds to their office, so is excluded),
+ * and a few `spare-desk:<wingId>:<n>` anchors per wing for later transfers (E41).
+ * Every anchor carries its wing/department identity. Stable, deterministic ids.
  */
 export function computeOfficeAnchors(scene: SceneState, project: ProjectState): OfficeAnchor[] {
   const anchors: OfficeAnchor[] = [];
+  const wings = computeWings(scene, project);
+  const wingOfRoom = new Map<string, LayoutWing>();
+  for (const w of wings) for (const rid of w.roomIds) wingOfRoom.set(rid, w);
 
   for (const room of scene.rooms ?? []) {
+    const w = wingOfRoom.get(room.id);
     anchors.push({
       anchorId: room.id,
       roomId: room.id,
       x: Math.floor(room.x + room.cols / 2),
       y: Math.floor(room.y + room.rows / 2),
       kind: 'room',
+      wingId: w?.id,
+      departmentId: w?.departmentId ?? null,
     });
   }
 
-  // Per-agent desks: the cubicle-farm desk cells, deterministically ordered,
-  // assigned to the base cast (manager excluded — they bind to manager-office).
-  const deskAgents = project.characters.filter(
-    (recipe) => !recipe.id.startsWith(GENERATED_COWORKER_PREFIX) && recipe.id !== 'manager',
-  );
-
-  const deskCells = scene.entities
-    .filter((entity) => entity.kind === 'prop')
-    .filter((entity) => project.props.find((p) => p.id === entity.refId)?.templateId === 'desk')
-    .filter((entity) => scene.roomIds?.[entity.y]?.[entity.x] === 'cubicle-farm')
-    .map((entity) => ({ x: entity.x, y: entity.y }))
-    .sort((a, b) => a.y - b.y || a.x - b.x);
-
-  // Guarantee one anchor cell per desk-agent: small cubicle-farm templates fit
-  // fewer desk pods than the cast, so top up from free cubicle-farm floor cells
-  // (deterministic y,x order). Keeps `desk:<agentId>` resolvable for any office.
-  if (deskCells.length < deskAgents.length) {
-    const used = new Set(deskCells.map((c) => `${c.x},${c.y}`));
-    for (let y = 0; y < scene.rows && deskCells.length < deskAgents.length; y++) {
-      for (let x = 0; x < scene.cols && deskCells.length < deskAgents.length; x++) {
-        if (scene.roomIds?.[y]?.[x] !== 'cubicle-farm') continue;
-        if (scene.wallIds[y][x] || !scene.floorIds[y][x]) continue; // need open floor
-        const key = `${x},${y}`;
-        if (used.has(key)) continue;
-        used.add(key);
-        deskCells.push({ x, y });
-      }
+  for (const plan of planDesks(scene, project)) {
+    for (const { agentId, cell } of plan.assigned) {
+      anchors.push({ anchorId: `desk:${agentId}`, roomId: cell.roomId, x: cell.x, y: cell.y, kind: 'desk', wingId: plan.wing.id, departmentId: plan.wing.departmentId });
+    }
+    // Spare desks: the next free cells beyond the assigned ones (≥1 where capacity allows).
+    const start = plan.assigned.length;
+    const spares = Math.min(SPARE_DESKS_PER_WING, plan.cells.length - start);
+    for (let n = 0; n < spares; n++) {
+      const cell = plan.cells[start + n];
+      anchors.push({ anchorId: `spare-desk:${plan.wing.id}:${n + 1}`, roomId: cell.roomId, x: cell.x, y: cell.y, kind: 'spare-desk', wingId: plan.wing.id, departmentId: plan.wing.departmentId });
     }
   }
 
-  deskAgents.forEach((recipe, i) => {
-    const cell = deskCells[i];
-    if (!cell) return; // cubicle-farm too small even for fallback cells
-    anchors.push({ anchorId: `desk:${recipe.id}`, roomId: 'cubicle-farm', x: cell.x, y: cell.y, kind: 'desk' });
-  });
-
   return anchors;
+}
+
+/**
+ * Flag wings that cannot seat their assigned cast (F1.2 / S1.2.3) — fewer desks
+ * (incl. floor fallback) than agents routed to the wing. Empty array = every wing
+ * seats its people. Surfaced in the studio before export.
+ */
+export function validateDeskCoverage(scene: SceneState, project: ProjectState): string[] {
+  return planDesks(scene, project)
+    .filter((plan) => plan.shortfall > 0)
+    .map((plan) => `Wing "${plan.wing.label}" must seat ${plan.assigned.length + plan.shortfall} agents but has only ${plan.cells.length} desk(s) — ${plan.shortfall} short.`);
 }
 
 export function sceneToLayoutJson(scene: SceneState, project: ProjectState): SceneLayoutJson {
@@ -1157,7 +1327,7 @@ export function sceneToLayoutJson(scene: SceneState, project: ProjectState): Sce
   }
 
   return {
-    version: 1,
+    version: 2,
     source: scene.source,
     generated: scene.generated ?? null,
     cols: scene.cols,
@@ -1202,5 +1372,6 @@ export function sceneToLayoutJson(scene: SceneState, project: ProjectState): Sce
       }),
     anchors: computeOfficeAnchors(scene, project),
     interactionAnchors: computeInteractionAnchors(scene, project),
+    wings: computeWings(scene, project),
   };
 }

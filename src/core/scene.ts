@@ -15,6 +15,13 @@ export interface SceneRoom {
   y: number;
   cols: number;
   rows: number;
+  /**
+   * Department-catalog id this room's wing belongs to (Epic 1 F1.1). Optional —
+   * a room without one falls into the implicit common/main wing, so existing
+   * single-office templates are unchanged. The cascade (E0) / multi-wing
+   * templates (F1.4) set it; `computeWings` groups by it.
+   */
+  departmentId?: string;
 }
 
 export interface SceneEntity {
