@@ -272,8 +272,10 @@ export interface ProjectState {
  * and gain an optional `secret` flag.
  * v10 added the project-level `departments` catalog (Epic 2 F2.1 — structured org
  * units with stable ids); seeded from the existing department-name set.
+ * v11 made persona `identity.department` a department-catalog **id** (Epic 3 F3.1,
+ * mutable for the sim's transfer tier); the step rewrites free-text values to ids.
  */
-export const CURRENT_SCHEMA_VERSION = 10;
+export const CURRENT_SCHEMA_VERSION = 11;
 
 /** Design-space canvas size. Parts are authored against this; never changes. */
 export const CANVAS = 128;

@@ -86,11 +86,32 @@ export function migrateProject(raw: unknown): ProjectState | null {
   // v9 → v10: the project-level `departments` catalog. Seed defaults and absorb
   // any free-text department names personas already carry that don't resolve to a
   // catalog entry, so every department in use has a stable id (the F2.1 catalog;
-  // rewriting the persona `department` field to the id is F3.1).
+  // rewriting the persona `department` field to the id is v11).
   backfillV10(project as ProjectState);
+
+  // v10 → v11: persona `identity.department` becomes a catalog **id** (F3.1).
+  // Rewrite free-text values to ids using the now-complete catalog (v10 absorbed
+  // any unmapped names), so the field is a structured, mutable reference.
+  migrateV11(project as ProjectState);
 
   project.version = CURRENT_SCHEMA_VERSION;
   return project as ProjectState;
+}
+
+/** v11 step: rewrite persona `identity.department` free-text → catalog id (idempotent). */
+function migrateV11(project: ProjectState): void {
+  const catalog = project.departments ?? [];
+  const unmapped: string[] = [];
+  for (const profile of project.profiles ?? []) {
+    const cur = profile.identity?.department;
+    if (!cur) continue;
+    const id = mapDepartmentNameToId(cur, catalog);
+    if (id) profile.identity.department = id;
+    else unmapped.push(cur); // never dropped — left as-is for the Departments panel to surface
+  }
+  if (unmapped.length && typeof console !== 'undefined') {
+    console.warn(`migrateV11: ${unmapped.length} department value(s) did not map to a catalog id: ${[...new Set(unmapped)].join(', ')}`);
+  }
 }
 
 /** v10 step: ensure the `departments` catalog exists, seed defaults, absorb free-text names. */

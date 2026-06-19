@@ -13,7 +13,6 @@ import {
   ACTIVITY_SUGGESTIONS,
   AGE_BANDS,
   AXIS_LABELS,
-  DEPARTMENTS,
   DERIVED_GAME_AXES,
   EXPECTED_BEHAVIOR_TENDENCIES,
   FORMATIVE_OPS,
@@ -54,6 +53,19 @@ import { generateRoutine, resolveRoutineContext } from '../core/routineGenerator
 import { button, clear, el, labeled, select, slider } from './dom';
 import { collapsibleSection as section, enumField, num, tagEditor, textField, uid } from './controls';
 
+/** Department-catalog select options (F3.1): id-valued, with a custom fallback. */
+function departmentOptions(current: string): Array<{ value: string; label: string }> {
+  const cats = store.state.departments ?? [];
+  const opts = [{ value: '', label: '— unassigned —' }, ...cats.map((d) => ({ value: d.id, label: d.label || d.id }))];
+  if (current && !cats.some((d) => d.id === current)) opts.push({ value: current, label: `${current} (custom)` });
+  return opts;
+}
+
+/** Resolve a department id to its catalog label (falls back to the id). */
+function departmentLabel(id: string): string {
+  return (store.state.departments ?? []).find((d) => d.id === id)?.label || id;
+}
+
 /** Mutate the selected profile in place (it's a live reference into the store). */
 function edit(fn: () => void, kind: ChangeKind = 'data'): void {
   store.mutate(fn, kind);
@@ -73,7 +85,10 @@ function identitySection(p: CharacterProfile): HTMLElement {
     'Identity',
     textField('Display name', id.displayName, (v) => edit(() => (id.displayName = v))),
     textField('Role / title', id.roleTitle, (v) => edit(() => (id.roleTitle = v))),
-    enumField('Department', id.department, DEPARTMENTS, (v) => edit(() => (id.department = v))),
+    labeled(
+      'Department',
+      select(departmentOptions(id.department), id.department, (v) => edit(() => (id.department = v), 'structure')),
+    ),
     labeled(
       'Seniority',
       select(SENIORITY.map((s) => ({ value: s, label: s })), id.seniority, (v) =>
@@ -606,7 +621,7 @@ export function renderPersonaPreview(container: HTMLElement): void {
   const summary = el('div', { className: 'persona-summary' });
   const topNeed = [...NEEDS].sort((a, b) => profile.needs[b].sensitivity - profile.needs[a].sensitivity)[0];
   summary.append(
-    el('div', {}, el('strong', {}, profile.identity.roleTitle || '—'), ` · ${profile.identity.department || '—'}`),
+    el('div', {}, el('strong', {}, profile.identity.roleTitle || '—'), ` · ${profile.identity.department ? departmentLabel(profile.identity.department) : '—'}`),
     el('div', {}, `Drive: ${profile.drives.primary || '—'}`),
     el('div', {}, `Strongest need: ${NEED_LABELS[topNeed]}`),
     el('div', { className: 'tag-chips' }, ...profile.personality.traitTags.map((t) => el('span', { className: 'tag-chip' }, t))),

@@ -116,6 +116,7 @@ export interface EmployeeDefinition {
   recipe: { parts: CharacterRecipe['parts']; palette: CharacterRecipe['palette'] };
   /** Water Cooler integration fields (Feature 9). Present, often empty. */
   metadata: {
+    /** Department **catalog id** (Epic 3 F3.1) — the generation profile's id, or '' for 'random'. */
     department: string;
     role: string;
     agentId: string;
@@ -203,7 +204,7 @@ export function generateEmployee(seed: string, profileId: string, style: StyleSh
     profile: profile.id,
     name: displayName,
     recipe,
-    metadata: { department: profile.label, role: '', agentId: '', displayName },
+    metadata: { department: profile.id === 'random' ? '' : profile.id, role: '', agentId: '', displayName },
   };
 }
 

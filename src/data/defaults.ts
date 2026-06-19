@@ -535,7 +535,7 @@ function buildDefaultProfiles(): CharacterProfile[] {
   janice.identity = {
     ...janice.identity,
     roleTitle: 'Senior Analyst',
-    department: 'Operations',
+    department: 'operations',
     seniority: 'senior',
     pronouns: 'she/her',
     prototypeRole: 'Promotion Recipient',
@@ -569,7 +569,7 @@ function buildDefaultProfiles(): CharacterProfile[] {
   carl.identity = {
     ...carl.identity,
     roleTitle: 'Analyst',
-    department: 'Operations',
+    department: 'operations',
     seniority: 'senior',
     pronouns: 'he/him',
     prototypeRole: 'Promotion Skeptic',
@@ -623,7 +623,7 @@ function buildDefaultProfiles(): CharacterProfile[] {
   linda.identity = {
     ...linda.identity,
     roleTitle: 'Coordinator',
-    department: 'Operations',
+    department: 'operations',
     seniority: 'junior',
     pronouns: 'she/her',
     prototypeRole: 'Information Amplifier',
@@ -659,7 +659,7 @@ function buildDefaultProfiles(): CharacterProfile[] {
   manager.identity = {
     ...manager.identity,
     roleTitle: 'Office Manager',
-    department: 'Management',
+    department: 'management',
     seniority: 'manager',
     prototypeRole: 'Source Of Truth',
     bio: 'Practical, busy, and protective of a stable team.',

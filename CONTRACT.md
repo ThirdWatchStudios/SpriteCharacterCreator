@@ -84,7 +84,8 @@ All numeric ranges are `0–100` unless noted. `affinity` is bipolar `-100..100`
 {
   "agentId": "janice",
   "identity": {
-    "displayName": "", "pronouns": "", "roleTitle": "", "department": "",
+    "displayName": "", "pronouns": "", "roleTitle": "",
+    "department": "operations",   // department catalog id (§3.10), '' = unassigned; MUTABLE — sim reassigns for transfers (E41)
     "seniority": "intern|junior|senior|lead|manager", "ageBand": "", "bio": "", "prototypeRole": ""
   },
   "personality": {
@@ -424,6 +425,6 @@ Things the sim will likely need that the tool does **not** capture yet — decid
 ## 7. Compatibility rules
 
 - **Adding** a suggestion to a free-text vocabulary (drive, trait tag, KPI, location, activity) is **non-breaking** — it only affects authoring autocomplete, never validation or export shape. **Adding an activity badge** is likewise non-breaking: a new shared-atlas cell the sim shows for that `activity` or ignores (§3.9).
-- **Version gating:** `profile.json` and `scenario.json` carry `meta.schemaVersion` (currently **10**, the project schema version — v10 added the `departments.json` catalog §3.10 + the derived `org-structure.json` §3.11). The sim version-gates on these — `scenario.json` gates a whole scenario package (the bundled `drives.json`/`traits.json`/`departments.json`/`org-structure.json` are resolved within that already-versioned context); `profile.json` gates the per-character visual-import path. Bare-array catalogs (and the derived `org-structure.json`) are intentionally unversioned — they never travel without a versioned `scenario.json` or `project.json`.
+- **Version gating:** `profile.json` and `scenario.json` carry `meta.schemaVersion` (currently **11**, the project schema version — v10 added the `departments.json` catalog §3.10 + the derived `org-structure.json` §3.11; v11 made persona `identity.department` a department-catalog **id**, mutable for the sim's transfer tier). The sim version-gates on these — `scenario.json` gates a whole scenario package (the bundled `drives.json`/`traits.json`/`departments.json`/`org-structure.json` are resolved within that already-versioned context); `profile.json` gates the per-character visual-import path. Bare-array catalogs (and the derived `org-structure.json`) are intentionally unversioned — they never travel without a versioned `scenario.json` or `project.json`.
 - **Renaming/removing a field** in §3 **is** breaking — bump `CURRENT_SCHEMA_VERSION` (which flows into `meta.schemaVersion`), add a migration step, and update the sim loader.
 - The sim should **fallback + log**, never hard-fail, on an unrecognized free-text id (drive, KPI, activity). That tolerance is what lets the tool ship a richer vocabulary without lockstep sim releases.

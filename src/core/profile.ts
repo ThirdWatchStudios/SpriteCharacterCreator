@@ -424,6 +424,11 @@ export interface Identity {
   displayName: string;
   pronouns: string;
   roleTitle: string;
+  /**
+   * Department **catalog id** (Epic 3 F3.1) — references the project `departments`
+   * catalog (core/department.ts). `''` = unassigned. Mutable: the sim reassigns it
+   * for transfers (E41). Older free-text values are migrated to ids by migrateV11.
+   */
   department: string;
   seniority: Seniority;
   ageBand: string;

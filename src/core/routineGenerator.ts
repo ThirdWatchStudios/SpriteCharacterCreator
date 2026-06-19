@@ -57,7 +57,7 @@ export interface RoutineContext {
 // --- context resolution ------------------------------------------------------
 
 const isManager = (p: CharacterProfile): boolean =>
-  p.identity.seniority === 'manager' || p.identity.department === 'Management';
+  p.identity.seniority === 'manager' || p.identity.department === 'management'; // department catalog id (F3.1)
 
 const hasTag = (l: { tags: string[] }, tag: string): boolean => l.tags.includes(tag);
 
