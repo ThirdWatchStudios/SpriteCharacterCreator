@@ -671,6 +671,105 @@ export function analyzeTemplateCoverage(template: ScenarioTemplate, cast: Charac
   };
 }
 
+// --- org-level coverage (F3.5) -----------------------------------------------
+
+/** One uncastable template plus the required roles the cast cannot fill. */
+export interface TemplateGap {
+  templateId: string;
+  unfillableRequiredRoles: string[];
+}
+
+/**
+ * Coverage of a whole generated org against the scenario-template library — can
+ * this cast actually produce playable scenarios? (Epic 3, F3.5 / S3.5.1). The
+ * per-template detail comes from {@link analyzeTemplateCoverage}; this rolls it up
+ * so the studio can flag a thin org before export.
+ */
+export interface OrgCoverageReport {
+  /** Per-template coverage, in library order. */
+  templates: CoverageReport[];
+  /** The under-covered templates and the required roles that cannot be filled. */
+  gaps: TemplateGap[];
+  castableCount: number;
+  totalCount: number;
+  /** castableCount / totalCount, 0–1. An empty library is fully covered (1). */
+  coverageRatio: number;
+}
+
+/**
+ * Run a cast against the whole template library and aggregate the result.
+ * Deterministic (casting is); pure. The library is passed in (the UI supplies
+ * `ROLE_TEMPLATES`) so core carries no `data` dependency.
+ */
+export function analyzeOrgCoverage(
+  library: ScenarioTemplate[],
+  cast: CharacterProfile[],
+): OrgCoverageReport {
+  const templates = library.map((t) => analyzeTemplateCoverage(t, cast));
+  const gaps: TemplateGap[] = templates
+    .filter((c) => !c.fullyCastable)
+    .map((c) => ({ templateId: c.templateId, unfillableRequiredRoles: c.unfillableRequiredRoles }));
+  const totalCount = library.length;
+  const castableCount = totalCount - gaps.length;
+  return {
+    templates,
+    gaps,
+    castableCount,
+    totalCount,
+    coverageRatio: totalCount === 0 ? 1 : castableCount / totalCount,
+  };
+}
+
+export interface CoverageGateOptions {
+  /** Below this castable ratio, warn and name the gaps (default 0.5). */
+  warnBelow?: number;
+  /** At or below this castable ratio, block the export (default 0 → block only when nothing casts). */
+  blockAtOrBelow?: number;
+}
+
+export interface OrgCoverageValidation {
+  errors: string[];
+  warnings: string[];
+  report: OrgCoverageReport;
+}
+
+/**
+ * The pre-export coverage gate (F3.5 / S3.5.2). Mirrors `validateOrgStructure`'s
+ * `{ errors, warnings }` shape: the in-app Export-all blocks on `errors` and
+ * confirms past `warnings`. By default an org is **blocked** only when it can
+ * cast *nothing* (you would ship an org that produces no scenarios) and merely
+ * **warned** when coverage is thin — see CONTRACT.md §6. Both thresholds are
+ * tunable. A well-covered cast returns no errors and no warnings.
+ */
+export function validateOrgScenarioCoverage(
+  library: ScenarioTemplate[],
+  cast: CharacterProfile[],
+  opts: CoverageGateOptions = {},
+): OrgCoverageValidation {
+  const warnBelow = opts.warnBelow ?? 0.5;
+  const blockAtOrBelow = opts.blockAtOrBelow ?? 0;
+  const report = analyzeOrgCoverage(library, cast);
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const gapList = report.gaps
+    .map((g) => `${g.templateId}${g.unfillableRequiredRoles.length ? ` (unfillable: ${g.unfillableRequiredRoles.join(', ')})` : ''}`)
+    .join('; ');
+  const pct = Math.round(report.coverageRatio * 100);
+
+  if (report.totalCount > 0 && report.coverageRatio <= blockAtOrBelow) {
+    errors.push(
+      `This cast can play ${report.castableCount}/${report.totalCount} scenario templates (${pct}%) — it cannot generate any scenario. Uncastable: ${gapList}.`,
+    );
+  } else if (report.coverageRatio < warnBelow && report.gaps.length) {
+    warnings.push(
+      `This cast covers only ${report.castableCount}/${report.totalCount} scenario templates (${pct}%). Under-covered: ${gapList}.`,
+    );
+  }
+
+  return { errors, warnings, report };
+}
+
 // --- validation --------------------------------------------------------------
 
 /** Human-readable issues with a template's authoring. Empty = valid. */

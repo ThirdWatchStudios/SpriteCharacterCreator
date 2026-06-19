@@ -12,7 +12,7 @@ import { STANCES } from '../core/profile';
 import { resolveScenarioRun, type ResolvedAgent, type ResolvedRun } from '../core/scenarioRun';
 import { SCENARIO_TEMPLATES } from '../data/scenarioTemplates';
 import { ROLE_TEMPLATES } from '../data/roleTemplates';
-import { analyzeTemplateCoverage, castTemplate, type ScenarioTemplate } from '../core/scenarioTemplate';
+import { analyzeOrgCoverage, analyzeTemplateCoverage, castTemplate, type ScenarioTemplate } from '../core/scenarioTemplate';
 import {
   ACCESS_STATES,
   OBJECTIVE_CATEGORIES,
@@ -372,12 +372,30 @@ export function renderScenarioList(container: HTMLElement): void {
       alert(lines.join('\n'));
     }
   };
+  // Org-level coverage of the whole template library — the gap report the export
+  // gate enforces (F3.5 / S3.5.1), shown here so an author can read it pre-export.
+  const showOrgCoverage = () => {
+    const profiles = store.state.profiles ?? [];
+    const rep = analyzeOrgCoverage(ROLE_TEMPLATES, profiles);
+    const pct = Math.round(rep.coverageRatio * 100);
+    const lines = [
+      `Scenario coverage — ${profiles.length} persona(s) vs ${rep.totalCount} template(s):`,
+      `${rep.castableCount}/${rep.totalCount} castable (${pct}%).`,
+      '',
+      ...rep.templates.map((c) => {
+        const gap = c.unfillableRequiredRoles.length ? ` — unfillable: ${c.unfillableRequiredRoles.join(', ')}` : '';
+        return `${c.fullyCastable ? '✓' : '✗'} ${c.templateId}${gap}`;
+      }),
+    ];
+    alert(lines.join('\n'));
+  };
   container.append(
     list,
     el(
       'div',
       { className: 'list-actions' },
       button('+ New scenario', () => addScenario(createDefaultScenario(uid('scenario'), 'New scenario')), 'primary'),
+      button('Org coverage', showOrgCoverage),
       labeled(
         'From template',
         select(

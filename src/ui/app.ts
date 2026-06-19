@@ -13,6 +13,8 @@ import { renderEmployeeControls, renderEmployeeList, renderEmployeePreview } fro
 import { renderCompanyControls, renderCompanyList, renderCompanyPreview } from './companyPanel';
 import { renderDepartmentControls, renderDepartmentList, renderDepartmentPreview } from './departmentPanel';
 import { validateOrgStructure } from '../core/orgStructure';
+import { validateOrgScenarioCoverage } from '../core/scenarioTemplate';
+import { ROLE_TEMPLATES } from '../data/roleTemplates';
 import { renderPropControls, renderPropList, renderPropPreview } from './propPanel';
 import { renderSceneControls, renderSceneList, renderScenePreview } from './scenePanel';
 import { renderStyleControls, renderStylePreview } from './stylePanel';
@@ -95,6 +97,19 @@ export function mountApp(root: HTMLElement): void {
     if (org.errors.length) {
       alert(`Export blocked — the org structure is inconsistent:\n\n• ${org.errors.join('\n• ')}\n\nFix these in the Company › Departments tab.`);
       return;
+    }
+    // Flag a cast that cannot produce scenarios before export (F3.5). Only when
+    // personas exist — a sprite-only export has no cast to validate.
+    const profiles = store.state.profiles ?? [];
+    if (profiles.length) {
+      const cov = validateOrgScenarioCoverage(ROLE_TEMPLATES, profiles);
+      if (cov.errors.length) {
+        alert(`Export blocked — the cast cannot cover the scenario library:\n\n• ${cov.errors.join('\n• ')}\n\nGenerate more personas or adjust departments so roles can fill.`);
+        return;
+      }
+      if (cov.warnings.length && !confirm(`Scenario coverage is thin:\n\n• ${cov.warnings.join('\n• ')}\n\nExport anyway?`)) {
+        return;
+      }
     }
     exportAllBtn.disabled = true;
     exportAllBtn.classList.add('busy');
