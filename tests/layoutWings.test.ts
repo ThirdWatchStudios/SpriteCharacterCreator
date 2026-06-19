@@ -47,11 +47,11 @@ describe('department wing grouping (Epic 1 / F1.1)', () => {
     expect(eng.bounds.x + eng.bounds.cols).toBeGreaterThanOrEqual(farm.x + farm.cols);
   });
 
-  it('office-layout.json carries the wings block at schema version 2', () => {
+  it('office-layout.json carries the wings block at schema version 3', () => {
     const project = defaultProject();
     const { scene } = generateOfficeLayout(project, 6, 7);
     const json = sceneToLayoutJson(scene, project);
-    expect(json.version).toBe(2);
+    expect(json.version).toBe(3);
     expect(json.wings.length).toBeGreaterThan(0);
     expect(json.wings[0].roomIds.length).toBeGreaterThan(0);
   });

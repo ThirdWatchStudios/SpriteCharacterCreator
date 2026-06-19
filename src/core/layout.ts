@@ -176,6 +176,69 @@ export function computeWings(scene: SceneState, project?: ProjectState): LayoutW
   return wings;
 }
 
+/**
+ * An undirected edge between two wings (Epic 1 F1.3). `wings` is the wing-id pair
+ * (sorted, so the edge is stable); `doorways` is how many doorways physically join
+ * them — a connection-strength/weight hint. The sim reads the edge list as a graph:
+ * BFS from the entry wing gives both fog-of-war reveal order and wing-to-wing
+ * (hop) distance.
+ */
+export interface WingConnectivityEdge {
+  wings: [string, string];
+  doorways: number;
+}
+
+/**
+ * Derive the wing-adjacency graph from the generated **door topology** (F1.3): for
+ * every doorway, the two rooms it joins (the open axis perpendicular to its wall
+ * run) are mapped to their wings; a doorway between rooms in *different* wings is
+ * an edge. Edges are aggregated (doorway count) and sorted by wing-id pair, so the
+ * graph is deterministic for a given scene. A single-office scene has one wing and
+ * no edges. Reachability isn't forced here — it's a property of the topology the
+ * generator produces (the hallway corridor joins every wing) and is asserted in tests.
+ */
+export function computeWingConnectivity(scene: SceneState, project: ProjectState): WingConnectivityEdge[] {
+  const wings = computeWings(scene, project);
+  const wingOfRoom = new Map<string, string>();
+  for (const w of wings) for (const rid of w.roomIds) wingOfRoom.set(rid, w.id);
+
+  const isWall = (x: number, y: number): boolean => Boolean(scene.wallIds[y]?.[x]);
+  const roomAt = (x: number, y: number): string | null => scene.roomIds?.[y]?.[x] ?? null;
+
+  const counts = new Map<string, number>();
+  for (const entity of scene.entities) {
+    if (entity.kind !== 'prop') continue;
+    if (project.props.find((p) => p.id === entity.refId)?.templateId !== 'door') continue;
+    const { x, y } = entity;
+    // The doorway opens along the axis whose neighbours are floor (not wall); the
+    // wall run is the other axis. Mirrors `doorwayRotation`'s orientation test.
+    const vOpen = !isWall(x, y - 1) && !isWall(x, y + 1);
+    const hOpen = !isWall(x - 1, y) && !isWall(x + 1, y);
+    const pair: Array<string | null> =
+      vOpen && !hOpen
+        ? [roomAt(x, y - 1), roomAt(x, y + 1)]
+        : hOpen && !vOpen
+          ? [roomAt(x - 1, y), roomAt(x + 1, y)]
+          : vOpen
+            ? [roomAt(x, y - 1), roomAt(x, y + 1)]
+            : [roomAt(x - 1, y), roomAt(x + 1, y)];
+    const [rA, rB] = pair;
+    if (!rA || !rB) continue;
+    const wA = wingOfRoom.get(rA);
+    const wB = wingOfRoom.get(rB);
+    if (!wA || !wB || wA === wB) continue;
+    const key = [wA, wB].sort().join(' ');
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .map(([key, doorways]) => {
+      const [a, b] = key.split(' ');
+      return { wings: [a, b] as [string, string], doorways };
+    })
+    .sort((e1, e2) => e1.wings[0].localeCompare(e2.wings[0]) || e1.wings[1].localeCompare(e2.wings[1]));
+}
+
 /** Derive interaction anchors from placed interaction props in a scene. */
 export function computeInteractionAnchors(scene: SceneState, project: ProjectState): InteractionAnchor[] {
   const anchors: InteractionAnchor[] = [];
@@ -196,7 +259,7 @@ export function computeInteractionAnchors(scene: SceneState, project: ProjectSta
 }
 
 export interface SceneLayoutJson {
-  version: 2;
+  version: 3;
   source: SceneState['source'];
   generated: { templateId: string; seed: number } | null;
   cols: number;
@@ -235,6 +298,8 @@ export interface SceneLayoutJson {
   interactionAnchors: InteractionAnchor[];
   /** Department wings — the rooms grouped by department (Epic 1 F1.1). */
   wings: LayoutWing[];
+  /** Wing-to-wing adjacency derived from the door topology (Epic 1 F1.3). */
+  connectivity: WingConnectivityEdge[];
 }
 
 const COLS = 22;
@@ -1439,7 +1504,7 @@ export function sceneToLayoutJson(scene: SceneState, project: ProjectState): Sce
   }
 
   return {
-    version: 2,
+    version: 3,
     source: scene.source,
     generated: scene.generated ?? null,
     cols: scene.cols,
@@ -1485,5 +1550,6 @@ export function sceneToLayoutJson(scene: SceneState, project: ProjectState): Sce
     anchors: computeOfficeAnchors(scene, project),
     interactionAnchors: computeInteractionAnchors(scene, project),
     wings: computeWings(scene, project),
+    connectivity: computeWingConnectivity(scene, project),
   };
 }
