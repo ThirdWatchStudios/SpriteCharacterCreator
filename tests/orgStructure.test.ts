@@ -19,9 +19,10 @@ describe('org-structure artifact (Epic 2 / F2.2)', () => {
 
   it('keeps visible structure free of member data (the fog split)', () => {
     const org = buildOrgStructure(defaultProject());
-    // structure.departments entries are id/label/category only — no members.
+    // structure.departments entries are id/label/category + the visible capability
+    // grant (F2.4) — no member data (that stays fogged in contents).
     for (const d of org.structure.departments) {
-      expect(Object.keys(d).sort()).toEqual(['category', 'id', 'label']);
+      expect(Object.keys(d).sort()).toEqual(['capabilities', 'category', 'id', 'label']);
     }
     // Every department also has a (possibly empty) members entry in contents.
     for (const d of org.structure.departments) {

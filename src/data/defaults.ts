@@ -3,7 +3,7 @@ import { CURRENT_SCHEMA_VERSION } from '../core/types';
 import type { CharacterProfile, DriveDefinition, Relationship, RelationshipTypeDefinition, TraitDefinition } from '../core/profile';
 import { applyDerived, createDefaultProfile } from '../core/profile';
 import type { Scenario } from '../core/scenario';
-import type { DepartmentDefinition } from '../core/department';
+import { defaultCapabilitiesForCategory, type DepartmentDefinition } from '../core/department';
 
 export const DEFAULT_STYLE: StyleSheet = {
   outline: {
@@ -1018,8 +1018,10 @@ export const DEFAULT_RELATIONSHIP_TYPES: RelationshipTypeDefinition[] = [
  * profiles) promoted to structured entries with stable kebab-case ids, so authors
  * don't re-author them. Free-text `department` values map onto these via
  * mapDepartmentNameToId (label/id match). Category is the coarse functional group.
+ * Each entry is seeded with its category's default capability/medium grant (F2.4),
+ * overridable per department.
  */
-export const DEFAULT_DEPARTMENTS: DepartmentDefinition[] = [
+const SEED_DEPARTMENTS: Array<Pick<DepartmentDefinition, 'id' | 'label' | 'category'>> = [
   { id: 'executive', label: 'Executive', category: 'leadership' },
   { id: 'management', label: 'Management', category: 'leadership' },
   { id: 'accounting', label: 'Accounting', category: 'finance' },
@@ -1034,6 +1036,10 @@ export const DEFAULT_DEPARTMENTS: DepartmentDefinition[] = [
   { id: 'hr', label: 'HR', category: 'administrative' },
   { id: 'legal', label: 'Legal', category: 'administrative' },
 ];
+export const DEFAULT_DEPARTMENTS: DepartmentDefinition[] = SEED_DEPARTMENTS.map((d) => ({
+  ...d,
+  capabilities: defaultCapabilitiesForCategory(d.category),
+}));
 
 export function defaultProject(): ProjectState {
   return {

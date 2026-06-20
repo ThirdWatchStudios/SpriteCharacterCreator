@@ -14,7 +14,9 @@ import { store } from '../state';
 import { button, clear, el, labeled, select } from './dom';
 import { listItem, textField } from './controls';
 import {
+  DEPARTMENT_CAPABILITIES,
   DEPARTMENT_CATEGORIES,
+  defaultCapabilitiesForCategory,
   mapDepartmentNameToId,
   reportUnmappedDepartments,
   slugifyDepartment,
@@ -125,6 +127,20 @@ export function renderDepartmentControls(container: HTMLElement): void {
         store.mutate(() => (d.category = v), 'data'),
       ),
     ),
+    textField('Capabilities (medium)', (d.capabilities ?? []).join(', '), (v) =>
+      store.mutate(() => {
+        const tags = v.split(',').map((t) => t.trim()).filter(Boolean);
+        d.capabilities = tags;
+      }, 'data'),
+    ),
+    el(
+      'div',
+      { className: 'btn-row' },
+      button('Use category default', () =>
+        store.mutate(() => (d.capabilities = defaultCapabilitiesForCategory(d.category)), 'data'),
+      ),
+    ),
+    el('p', { className: 'hint' }, `Surveillance medium(s) reaching this department grants the player (F2.4). Comma-separated; suggested: ${DEPARTMENT_CAPABILITIES.join(', ')}. The sim owns what each medium unlocks.`),
     el('p', { className: 'hint' }, 'Ids are stable references — the cascade fills this catalog and layout groups by it. Renaming an id won’t rewrite persona department fields yet (that’s the F3.1 migration).'),
     el(
       'div',
@@ -174,6 +190,7 @@ export function renderDepartmentPreview(container: HTMLElement): void {
       { className: 'persona-summary' },
       el('div', {}, el('strong', {}, d.label || d.id), ` · ${d.category}`),
       el('div', { className: 'hint' }, `id: ${d.id}`),
+      el('div', { className: 'hint' }, `grants: ${(d.capabilities ?? []).join(', ') || '(nothing)'}`),
     ),
     el('h3', {}, 'Head'),
     el('p', { className: 'hint' }, headId ? nameOf(headId) : '—'),

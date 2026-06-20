@@ -35,7 +35,13 @@ export interface ReportingLine {
 
 /** The visible chart structure — safe to load without the member roster. */
 export interface OrgStructureVisible {
-  departments: { id: string; label: string; category: string }[];
+  /**
+   * Each department's id/label/category plus its capability/medium grant (F2.4) —
+   * the visible "roughly what reaching this buys" the player sees while contents
+   * stay fogged. `capabilities` is always present (empty when the department grants
+   * nothing).
+   */
+  departments: { id: string; label: string; category: string; capabilities: string[] }[];
 }
 
 /** The fogged contents — revealed wing-by-wing by the sim. */
@@ -162,7 +168,7 @@ export function buildOrgStructure(project: Pick<ProjectState, 'departments' | 'p
 
   return {
     structure: {
-      departments: departments.map((d) => ({ id: d.id, label: d.label, category: d.category })),
+      departments: departments.map((d) => ({ id: d.id, label: d.label, category: d.category, capabilities: d.capabilities ?? [] })),
     },
     contents: { members, unassigned, reportingLines: lines, heads },
     meta: {

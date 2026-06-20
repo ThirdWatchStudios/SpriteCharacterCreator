@@ -30,6 +30,51 @@ export const DEPARTMENT_CATEGORIES = [
 ] as const;
 export type DepartmentCategory = (typeof DEPARTMENT_CATEGORIES)[number];
 
+/**
+ * Suggested **capability/medium** vocabulary (Epic 2, F2.4) — the surveillance
+ * medium a department grants when the player reaches it (the diegetic grounding for
+ * The Water Cooler's clearance-ladder *medium* axis: IT→email/logs, HR→records,
+ * Facilities→badge/camera; see game-design-docs surveillance_and_clearance_model.md).
+ * Free-text-with-fallback like {@link DEPARTMENT_CATEGORIES}: the field stays
+ * `string[]` so custom mediums survive; this is the suggested set the UI + the
+ * category defaults draw from. **The tool authors the tags; the sim owns the
+ * clearance/medium *model* (access tiers, reach, gating) that consumes them.** The
+ * exact table is still open sim-side, so this is a starter, not a closed enum.
+ */
+export const DEPARTMENT_CAPABILITIES = [
+  'email',
+  'im',
+  'logs',
+  'personnel_records',
+  'financial_trails',
+  'badge_logs',
+  'cameras',
+  'crm',
+  'exec_comms',
+] as const;
+export type DepartmentCapability = (typeof DEPARTMENT_CAPABILITIES)[number];
+
+/**
+ * Default capability/medium grant per functional category — the coarse mapping a
+ * generated org seeds from so every reached department buys *something* (overridable
+ * per department). Mirrors the design doc's functional table (technical→comms/logs,
+ * administrative→records, finance→trails, operations→badge/cameras, leadership→exec,
+ * commercial→crm). Unknown categories grant nothing.
+ */
+export const CATEGORY_CAPABILITIES: Record<string, string[]> = {
+  leadership: ['exec_comms'],
+  finance: ['financial_trails'],
+  commercial: ['crm'],
+  technical: ['email', 'im', 'logs'],
+  operations: ['badge_logs', 'cameras'],
+  administrative: ['personnel_records'],
+};
+
+/** The default capability/medium grant for a department of the given category (copy). */
+export function defaultCapabilitiesForCategory(category: string): string[] {
+  return [...(CATEGORY_CAPABILITIES[category] ?? [])];
+}
+
 /** A department — a structured catalog entry with a stable id. */
 export interface DepartmentDefinition {
   /** Stable slug; referenced by personas/employees/org-structure. Never re-issued. */
@@ -44,6 +89,15 @@ export interface DepartmentDefinition {
    * it. This is the E2 seam the culture-weighted persona generator (F0.5) reads.
    */
   subculture?: import('./company').CultureAxes;
+  /**
+   * Optional **capability/medium tags** (Epic 2, F2.4) — the surveillance medium(s)
+   * reaching this department grants the player ({@link DEPARTMENT_CAPABILITIES}).
+   * Free-text + fallback; absent = grants nothing. Tool-authored data (defaults
+   * seeded by category, overridable); the sim owns the clearance/medium model that
+   * consumes them. Surfaced in the visible org chart (§3.11) — the player sees
+   * *roughly what reaching a department buys* before the contents un-fog.
+   */
+  capabilities?: string[];
 }
 
 /** Turn a free-text department name into a stable kebab-case id. */
