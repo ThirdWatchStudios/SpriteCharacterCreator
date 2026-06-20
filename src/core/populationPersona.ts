@@ -20,16 +20,64 @@ import type { CharacterRecipe } from './types';
 
 const ARCHETYPE_BY_ID = new Map(PERSONA_ARCHETYPES.map((a) => [a.id, a]));
 
-/** The weighted `{ id, weight }` archetype pool for a department (generic spread when unmapped). */
-function archetypePool(departmentId: string): Array<{ template: PersonaTemplate; weight: number }> {
-  const weights = DEPARTMENT_ARCHETYPES[departmentId];
-  if (weights) {
-    return Object.entries(weights)
-      .map(([id, weight]) => ({ template: ARCHETYPE_BY_ID.get(id), weight }))
-      .filter((e): e is { template: PersonaTemplate; weight: number } => !!e.template);
+/**
+ * The culture-weighting hook (F0.5 seam). An optional **persona-axis target** —
+ * `{ ambition: 72, integrity: 30, … }` over the OCEAN + game axes — biases which
+ * archetypes get picked toward the company/department culture. Kept generic on
+ * purpose: Epic 3 stays free of company types; Epic 0 (`cultureWeighting.ts`)
+ * translates culture → this target. Absent or all-neutral → no bias (the F3.2
+ * behavior). "Bias not lock": the alignment factor is bounded, never zero.
+ */
+export type AxisTarget = Partial<Record<string, number>>;
+
+/** The midpoint of each axis range an archetype's spine declares (absent → neutral 50). */
+function templateAxisMid(t: PersonaTemplate): Record<string, number> {
+  const mid: Record<string, number> = {};
+  const add = (obj?: Record<string, readonly [number, number]>): void => {
+    if (obj) for (const [k, [lo, hi]] of Object.entries(obj)) mid[k] = (lo + hi) / 2;
+  };
+  add(t.spine.ocean as Record<string, readonly [number, number]> | undefined);
+  add(t.spine.axes as Record<string, readonly [number, number]> | undefined);
+  return mid;
+}
+
+/**
+ * How well an archetype matches the axis target, as a multiplicative weight
+ * factor in [0.25, 4]. Only axes the culture actually pushes (target far from 50)
+ * carry weight, so a neutral target leaves every factor at 1.
+ */
+function alignmentFactor(t: PersonaTemplate, target: AxisTarget): number {
+  const mid = templateAxisMid(t);
+  let dsum = 0;
+  let wsum = 0;
+  for (const [axis, tv] of Object.entries(target)) {
+    if (tv === undefined) continue;
+    const emphasis = Math.abs(tv - 50) / 50; // 0 (neutral) … 1 (extreme)
+    if (emphasis <= 0.001) continue;
+    dsum += emphasis * Math.abs((mid[axis] ?? 50) - tv);
+    wsum += emphasis;
   }
-  // No department flavor (blank or unmapped) → uniform over all archetypes.
-  return PERSONA_ARCHETYPES.map((template) => ({ template, weight: 1 }));
+  if (wsum <= 0) return 1;
+  const similarity = 1 - dsum / wsum / 100; // 0 … 1
+  // Steep, bounded curve: aligned archetypes dominate the pool, misaligned ones
+  // stay possible (never zero) — "bias not lock" with real leverage.
+  return 0.1 + 6 * similarity ** 3;
+}
+
+/** The weighted `{ template, weight }` archetype pool for a department, optionally culture-biased. */
+function archetypePool(
+  departmentId: string,
+  axisTarget?: AxisTarget,
+): Array<{ template: PersonaTemplate; weight: number }> {
+  const weights = DEPARTMENT_ARCHETYPES[departmentId];
+  const base = weights
+    ? Object.entries(weights)
+        .map(([id, weight]) => ({ template: ARCHETYPE_BY_ID.get(id), weight }))
+        .filter((e): e is { template: PersonaTemplate; weight: number } => !!e.template)
+    : // No department flavor (blank or unmapped) → uniform over all archetypes.
+      PERSONA_ARCHETYPES.map((template) => ({ template, weight: 1 }));
+  if (!axisTarget) return base;
+  return base.map((e) => ({ template: e.template, weight: e.weight * alignmentFactor(e.template, axisTarget) }));
 }
 
 /** Weighted archetype pick from a seeded rng. */
@@ -51,11 +99,15 @@ function pickArchetype(rng: () => number, pool: Array<{ template: PersonaTemplat
  * `agentId` matches the cast member; otherwise a recipe is synthesized from the
  * employee. The persona's `department` is set to the employee's catalog id (F3.1).
  */
-export function generateEmployeePersona(emp: EmployeeDefinition, recipe?: CharacterRecipe): CharacterProfile {
+export function generateEmployeePersona(
+  emp: EmployeeDefinition,
+  recipe?: CharacterRecipe,
+  axisTarget?: AxisTarget,
+): CharacterProfile {
   const bound = recipe ?? employeeRecipe(emp);
   const departmentId = emp.metadata.department || '';
   const rng = mulberry32(seedToInt(`${emp.visualSeed}|persona|${departmentId}`));
-  const template = pickArchetype(rng, archetypePool(departmentId));
+  const template = pickArchetype(rng, archetypePool(departmentId, axisTarget));
 
   const profile = generatePersona(template, seedToInt(`${emp.visualSeed}|${template.id}`), {
     agentId: bound.id,

@@ -37,6 +37,13 @@ export interface DepartmentDefinition {
   label: string;
   /** Free text; {@link DEPARTMENT_CATEGORIES} is the fallback vocabulary. */
   category: string;
+  /**
+   * Resolved per-department subculture (Epic 0, F0.4) — the company culture
+   * biased by the department's function plus a bounded deviation, so a toxic team
+   * can live inside a healthy firm. Optional: hand-authored/legacy departments omit
+   * it. This is the E2 seam the culture-weighted persona generator (F0.5) reads.
+   */
+  subculture?: import('./company').CultureAxes;
 }
 
 /** Turn a free-text department name into a stable kebab-case id. */
