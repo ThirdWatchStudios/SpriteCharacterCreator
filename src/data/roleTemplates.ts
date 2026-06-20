@@ -418,4 +418,321 @@ export const THE_TURF_WAR: ScenarioTemplate = {
   },
 };
 
-export const ROLE_TEMPLATES: ScenarioTemplate[] = [THE_OFFICE_ROMANCE, THE_CONTESTED_PROMOTION, THE_TURF_WAR];
+/**
+ * The Power Vacuum — a leadership seat opens and two ambitious operators move on
+ * it. Family `'power'`, the most broadly history-grounded family: a reorg, layoff,
+ * founder exit, merger, new CEO, IPO, or union drive all light it up (F0.7
+ * `HISTORY_FAMILY_MAP`). It showcases the **absent role** — `authority` is the
+ * removed leader: resolved (so the truth/seed can name them) and *reported as the
+ * one who's gone*, but kept out of the active cast. Cast onto the default four it
+ * resolves the contenders to janice + carl and names the manager as the vacated
+ * authority; onto a generated org it picks two ambitious people from anywhere.
+ */
+export const THE_POWER_VACUUM: ScenarioTemplate = {
+  templateId: 'the_power_vacuum',
+  family: 'power',
+  title: 'The Power Vacuum',
+  summary: 'A leadership seat falls empty and two ambitious operators maneuver to fill it — does one consolidate the role, or does the team fracture into camps?',
+  triggering: 'provoke',
+  emotionalPayload: {
+    targetEmotions: ['ambition', 'anxiety', 'opportunism'],
+    description: 'An open seat at the top: the contenders smell opportunity (ambition), the team fears who lands above them (anxiety), and old loyalties get traded for position (opportunism).',
+  },
+  roles: [
+    {
+      roleId: 'contenderA',
+      label: 'First Contender',
+      description: 'An ambitious operator who moves on the open seat.',
+      required: true,
+      preconditions: [{ kind: 'axis', axis: 'ambition', op: 'gte', value: 70 }],
+    },
+    {
+      roleId: 'contenderB',
+      label: 'Second Contender',
+      description: 'A rival operator, equally ambitious, who wants the same seat.',
+      required: true,
+      preconditions: [{ kind: 'axis', axis: 'ambition', op: 'gte', value: 70 }],
+    },
+    {
+      roleId: 'authority',
+      label: 'Vacated Authority',
+      description: 'The removed leader whose departure created the vacuum — resolved and named, but off-scene.',
+      required: false,
+      presence: 'absent',
+      preconditions: [{ kind: 'axis', axis: 'discretion', op: 'gte', value: 75 }],
+    },
+  ],
+  roleSeeds: [
+    {
+      roleId: 'contenderA',
+      beliefSeeds: [{ topic: 'the_vacuum', claim: 'The seat is mine to take.', stance: 'accepts', confidence: 70 }],
+      knowledgeSeeds: ['seat_is_open'],
+      relationshipOverrides: [{ toRole: 'contenderB', suspicion: 60, affinity: -30 }],
+    },
+    {
+      roleId: 'contenderB',
+      beliefSeeds: [{ topic: 'the_vacuum', claim: "They're not the obvious successor — I am.", stance: 'accepts', confidence: 65 }],
+      knowledgeSeeds: ['seat_is_open'],
+      relationshipOverrides: [{ toRole: 'contenderA', suspicion: 60, affinity: -30 }],
+    },
+  ],
+  locations: [
+    { locationId: 'contenderA_desk', displayName: "First Contender's Desk", tags: ['work_area'], accessState: 'open', fallbackLocationId: 'hallway', bindRoomId: 'cubicle-farm', bindDeskOfRole: 'contenderA' },
+    { locationId: 'contenderB_desk', displayName: "Second Contender's Desk", tags: ['work_area'], accessState: 'open', fallbackLocationId: 'hallway', bindRoomId: 'cubicle-farm', bindDeskOfRole: 'contenderB' },
+    { locationId: 'empty_office', displayName: 'The Empty Office', tags: ['management'], accessState: 'open', fallbackLocationId: 'hallway', bindRoomId: 'manager-office' },
+    { locationId: 'hallway', displayName: 'Hallway', tags: ['transit'], accessState: 'open', fallbackLocationId: '', bindRoomId: 'hallway' },
+  ],
+  roleSpawns: [
+    { roleId: 'contenderA', locationId: 'contenderA_desk' },
+    { roleId: 'contenderB', locationId: 'contenderB_desk' },
+  ],
+  truthFacts: [
+    { truthId: 'seat_is_vacant', topic: 'the_vacuum', statement: 'The leadership seat is genuinely empty.', subjectRoles: ['authority'], objectiveValue: true, sourceRole: 'authority' },
+  ],
+  informationItems: [
+    { informationId: 'seat_is_open', topic: 'the_vacuum', claim: 'The seat is open and up for grabs.', originType: 'observation', truthId: 'seat_is_vacant', truthAlignment: 'true', sourceRole: 'contenderA', initialHolderRoles: ['contenderA', 'contenderB'] },
+  ],
+  interventionTypes: [
+    { type: 'succession', values: ['appointed', 'contested'] },
+    { type: 'visibility', values: ['private', 'public'] },
+  ],
+  variants: [
+    { variantId: 'appointed_private', selections: { succession: 'appointed', visibility: 'private' } },
+    { variantId: 'contested_public', selections: { succession: 'contested', visibility: 'public' } },
+    { variantId: 'contested_private', selections: { succession: 'contested', visibility: 'private' } },
+  ],
+  defaultVariantId: 'contested_public',
+  objective: {
+    objectiveId: 'resolve_power_vacuum',
+    label: 'Test whether an open leadership seat consolidates under one contender or fractures the team into camps.',
+    category: 'political',
+    desiredPressure: 'power_struggle',
+    intendedObservableBehavior: 'One contender consolidates support OR the team splits into rival factions behind each.',
+    kpi: 'power_consolidation_or_fragmentation_assessment',
+    expectedEvidence: ['influence changes', 'alliance formation', 'faction formation'],
+  },
+};
+
+/**
+ * The Scapegoat — when something goes wrong, the real culprit slips away and a
+ * blameless coworker is left holding it. Family `'blame'` (a failed product / bad
+ * quarter lights it up). The canonical **absent role** showcase: `culprit` is the
+ * off-scene wrongdoer — resolved and named as the truth source (the off-scene
+ * reality), but never added to the active cast — while the present `scapegoat`
+ * takes the fall. Cast onto the default four: culprit → carl (off-scene),
+ * scapegoat → linda, authority → manager.
+ */
+export const THE_SCAPEGOAT: ScenarioTemplate = {
+  templateId: 'the_scapegoat',
+  family: 'blame',
+  title: 'The Scapegoat',
+  summary: 'Something went wrong, the real culprit is nowhere to be found, and a defenseless coworker is left to absorb the blame — fairly resolved, or pinned unjustly?',
+  triggering: 'provoke',
+  emotionalPayload: {
+    targetEmotions: ['fear', 'injustice', 'relief'],
+    description: 'A search for someone to blame: the scapegoat dreads the fallout (fear), knows it is not theirs to carry (injustice), and the real culprit quietly escapes notice (relief).',
+  },
+  roles: [
+    {
+      roleId: 'culprit',
+      label: 'Real Culprit',
+      description: 'The low-integrity wrongdoer who actually caused it — off-scene, resolved, and named but never cast.',
+      required: true,
+      presence: 'absent',
+      preconditions: [{ kind: 'axis', axis: 'integrity', op: 'lte', value: 45 }],
+    },
+    {
+      roleId: 'scapegoat',
+      label: 'The Scapegoat',
+      description: 'An agreeable, defenseless coworker the blame settles onto.',
+      required: true,
+      preconditions: [{ kind: 'axis', axis: 'agreeableness', op: 'gte', value: 60 }],
+    },
+    {
+      roleId: 'authority',
+      label: 'Investigating Authority',
+      description: 'The reasonably discreet, fair-minded manager running the inquiry.',
+      required: true,
+      preconditions: [
+        { kind: 'axis', axis: 'discretion', op: 'gte', value: 70 },
+        { kind: 'axis', axis: 'integrity', op: 'gte', value: 65 },
+      ],
+    },
+    {
+      roleId: 'accuser',
+      label: 'Eager Accuser',
+      description: 'A blunt, low-agreeableness coworker quick to point the finger.',
+      required: false,
+      preconditions: [{ kind: 'axis', axis: 'agreeableness', op: 'lte', value: 35 }],
+    },
+  ],
+  roleSeeds: [
+    {
+      roleId: 'scapegoat',
+      beliefSeeds: [{ topic: 'the_incident', claim: "I didn't do this — and no one believes me.", stance: 'accepts', confidence: 80 }],
+      knowledgeSeeds: ['incident_report'],
+      relationshipOverrides: [],
+    },
+    {
+      roleId: 'authority',
+      beliefSeeds: [{ topic: 'the_incident', claim: 'Someone is accountable for this, and I will find out who.', stance: 'accepts', confidence: 70 }],
+      knowledgeSeeds: ['incident_report'],
+      relationshipOverrides: [],
+    },
+    {
+      roleId: 'accuser',
+      beliefSeeds: [{ topic: 'the_incident', claim: 'It was obviously them.', stance: 'suspects', confidence: 55 }],
+      knowledgeSeeds: [],
+      relationshipOverrides: [],
+    },
+  ],
+  locations: [
+    { locationId: 'scapegoat_desk', displayName: "Scapegoat's Desk", tags: ['work_area'], accessState: 'open', fallbackLocationId: 'hallway', bindRoomId: 'cubicle-farm', bindDeskOfRole: 'scapegoat' },
+    { locationId: 'inquiry_office', displayName: 'Manager Office', tags: ['management'], accessState: 'open', fallbackLocationId: 'hallway', bindRoomId: 'manager-office' },
+    { locationId: 'break_room', displayName: 'Break Room', tags: ['break_area'], accessState: 'open', fallbackLocationId: 'hallway', bindRoomId: 'break-room' },
+    { locationId: 'hallway', displayName: 'Hallway', tags: ['transit'], accessState: 'open', fallbackLocationId: '', bindRoomId: 'hallway' },
+  ],
+  roleSpawns: [
+    { roleId: 'scapegoat', locationId: 'scapegoat_desk' },
+    { roleId: 'authority', locationId: 'inquiry_office' },
+    { roleId: 'accuser', locationId: 'break_room' },
+  ],
+  truthFacts: [
+    { truthId: 'culprit_did_it', topic: 'the_incident', statement: 'The off-scene culprit actually caused the incident.', subjectRoles: ['culprit'], objectiveValue: true, sourceRole: 'culprit' },
+  ],
+  informationItems: [
+    { informationId: 'incident_report', topic: 'the_incident', claim: 'Something went wrong and an inquiry is open.', originType: 'official', truthId: 'culprit_did_it', truthAlignment: 'true', sourceRole: 'authority', initialHolderRoles: ['authority', 'scapegoat'] },
+    { informationId: 'blame_the_scapegoat', topic: 'the_incident', claim: 'The scapegoat must have been behind it.', originType: 'rumor', truthId: 'culprit_did_it', truthAlignment: 'false', sourceRole: 'scapegoat', initialHolderRoles: ['scapegoat'] },
+  ],
+  interventionTypes: [
+    { type: 'inquiry', values: ['fair', 'rushed'] },
+    { type: 'visibility', values: ['private', 'public'] },
+  ],
+  variants: [
+    { variantId: 'fair_private', selections: { inquiry: 'fair', visibility: 'private' } },
+    { variantId: 'rushed_public', selections: { inquiry: 'rushed', visibility: 'public' } },
+    { variantId: 'rushed_private', selections: { inquiry: 'rushed', visibility: 'private' } },
+  ],
+  defaultVariantId: 'rushed_public',
+  objective: {
+    objectiveId: 'assign_blame_fairly',
+    label: 'Test whether an inquiry pins blame fairly or settles it on the defenseless coworker.',
+    category: 'stability',
+    desiredPressure: 'accountability',
+    intendedObservableBehavior: 'The inquiry surfaces the real cause OR the blame hardens onto the scapegoat.',
+    kpi: 'blame_assignment_fairness_assessment',
+    expectedEvidence: ['suspicion changes', 'belief changes', 'trust metrics'],
+  },
+};
+
+/**
+ * The Viral Praise — recognition lands on a rising star and a rival can't stand it.
+ * Family `'celebration'` (a funding round, IPO, or record quarter lights it up) and
+ * the library's positive-payload entry: praise, pride, and validation alongside the
+ * envy it stirs. Cast onto the default four: praised → janice (the recognized
+ * recipient), envious → carl (the rival who resents her), amplifier → linda.
+ */
+export const THE_VIRAL_PRAISE: ScenarioTemplate = {
+  templateId: 'the_viral_praise',
+  family: 'celebration',
+  title: 'The Viral Praise',
+  summary: 'Public recognition lands on a rising star and spreads — fueling pride and validation, and the quiet envy of a rival who thinks it should have been theirs.',
+  triggering: 'emerge',
+  emotionalPayload: {
+    targetEmotions: ['pride', 'validation', 'envy'],
+    description: 'Positive recognition that travels: the praised feels seen (pride, validation) while a rival downplays it and stews (envy).',
+  },
+  roles: [
+    {
+      roleId: 'praised',
+      label: 'Rising Star',
+      description: 'The ambitious employee the recognition lands on.',
+      required: true,
+      preconditions: [{ kind: 'axis', axis: 'ambition', op: 'gte', value: 70 }],
+    },
+    {
+      roleId: 'envious',
+      label: 'Envious Rival',
+      description: 'An equally ambitious coworker who resents the spotlight on someone else.',
+      required: true,
+      preconditions: [
+        { kind: 'axis', axis: 'ambition', op: 'gte', value: 70 },
+        { kind: 'relationship', toRole: 'praised', direction: 'outgoing', axis: 'affinity', op: 'lte', value: 0 },
+      ],
+    },
+    {
+      roleId: 'amplifier',
+      label: 'Praise Amplifier',
+      description: 'A leaky, well-connected coworker who spreads the good news.',
+      required: false,
+      preconditions: [{ kind: 'axis', axis: 'discretion', op: 'lte', value: 35 }],
+    },
+  ],
+  roleSeeds: [
+    {
+      roleId: 'praised',
+      beliefSeeds: [{ topic: 'the_recognition', claim: 'I earned this recognition.', stance: 'accepts', confidence: 80 }],
+      knowledgeSeeds: ['public_kudos'],
+      relationshipOverrides: [],
+    },
+    {
+      roleId: 'envious',
+      beliefSeeds: [{ topic: 'the_recognition', claim: "It's not as impressive as everyone says.", stance: 'suspects', confidence: 60 }],
+      knowledgeSeeds: ['downplaying_take'],
+      relationshipOverrides: [{ toRole: 'praised', suspicion: 50, affinity: -30 }],
+    },
+    {
+      roleId: 'amplifier',
+      beliefSeeds: [{ topic: 'the_recognition', claim: 'Everyone should hear about this.', stance: 'accepts', confidence: 70 }],
+      knowledgeSeeds: ['public_kudos'],
+      relationshipOverrides: [],
+    },
+  ],
+  locations: [
+    { locationId: 'praised_desk', displayName: "Rising Star's Desk", tags: ['work_area'], accessState: 'open', fallbackLocationId: 'hallway', bindRoomId: 'cubicle-farm', bindDeskOfRole: 'praised' },
+    { locationId: 'envious_desk', displayName: "Rival's Desk", tags: ['work_area'], accessState: 'open', fallbackLocationId: 'hallway', bindRoomId: 'cubicle-farm', bindDeskOfRole: 'envious' },
+    { locationId: 'amplifier_desk', displayName: "Amplifier's Desk", tags: ['work_area'], accessState: 'open', fallbackLocationId: 'hallway', bindRoomId: 'cubicle-farm', bindDeskOfRole: 'amplifier' },
+    { locationId: 'break_room', displayName: 'Break Room', tags: ['break_area'], accessState: 'open', fallbackLocationId: 'hallway', bindRoomId: 'break-room' },
+    { locationId: 'hallway', displayName: 'Hallway', tags: ['transit'], accessState: 'open', fallbackLocationId: '', bindRoomId: 'hallway' },
+  ],
+  roleSpawns: [
+    { roleId: 'praised', locationId: 'praised_desk' },
+    { roleId: 'envious', locationId: 'envious_desk' },
+    { roleId: 'amplifier', locationId: 'amplifier_desk' },
+  ],
+  truthFacts: [
+    { truthId: 'praise_is_earned', topic: 'the_recognition', statement: 'The recognition was genuinely earned.', subjectRoles: ['praised'], objectiveValue: true, sourceRole: 'praised' },
+  ],
+  informationItems: [
+    { informationId: 'public_kudos', topic: 'the_recognition', claim: 'The recognition was announced publicly.', originType: 'official', truthId: 'praise_is_earned', truthAlignment: 'true', sourceRole: 'praised', initialHolderRoles: ['praised'] },
+    { informationId: 'downplaying_take', topic: 'the_recognition', claim: "It wasn't really that big a deal.", originType: 'rumor', truthId: 'praise_is_earned', truthAlignment: 'misleading', sourceRole: 'envious', initialHolderRoles: ['envious'] },
+  ],
+  interventionTypes: [
+    { type: 'spotlight', values: ['amplified', 'muted'] },
+    { type: 'visibility', values: ['team', 'company'] },
+  ],
+  variants: [
+    { variantId: 'amplified_company', selections: { spotlight: 'amplified', visibility: 'company' } },
+    { variantId: 'muted_team', selections: { spotlight: 'muted', visibility: 'team' } },
+    { variantId: 'amplified_team', selections: { spotlight: 'amplified', visibility: 'team' } },
+  ],
+  defaultVariantId: 'amplified_company',
+  objective: {
+    objectiveId: 'balance_pride_and_envy',
+    label: 'Test whether public recognition energizes the team or curdles into rivalry and resentment.',
+    category: 'culture',
+    desiredPressure: 'recognition_dynamics',
+    intendedObservableBehavior: 'The praise lifts morale OR the rival turns it into a resentment that spreads.',
+    kpi: 'pride_vs_envy_balance_assessment',
+    expectedEvidence: ['affinity changes', 'belief changes', 'morale signals'],
+  },
+};
+
+export const ROLE_TEMPLATES: ScenarioTemplate[] = [
+  THE_OFFICE_ROMANCE,
+  THE_CONTESTED_PROMOTION,
+  THE_TURF_WAR,
+  THE_POWER_VACUUM,
+  THE_SCAPEGOAT,
+  THE_VIRAL_PRAISE,
+];

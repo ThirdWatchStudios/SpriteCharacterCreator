@@ -38,7 +38,7 @@ fleshed out when each is authored.
 - **The Layoff Scare** — `vulnerable`(req, high security need, low influence), `opportunist`(opt, settle_score/advance, low integrity), `authority`(req) → fear, paranoia, self-preservation.
 - **The Open Secret** ★ — `subject`(req, the last to know), `knowers`(aggregate: everyone else holds it) → dread, humiliation, pity, complicity · *inverts propagation.*
 - **The Misattribution** — `originator`(req, said it), `misquoted`(req, wrongly credited/blamed), `spreader`(opt) → indignation, injustice, paranoia.
-- **The Viral Praise** ★ — `praised`(req, rising star), `envious`(req, rival), `amplifier`(opt) → **pride**, envy, validation, resentment · *positive info spreads.*
+- **The Viral Praise** **BUILT** (`the_viral_praise`, family `celebration`) — `praised`(req, ambition≥70), `envious`(req, ambition≥70 + affinity≤0→praised), `amplifier`(opt, discretion≤35) → **pride**, validation, envy · *the library's positive-payload entry; grounded by funding_round/ipo/record_quarter (F0.7 → `celebration`); casts on the default four as janice/carl/linda.*
 
 ## Family `credit` *(recognition & fairness)*
 - **The Credit Theft** — `creator`(req, high competence + recognition need, low influence), `thief`(req, high ambition, low integrity), `authority`(req) → injustice, anger, helplessness, smugness · ⚑*(skill, optional)*
@@ -51,7 +51,7 @@ fleshed out when each is authored.
 - **The Turf War** **BUILT** (`the_turf_war`) — `rivalA`/`rivalB`(req, ambition≥50 + **crossDepartment different** + **distance** soft-weighted toward the more org-distant pairing), `instigator`(opt, discretion≤35, carries the feud across the aisle) → resentment, contempt, vindication · *the cross-department reference template (F4.5) — proves the `department`/`crossDepartment` (F4.2) + `distance` (F4.3) vocabulary; casts the rivals across a departmental boundary on the default cast (operations↔management) and on a generated multi-department org, preferring the farther-apart rivalry.*
 - **The Feud (Cold War)** — `combatantA`/`combatantB`(req, mutual rival/nemesis, low affinity, high suspicion+temper), `bystander`(opt, ally to one) → hostility, dread, split loyalty, schadenfreude.
 - **The Betrayal** ▶ — `victim`(req, high trust→betrayer), `betrayer`(req, ally/confidant→victim but high ambition, low loyalty, opportunist), `beneficiary`(req, rival→victim) → betrayal, shock, grief, vindication.
-- **The Power Vacuum** — `authority`(absent, opt, high discretion/leadership), `contenderA`/`contenderB`(req, high ambition+influence, drive gain_influence), `followers`(opt) → ambition, anxiety, opportunism · *uses the `absent` role.*
+- **The Power Vacuum** **BUILT** (`the_power_vacuum`, family `power`) — `authority`(absent, opt, discretion≥75 — the vacated leader), `contenderA`/`contenderB`(req, ambition≥70) → ambition, anxiety, opportunism · *uses the `absent` role; the most broadly history-grounded family — reorg/layoff/founder_exit/merger/new_ceo/ipo/union_drive all light it up (F0.7 → `power`); casts on the default four as janice/carl + manager (vacated).*
 - **The Swing Vote** — `factionA`/`factionB`(req, rivals), `undecided`(req, high agreeableness, up-for-grabs loyalty — the prize) → pressure, flattery, anxiety, betrayal.
 - **The Enforcer** — `enforcer`(req, high influence, blunt, high temper), `target`(req, low influence, high security need), `bystander`(opt, afraid) → fear, helplessness, complicity, indignation.
 - **The Underdog Challenge** — `challenger`(req, high ambition, low current influence), `incumbent`(req, high influence/respect) → hope, humiliation (either way), defiance.
@@ -66,7 +66,7 @@ fleshed out when each is authored.
 - **The Grief Spotlight** ★ — `bereaved`(req, offscreen loss), `supporter`(opt, high agreeableness), `avoider`(opt, low agreeableness) → grief, compassion, awkwardness, guilt.
 
 ## Family `blame`
-- **The Scapegoat** ▶ — `culprit`(absent, req, low integrity, high discretion), `scapegoat`(req, low influence/respect), `accuser`(opt, blunt), `authority`(req) → fear, injustice, guilt, relief · *uses the `absent` role.*
+- **The Scapegoat** **BUILT** (`the_scapegoat`, family `blame`) — `culprit`(absent, req, integrity≤45 — the off-scene wrongdoer + truth source), `scapegoat`(req, agreeableness≥60), `authority`(req, discretion≥70 + integrity≥65), `accuser`(opt, agreeableness≤35) → fear, injustice, relief · *the canonical `absent`-role showcase; grounded by failed_product (F0.7 → `blame`); casts on the default four as carl(off-scene)/linda/manager.*
 - **The Cover-Up** — `responsible`(req, made the error), `accomplice`(req, loyal/complicit), `threat`(opt, might expose) → anxiety, complicity, guilt, dread.
 - **The Witch Hunt** ⚑ — `accused`(req, low influence), `mob`(aggregate high suspicion — *wants group roles*), `lone_defender`(opt, high integrity) → mob-fear, paranoia, courage, injustice · ⚑*(group roles)*
 
@@ -127,11 +127,13 @@ fleshed out when each is authored.
 
 All ready now; spans families, both primary engines, and showcases the new model features:
 1. ~~**The Contested Promotion** (`rumor`)~~ — **BUILT** (`the_contested_promotion`); the decoupling worked example.
-2. **The Love Triangle** (`attraction`) — the `thirdParty` jealousy coupling.
-3. **The Outsider** (`belonging`) — the new `aggregate` precondition.
-4. **The Scapegoat** (`blame`) — the new `absent` role.
-5. **The Betrayal** (`rivalry`) — a provoke-first political relationship template.
-6. **The Departure** (`belonging`) — broadens payload into grief/abandonment.
+2. ~~**The Scapegoat** (`blame`)~~ — **BUILT** (`the_scapegoat`); the `absent` role.
+3. ~~**The Power Vacuum** (`power`)~~ — **BUILT** (`the_power_vacuum`); `absent` role + the broadest history grounding.
+4. ~~**The Viral Praise** (`celebration`)~~ — **BUILT** (`the_viral_praise`); the positive payload.
+5. ~~**The Turf War** (`rivalry`)~~ — **BUILT** (`the_turf_war`); the cross-department vocabulary (Epic 4).
+6. **The Love Triangle** (`attraction`) — the `thirdParty` jealousy coupling. *(next)*
+7. **The Outsider** (`belonging`) — the `aggregate` precondition. *(next)*
+8. **The Betrayal** (`rivalry`) — a provoke-first political relationship template. *(next)*
 
 # Chains — "the office continues forward"
 
@@ -191,6 +193,12 @@ Still thinnest on **awe/admiration** and **gratitude** — likely weak harvests;
 ---
 
 ## Changelog
+- **Rev 6 (library growth):** shipped three more standard templates — **The Power Vacuum**
+  (`power`, absent role), **The Scapegoat** (`blame`, absent role), **The Viral Praise**
+  (`celebration`, positive payload). The shipped library is now 6 templates across 6 families
+  (attraction/rumor/rivalry/power/blame/celebration); all cast on the default four and a
+  generated org, and each new family runs hot for its grounding history (reorg→power,
+  failed_product→blame, ipo→celebration), widening which generated companies reach a GO verdict.
 - **Rev 5 (Epic 4):** added the `department`/`crossDepartment` (F4.2) and `distance` (F4.3)
   precondition vocabulary and **The Turf War** (`the_turf_war`) — the cross-department reference
   template (F4.5) under `rivalry`, the first BUILT entry to cross a departmental boundary, now
