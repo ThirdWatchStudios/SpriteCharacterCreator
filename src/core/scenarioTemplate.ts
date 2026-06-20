@@ -860,6 +860,12 @@ export interface RoleCoverage {
   intrinsicCandidateCount: number;
   /** Did this role actually fill when the whole template was cast onto the cast? */
   relationalFillable: boolean;
+  /**
+   * F4.4: when this role is a coverage blocker, the specific unmet conditions —
+   * naming the department / cross-department / distance precondition that can't be
+   * met (S4.4.2). Empty for a role that fills.
+   */
+  unmetReasons: string[];
 }
 export interface CoverageReport {
   templateId: string;
@@ -870,32 +876,99 @@ export interface CoverageReport {
 }
 
 /**
+ * Explain *why* a coverage-blocked role can't fill (F4.4 / S4.4.2) — naming the
+ * specific unmet department / cross-department / distance condition when that is
+ * the cause, so a gap report points at the org or template to fix. Conservative: a
+ * cross-role term is blamed only when its partner role HAS eligible candidates
+ * (else the partner's own intrinsic gap is the real cause) and the term is provably
+ * unsatisfiable across the eligible pools. Spatial distance isn't diagnosable here
+ * (coverage carries no office scene), so only structural distance is checked.
+ */
+function diagnoseRoleGap(
+  role: RoleSlot,
+  cast: CharacterProfile[],
+  candidatesByRole: Record<string, ScoredCandidate[]>,
+  dist: DistanceResolver,
+): string[] {
+  const reasons: string[] = [];
+  const poolOf = (roleId: string): CharacterProfile[] => {
+    const ids = new Set((candidatesByRole[roleId] ?? []).map((c) => c.agentId));
+    return cast.filter((p) => ids.has(p.agentId));
+  };
+  const elig = poolOf(role.roleId);
+
+  // Intrinsic dead end: nobody even satisfies the single-candidate preconditions.
+  if (elig.length === 0) {
+    for (const pre of role.preconditions) {
+      if (pre.kind !== 'department') continue;
+      const anyMember = cast.some((p) => (pre.mode === 'in' ? deptOf(p) === pre.department : deptOf(p) !== pre.department));
+      if (!anyMember)
+        reasons.push(
+          pre.mode === 'in'
+            ? `role "${role.roleId}" requires department "${pre.department}", which has no members in this org.`
+            : `role "${role.roleId}" forbids department "${pre.department}", but every member belongs to it.`,
+        );
+    }
+    if (reasons.length === 0) reasons.push(`no agent in the cast satisfies role "${role.roleId}"'s preconditions.`);
+    return reasons;
+  }
+
+  // Cross-role dead end: eligible agents exist but a department/distance term to a
+  // populated partner role can't be met by any eligible pairing.
+  for (const pre of role.preconditions) {
+    if (pre.kind === 'crossDepartment') {
+      const partner = poolOf(pre.toRole);
+      if (partner.length === 0) continue; // the partner's own gap is the cause
+      const feasible = elig.some((a) => partner.some((b) => a.agentId !== b.agentId && crossDeptHolds(a, b, pre)));
+      if (!feasible)
+        reasons.push(
+          pre.relation === 'different'
+            ? `role "${role.roleId}" must be in a different department from "${pre.toRole}", but their eligible agents can't form a cross-department pair.`
+            : `role "${role.roleId}" must share a department with "${pre.toRole}", but no eligible same-department pair exists.`,
+        );
+    } else if (pre.kind === 'distance' && (pre.source ?? 'structural') === 'structural' && pre.op !== undefined && pre.value !== undefined) {
+      const partner = poolOf(pre.toRole);
+      if (partner.length === 0) continue;
+      const feasible = elig.some((a) =>
+        partner.some((b) => {
+          if (a.agentId === b.agentId) return false;
+          const d = dist(a.agentId, b.agentId, 'structural');
+          return d !== null && cmp(d, pre.op!, pre.value!);
+        }),
+      );
+      if (!feasible)
+        reasons.push(`role "${role.roleId}" requires organizational distance ${pre.op} ${pre.value} from "${pre.toRole}", but no eligible pairing is that far apart.`);
+    }
+  }
+  if (reasons.length === 0)
+    reasons.push(`role "${role.roleId}" has ${elig.length} eligible agent(s) but none co-cast with the rest (taken by another role or failing a relationship precondition).`);
+  return reasons;
+}
+
+/**
  * Can this cast play this template? Surfaces per-role intrinsic candidate counts
  * (the cast/scenario-library mismatch a designer should see before play) plus
- * whether the required roles co-cast. See docs/scenario-template-model.md §5.
+ * whether the required roles co-cast, and — for a blocked role — the specific unmet
+ * department/distance condition (F4.4). See docs/scenario-template-model.md §5.
  */
 export function analyzeTemplateCoverage(template: ScenarioTemplate, cast: CharacterProfile[]): CoverageReport {
   const result = castTemplate(template, cast);
   const filledRole = new Map(result.report.assignments.map((a) => [a.roleId, !!a.agentId]));
-  const perRole: RoleCoverage[] = template.roles.map((r) => ({
-    roleId: r.roleId,
-    required: r.required,
-    intrinsicCandidateCount: result.report.candidatesByRole[r.roleId]?.length ?? 0,
-    relationalFillable: filledRole.get(r.roleId) ?? false,
-  }));
-  const notes: string[] = [];
-  for (const rc of perRole) {
-    if (rc.intrinsicCandidateCount === 0)
-      notes.push(`No agent in the cast satisfies role "${rc.roleId}"'s preconditions.`);
-    else if (!rc.relationalFillable)
-      notes.push(`Role "${rc.roleId}" has ${rc.intrinsicCandidateCount} eligible agent(s) but none co-cast with the rest (taken by another role or failing a relationship precondition).`);
-  }
+  // Structural-only resolver for distance diagnosis (coverage has no office scene).
+  const dist = makeDistanceResolver(cast, undefined);
+  const perRole: RoleCoverage[] = template.roles.map((r) => {
+    const intrinsicCandidateCount = result.report.candidatesByRole[r.roleId]?.length ?? 0;
+    const relationalFillable = filledRole.get(r.roleId) ?? false;
+    const blocked = intrinsicCandidateCount === 0 || !relationalFillable;
+    const unmetReasons = blocked ? diagnoseRoleGap(r, cast, result.report.candidatesByRole, dist) : [];
+    return { roleId: r.roleId, required: r.required, intrinsicCandidateCount, relationalFillable, unmetReasons };
+  });
   return {
     templateId: template.templateId,
     perRole,
     fullyCastable: result.ok,
     unfillableRequiredRoles: result.report.unfilledRequired,
-    notes,
+    notes: perRole.flatMap((rc) => rc.unmetReasons),
   };
 }
 
@@ -905,6 +978,12 @@ export function analyzeTemplateCoverage(template: ScenarioTemplate, cast: Charac
 export interface TemplateGap {
   templateId: string;
   unfillableRequiredRoles: string[];
+  /**
+   * F4.4: the specific unmet conditions behind the unfillable required roles —
+   * naming the department / cross-department / distance precondition that can't be
+   * met, so the gap points at the org or template to fix (S4.4.2).
+   */
+  reasons: string[];
 }
 
 /**
@@ -936,7 +1015,14 @@ export function analyzeOrgCoverage(
   const templates = library.map((t) => analyzeTemplateCoverage(t, cast));
   const gaps: TemplateGap[] = templates
     .filter((c) => !c.fullyCastable)
-    .map((c) => ({ templateId: c.templateId, unfillableRequiredRoles: c.unfillableRequiredRoles }));
+    .map((c) => {
+      const blocked = new Set(c.unfillableRequiredRoles);
+      return {
+        templateId: c.templateId,
+        unfillableRequiredRoles: c.unfillableRequiredRoles,
+        reasons: c.perRole.filter((rc) => blocked.has(rc.roleId)).flatMap((rc) => rc.unmetReasons),
+      };
+    });
   const totalCount = library.length;
   const castableCount = totalCount - gaps.length;
   return {
@@ -981,8 +1067,13 @@ export function validateOrgScenarioCoverage(
   const warnings: string[] = [];
 
   const gapList = report.gaps
-    .map((g) => `${g.templateId}${g.unfillableRequiredRoles.length ? ` (unfillable: ${g.unfillableRequiredRoles.join(', ')})` : ''}`)
-    .join('; ');
+    .map((g) => {
+      const roles = g.unfillableRequiredRoles.length ? ` (unfillable: ${g.unfillableRequiredRoles.join(', ')})` : '';
+      const why = g.reasons.length ? ` — ${g.reasons.join('; ')}` : '';
+      return `${g.templateId}${roles}${why}`;
+    })
+    .join(' | ')
+    .replace(/\.+$/, ''); // reasons end in '.'; the message adds its own period
   const pct = Math.round(report.coverageRatio * 100);
 
   if (report.totalCount > 0 && report.coverageRatio <= blockAtOrBelow) {

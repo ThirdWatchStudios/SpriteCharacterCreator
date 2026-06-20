@@ -247,10 +247,10 @@ play this template?" *before* play:
 ```text
 CoverageReport {
   templateId
-  perRole: { roleId, required, intrinsicCandidateCount, relationalFillable }[]
+  perRole: { roleId, required, intrinsicCandidateCount, relationalFillable, unmetReasons }[]
   fullyCastable: boolean           # a complete required-role assignment exists
   unfillableRequiredRoles: roleId[]
-  notes: string[]                  # e.g. "no agent carries the 'gossip' trait"
+  notes: string[]                  # flattened unmetReasons, e.g. "requires department 'legal'…"
 }
 ```
 
@@ -263,6 +263,12 @@ CoverageReport {
 - Run across a **library × cast** matrix, this is the cast/scenario-library
   mismatch surface the design asks for: a designer sees which templates a freshly
   generated cast can and cannot produce before shipping the pairing into play.
+- **`unmetReasons` (F4.4)** names *why* a blocked role can't fill when the cause is a
+  department / `crossDepartment` / `distance` precondition — a missing department, an
+  unsatisfiable cross-wing pairing, or an unreachable distance threshold — so the gap
+  points at the org or template to fix. `analyzeOrgCoverage` rolls these into
+  `TemplateGap.reasons`, which flow into the export gate's message. Spatial distance
+  isn't diagnosed at coverage time (no scene); structural distance is.
 
 ---
 

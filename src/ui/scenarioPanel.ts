@@ -382,9 +382,11 @@ export function renderScenarioList(container: HTMLElement): void {
       `Scenario coverage — ${profiles.length} persona(s) vs ${rep.totalCount} template(s):`,
       `${rep.castableCount}/${rep.totalCount} castable (${pct}%).`,
       '',
-      ...rep.templates.map((c) => {
+      ...rep.templates.flatMap((c) => {
         const gap = c.unfillableRequiredRoles.length ? ` — unfillable: ${c.unfillableRequiredRoles.join(', ')}` : '';
-        return `${c.fullyCastable ? '✓' : '✗'} ${c.templateId}${gap}`;
+        // F4.4: name the specific unmet department/distance condition under the gap.
+        const why = c.fullyCastable ? [] : c.notes.map((n) => `    · ${n}`);
+        return [`${c.fullyCastable ? '✓' : '✗'} ${c.templateId}${gap}`, ...why];
       }),
     ];
     alert(lines.join('\n'));
