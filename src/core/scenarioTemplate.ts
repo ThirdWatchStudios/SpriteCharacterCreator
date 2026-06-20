@@ -131,15 +131,49 @@ export interface AggregatePrecondition {
   missingAs?: number;
 }
 
+/**
+ * Candidate is (or is not) a member of a given **department** — a department
+ * catalog id (Epic 2 F2.1 / Epic 3 F3.1, persona `identity.department`). Intrinsic
+ * (single-candidate): `'in'` requires the candidate's department equal `department`,
+ * `'notIn'` forbids it. An unassigned candidate (`department === ''`) is `'in'`
+ * nothing and `'notIn'` everything. The id is matched verbatim — the same stable id
+ * the org-structure (§3.11) and wings (§3.4) key on.
+ */
+export interface DepartmentPrecondition {
+  kind: 'department';
+  department: string;
+  mode: 'in' | 'notIn';
+}
+/**
+ * The candidate's department **relative to the agent assigned to another role** —
+ * the cross-wing pairing predicate (F4.2). Relational (like `relationship`):
+ * resolved at assignment time against `toRole`. `'different'` requires the two
+ * resolve to different departments (the core cross-department condition);
+ * `'same'` requires the same. Both sides must have a **known** department — an
+ * agent with no department (`''`) can satisfy neither, so a cross-department
+ * pairing never silently casts on unassigned agents. Symmetric.
+ */
+export interface CrossDepartmentPrecondition {
+  kind: 'crossDepartment';
+  toRole: string;
+  relation: 'same' | 'different';
+}
+
 export type Precondition =
   | TraitPrecondition
   | AxisPrecondition
   | NeedPrecondition
   | DrivePrecondition
   | RelationshipPrecondition
-  | AggregatePrecondition;
+  | AggregatePrecondition
+  | DepartmentPrecondition
+  | CrossDepartmentPrecondition;
 
 const isRelational = (p: Precondition): p is RelationshipPrecondition => p.kind === 'relationship';
+const isCrossDepartment = (p: Precondition): p is CrossDepartmentPrecondition => p.kind === 'crossDepartment';
+/** A **cross-role** precondition — evaluated against the agent assigned to another role. */
+type CrossRolePrecondition = RelationshipPrecondition | CrossDepartmentPrecondition;
+const isCrossRole = (p: Precondition): p is CrossRolePrecondition => isRelational(p) || isCrossDepartment(p);
 
 // --- the template ------------------------------------------------------------
 
@@ -258,6 +292,9 @@ const margin = (v: number, op: CompareOp, t: number): number =>
 const edgeOf = (from: CharacterProfile, toId: string): Relationship | undefined =>
   from.relationships.find((r) => r.targetAgentId === toId);
 
+/** A candidate's department catalog id (`''` = unassigned). */
+const deptOf = (p: CharacterProfile): string => p.identity.department;
+
 /** Aggregate a candidate's relationship axis across the rest of the cast. */
 function aggregateValue(p: CharacterProfile, pre: AggregatePrecondition, cast: CharacterProfile[]): number | null {
   const others = cast.filter((o) => o.agentId !== p.agentId);
@@ -289,8 +326,11 @@ function intrinsicHolds(p: CharacterProfile, pre: Precondition, cast: CharacterP
       const v = aggregateValue(p, pre, cast);
       return v !== null && cmp(v, pre.op, pre.value);
     }
+    case 'department':
+      return pre.mode === 'in' ? deptOf(p) === pre.department : deptOf(p) !== pre.department;
     case 'relationship':
-      return true; // relational — evaluated against another role at assignment time
+    case 'crossDepartment':
+      return true; // cross-role — evaluated against another role at assignment time
   }
 }
 
@@ -330,6 +370,24 @@ function relationMargin(holder: CharacterProfile, other: CharacterProfile, pre: 
   const out = edgeMargin(edgeOf(holder, other.agentId), pre);
   const inc = edgeMargin(edgeOf(other, holder.agentId), pre);
   return pre.direction === 'outgoing' ? out : pre.direction === 'incoming' ? inc : (out + inc) / 2;
+}
+
+/** Whether a same/different-department precondition holds between two agents (symmetric). */
+function crossDeptHolds(holder: CharacterProfile, other: CharacterProfile, pre: CrossDepartmentPrecondition): boolean {
+  const a = deptOf(holder);
+  const b = deptOf(other);
+  if (!a || !b) return false; // an unknown department satisfies no cross-department constraint
+  return pre.relation === 'same' ? a === b : a !== b;
+}
+
+/** Whether a cross-role precondition holds for `holder` toward `other`. */
+function crossRoleHolds(holder: CharacterProfile, other: CharacterProfile, pre: CrossRolePrecondition): boolean {
+  return isCrossDepartment(pre) ? crossDeptHolds(holder, other, pre) : relationHolds(holder, other, pre);
+}
+/** Tie-break margin of a cross-role precondition (department is binary: a flat satisfied bonus). */
+function crossRoleMargin(holder: CharacterProfile, other: CharacterProfile, pre: CrossRolePrecondition): number {
+  if (isCrossDepartment(pre)) return crossDeptHolds(holder, other, pre) ? 0.5 : 0;
+  return relationMargin(holder, other, pre);
 }
 
 // --- casting -----------------------------------------------------------------
@@ -388,7 +446,7 @@ export function castTemplate(template: ScenarioTemplate, cast: CharacterProfile[
   const candidatesByRole: Record<string, ScoredCandidate[]> = {};
   const intrinsicEligible = new Map<string, CharacterProfile[]>();
   for (const role of template.roles) {
-    const intrinsic = role.preconditions.filter((p) => !isRelational(p));
+    const intrinsic = role.preconditions.filter((p) => !isCrossRole(p));
     const eligible = cast.filter((p) => intrinsic.every((pre) => intrinsicHolds(p, pre, cast)));
     intrinsicEligible.set(role.roleId, eligible);
     candidatesByRole[role.roleId] = eligible
@@ -402,33 +460,34 @@ export function castTemplate(template: ScenarioTemplate, cast: CharacterProfile[
     return intrinsicEligible.get(a.roleId)!.length - intrinsicEligible.get(b.roleId)!.length;
   });
 
-  // relational preconditions of a role, and whether a candidate is co-castable
-  // with the agents already assigned (both directions of every connecting edge).
-  const relOf = (roleId: string) => roleById.get(roleId)!.preconditions.filter(isRelational);
+  // cross-role preconditions of a role (relationship + cross-department), and
+  // whether a candidate is co-castable with the agents already assigned (both
+  // directions of every connecting constraint).
+  const relOf = (roleId: string): CrossRolePrecondition[] => roleById.get(roleId)!.preconditions.filter(isCrossRole);
   const relationalOk = (cand: CharacterProfile, role: RoleSlot, assign: Map<string, string | null>): boolean => {
     for (const pre of relOf(role.roleId)) {
       const tgt = assign.get(pre.toRole);
-      if (tgt && !relationHolds(cand, byId.get(tgt)!, pre)) return false;
+      if (tgt && !crossRoleHolds(cand, byId.get(tgt)!, pre)) return false;
     }
     for (const [rid, agentId] of assign) {
       if (!agentId) continue;
       for (const pre of relOf(rid)) {
-        if (pre.toRole === role.roleId && !relationHolds(byId.get(agentId)!, cand, pre)) return false;
+        if (pre.toRole === role.roleId && !crossRoleHolds(byId.get(agentId)!, cand, pre)) return false;
       }
     }
     return true;
   };
-  // pairwise relational margin of a candidate vs the already-assigned roles.
+  // pairwise cross-role margin of a candidate vs the already-assigned roles.
   const relationalScore = (cand: CharacterProfile, role: RoleSlot, assign: Map<string, string | null>): number => {
     let s = 0;
     for (const pre of relOf(role.roleId)) {
       const tgt = assign.get(pre.toRole);
-      if (tgt) s += relationMargin(cand, byId.get(tgt)!, pre);
+      if (tgt) s += crossRoleMargin(cand, byId.get(tgt)!, pre);
     }
     for (const [rid, agentId] of assign) {
       if (!agentId) continue;
       for (const pre of relOf(rid)) {
-        if (pre.toRole === role.roleId) s += relationMargin(byId.get(agentId)!, cand, pre);
+        if (pre.toRole === role.roleId) s += crossRoleMargin(byId.get(agentId)!, cand, pre);
       }
     }
     return s;
@@ -824,6 +883,15 @@ export function validateScenarioTemplate(t: ScenarioTemplate): string[] {
             unit(`role "${r.roleId}" aggregate precondition value`, pre.value);
           }
           break;
+        case 'department':
+          if (!pre.department) issues.push(`role "${r.roleId}" has a department precondition with no department.`);
+          if (!['in', 'notIn'].includes(pre.mode)) issues.push(`role "${r.roleId}" department precondition has invalid mode "${pre.mode}".`);
+          break;
+        case 'crossDepartment':
+          role(`role "${r.roleId}" crossDepartment precondition`, pre.toRole);
+          if (pre.toRole === r.roleId) issues.push(`role "${r.roleId}" crossDepartment precondition references itself.`);
+          if (!['same', 'different'].includes(pre.relation)) issues.push(`role "${r.roleId}" crossDepartment precondition has invalid relation "${pre.relation}".`);
+          break;
       }
     }
   }
@@ -889,11 +957,25 @@ export function validateScenarioTemplate(t: ScenarioTemplate): string[] {
 
 // --- export serialization ----------------------------------------------------
 
-/** The consumer-facing template form (a future sim-side runtime-casting input). */
+/** The consumer-facing template form (the sim-side runtime-casting input, §3.8/§5.7). */
 export function serializeScenarioTemplate(t: ScenarioTemplate): unknown {
   return {
     ...structuredClone(t),
     meta: { generator: 'sprite-character-creator', schema: 'scenario_model.md', schemaVersion: CURRENT_SCHEMA_VERSION, artifact: 'scenario-template' },
+  };
+}
+
+/**
+ * The exported `scenario-template.json` artifact (F4.1): the whole template
+ * library under one versioned `meta` block, the sim's runtime caster consumes it
+ * (§3.8/§5.7). One synchronized contract — the same precondition vocabulary the
+ * tool's {@link castTemplate} evaluates is the one the sim's port evaluates, so a
+ * round-trip of this artifact through either caster yields the same assignments.
+ */
+export function serializeScenarioTemplateLibrary(templates: ScenarioTemplate[]): unknown {
+  return {
+    meta: { generator: 'sprite-character-creator', schema: 'scenario_model.md', schemaVersion: CURRENT_SCHEMA_VERSION, artifact: 'scenario-template-library' },
+    templates: templates.map((t) => structuredClone(t)),
   };
 }
 

@@ -25,6 +25,7 @@ import { serializeProfile } from './profile';
 import { buildScenarioPackage } from './scenarioRun';
 import { buildOrgStructure } from './orgStructure';
 import { serializeCompany } from './company';
+import { serializeScenarioTemplateLibrary, type ScenarioTemplate } from './scenarioTemplate';
 import { PROP_TEMPLATES } from '../props/templates';
 import { maskName } from '../tiles/templates';
 
@@ -689,7 +690,7 @@ export interface ExportSink {
  */
 export async function exportAll(
   project: ProjectState,
-  opts: { sink: ExportSink; rasterizer: Rasterizer; onProgress?: ExportProgress },
+  opts: { sink: ExportSink; rasterizer: Rasterizer; onProgress?: ExportProgress; scenarioTemplates?: ScenarioTemplate[] },
 ): Promise<void> {
   const { sink, rasterizer, onProgress } = opts;
   const { style } = project;
@@ -810,6 +811,14 @@ export async function exportAll(
   if (project.scene) {
     await write('office-layout.json', JSON.stringify(sceneToLayoutJson(project.scene, project), null, 2));
   }
+  // The cast-agnostic scenario-template library (Epic 4 F4.1) — the sim's runtime
+  // caster binds these onto the live cast/office by precondition match (§3.8/§5.7).
+  // The library is passed in (the UI supplies ROLE_TEMPLATES) so core carries no
+  // `data` dependency; omitted when no library is provided.
+  const scenarioTemplates = opts.scenarioTemplates ?? [];
+  if (scenarioTemplates.length) {
+    await write('scenario-template.json', JSON.stringify(serializeScenarioTemplateLibrary(scenarioTemplates), null, 2));
+  }
   // Authored run definitions as split packages under scenarios/<id>/ — Unity can
   // load a package directly (scenario.json + employees/relationships/beliefs/
   // knowledge/interaction-anchors + office-layout). See buildScenarioPackage.
@@ -826,9 +835,13 @@ export async function exportAll(
  * Export the whole project as a zip (browser path). Thin wrapper over exportAll
  * with the canvas rasterizer and a JSZip sink — unchanged output vs before.
  */
-export async function exportAllZip(project: ProjectState, onProgress?: ExportProgress): Promise<Blob> {
+export async function exportAllZip(
+  project: ProjectState,
+  onProgress?: ExportProgress,
+  scenarioTemplates?: ScenarioTemplate[],
+): Promise<Blob> {
   const zip = new JSZip();
   const sink: ExportSink = { file: (path, data) => void zip.file(path, data as Blob | Uint8Array | string) };
-  await exportAll(project, { sink, rasterizer: defaultRasterizer(), onProgress });
+  await exportAll(project, { sink, rasterizer: defaultRasterizer(), onProgress, scenarioTemplates });
   return zip.generateAsync({ type: 'blob' });
 }

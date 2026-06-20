@@ -121,7 +121,7 @@ export function mountApp(root: HTMLElement): void {
       const blob = await exportAllZip(store.state, (doneCount, total, label) => {
         const pct = total > 0 ? Math.round((doneCount / total) * 100) : 0;
         setBusy(label === 'zipping' ? 'Zipping…' : `Rendering… ${pct}%`);
-      });
+      }, ROLE_TEMPLATES);
       downloadBlob('water-cooler-sprites.zip', blob);
     } finally {
       exportAllBtn.disabled = false;

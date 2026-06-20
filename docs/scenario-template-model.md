@@ -108,11 +108,19 @@ A `Precondition` is a discriminated union (`kind`):
 | `drive` | one candidate's primary/secondary drive | `{ anyOf: driveId[] }` |
 | `relationship` | candidate **vs. another role** | `{ toRole, direction, type?/typeAnyOf?, axis?, op?, value? }` |
 | `aggregate` | candidate's rel axis **across the whole cast** | `{ axis, reduce: 'min'\|'max'\|'avg', direction, op, value, missingAs? }` |
+| `department` | one candidate's department (catalog id) | `{ department, mode: 'in' \| 'notIn' }` |
+| `crossDepartment` | candidate's department **vs. another role** | `{ toRole, relation: 'same' \| 'different' }` |
 
-- **Intrinsic** preconditions (`trait/axis/need/drive`) constrain a single
-  candidate; **relational** (`relationship`) constrains a candidate *relative to the
-  agent assigned to `toRole`* — this is what makes "two agents with mutual
-  attraction" expressible.
+- **Intrinsic** preconditions (`trait/axis/need/drive/department`) constrain a single
+  candidate; **relational** (`relationship`, `crossDepartment`) constrains a candidate
+  *relative to the agent assigned to `toRole`* — this is what makes "two agents with
+  mutual attraction" or "a cross-wing pairing" expressible.
+- **Department predicates (F4.2)** read the candidate's `identity.department` catalog
+  id (§3.10). `department` requires/forbids a specific department; `crossDepartment`
+  asserts two slots resolve to the **same** or a **different** department (the
+  cross-wing pairing). Both sides of a `crossDepartment` need a known department — an
+  unassigned (`''`) agent satisfies neither, so a cross-department template never binds
+  department-less agents.
 - `relationship.direction`: `outgoing` (candidate → other), `incoming`
   (other → candidate), or `mutual` (both edges must satisfy). `axis` may be any of
   the six axes or `affinity`; `op`/`value` give the threshold; `type`/`typeAnyOf`

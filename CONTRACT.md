@@ -56,6 +56,7 @@ Coordinate convention: scene grids are row-major `[y][x]`; anchors/spawns carry 
 | `departments.json` | `project.departments` (verbatim) | project | Reusable department catalog — the single org model referenced by stable id (§3.10). Also embedded in each scenario package. |
 | `org-structure.json` | `buildOrgStructure` | project | Org chart: departments + members with a visible-structure / fogged-contents split (§3.11). Also embedded in each scenario package. |
 | `company.json` | `serializeCompany(project.company)` | project | The generated **company root** — the new-game seed the rest of the bundle cascaded from (§3.12). Emitted only for a company package; absent otherwise. |
+| `scenario-template.json` | `serializeScenarioTemplateLibrary` | project | The cast-agnostic **scenario-template library** the sim's runtime caster binds onto the live cast/office (§3.8/§5.7). Emitted when a library is supplied to `exportAll`; absent for a sprite-only export. |
 | `mood-emotes@Nx.png` + `mood-emotes-atlas@Nx.json` | `moodEmotesAtlas` | project | One **shared** strip of overhead mood bubbles (character-independent) — the emote half of a mood, split out of the sheet. Sim blits one above an agent keyed off mood (§3.9). |
 | `activity-badges@Nx.png` + `activity-badges-atlas@Nx.json` | `activityBadgesAtlas` | project | One **shared** strip of overhead status badges (character-independent). Sim blits one above an agent keyed off the routine `activity` string (§3.9). |
 | `conversation-style.json` | `conversationStyleJson` | project | Style for the linked-bubble conversation visual; sim draws it between two paired talking agents (§3.9). |
@@ -198,15 +199,19 @@ The shared set of bond types a relationship edge references by id (`relationship
 ```
 As with drives/traits, an edge may carry a type id absent from the catalog — fallback + log (§7). Shipped at the bundle root and in each scenario package.
 
-### 3.8 `scenario-template.json` (cast-agnostic template) — **authoring-only today**
+### 3.8 `scenario-template.json` (cast-agnostic template) — **exported, sim-consumed (F4.1)**
 A **role-slotted, cast-agnostic** scenario: the full-game third axis (Cast / Office /
 Scenario). It references **roles, not agent ids** — every truth/info/seed/spawn names
 a `roleId`, and **casting** rewrites roles → agents to emit a bound `Scenario` (§3.3).
-Authored in `src/core/scenarioTemplate.ts`; serialized by `serializeScenarioTemplate`
-(`meta.artifact = "scenario-template"`, same `meta.schemaVersion`). **Not emitted in
-the export bundle yet** — the tool casts to a bound `scenario.json` and exports that;
-the template artifact lands when the sim grows a runtime caster (§5.7). See
-`docs/scenario-template-model.md`.
+Authored in `src/core/scenarioTemplate.ts`; a single template serialized by
+`serializeScenarioTemplate` (`meta.artifact = "scenario-template"`), and the whole
+**library** by `serializeScenarioTemplateLibrary` → the exported `scenario-template.json`
+(`meta.artifact = "scenario-template-library"`, `{ meta, templates[] }`, same
+`meta.schemaVersion` as the package). The tool also still casts to a bound `scenario.json`
+and exports that; the template artifact is the **runtime caster's** input (§5.7) — it ships
+at the bundle root alongside the bound scenarios. The library is passed into `exportAll`
+(the UI supplies `ROLE_TEMPLATES`), so a sprite-only export with no library omits the file.
+See `docs/scenario-template-model.md`.
 ```jsonc
 {
   "templateId": "the_office_romance",
@@ -235,6 +240,8 @@ the catalogs §3.5–§3.7 already define — no parallel vocabulary. Discrimina
 { "kind": "drive", "anyOf": ["maintain_social_access"] }         // drive ids (§3.5)
 { "kind": "relationship", "toRole": "loverB", "direction": "mutual", "axis": "affinity", "op": "gte", "value": 30 }
 { "kind": "aggregate", "axis": "familiarity", "reduce": "avg", "direction": "outgoing", "op": "lte", "value": 30 }
+{ "kind": "department", "department": "sales", "mode": "in" }     // department catalog id (§3.10); mode in|notIn
+{ "kind": "crossDepartment", "toRole": "loverA", "relation": "different" }   // relation same|different
 }                                                                // axis ∈ trust|suspicion|affinity|influence|respect|familiarity; type/typeAnyOf = relationshipType id (§3.7)
 ```
 `relationship` constrains a candidate **relative to the agent assigned to `toRole`**
@@ -243,6 +250,17 @@ condition — it reduces (min/max/avg) the axis over the *whole cast* (a missing
 `missingAs`, default 0), e.g. an outsider with low familiarity to everybody.
 **Proximity is the `familiarity` axis** at authoring time — the persona-level proxy the
 sim refines with live spatial state (§5.4/§5.7).
+
+**Department predicates (F4.2 — the cross-wing vocabulary).** `department` is **intrinsic**:
+the candidate's `identity.department` (a department catalog id, §3.10/§3.2) must equal
+(`mode:"in"`) or differ from (`mode:"notIn"`) the named id; an unassigned candidate
+(`department: ""`) is `in` nothing and `notIn` everything. `crossDepartment` is
+**relational** like `relationship` — it constrains the candidate's department *against the
+agent assigned to `toRole`*: `relation:"different"` is the **core cross-department pairing**
+(the two slots must resolve to different departments), `relation:"same"` requires the same.
+Both sides must have a **known** department — `crossDepartment` never casts onto an
+unassigned (`""`) agent, so a cross-wing template can't silently bind department-less
+agents. The ids are the same stable ids the org chart (§3.11) and wings (§3.4) key on.
 
 **Role presence + family.** A role carries `presence: "present" | "absent"` (default
 present). An **absent** ("negative") role is resolved — for distinctness and so the
@@ -422,13 +440,13 @@ On an event, the sim picks among the 7 `reactionTendencies` (already numeric, §
 ### 5.6 Objective / KPI scoring
 `objective.kpi` + `expectedEvidence[]` + the active `variant`'s `selections` define what a run is measured against. The sim owns the measurement; the tool owns the definition. KPI strings are free-text — same registry/fallback discipline as drives.
 
-### 5.7 Scenario-template casting (sim-owned **future** — flagged, not implemented either side)
-The full-game direction has the **engine cast templates at runtime** — bind a cast-agnostic `scenario-template.json` (§3.8) onto the live cast/office by precondition match. Today the **tool** does this at authoring time (`castTemplate` in `scenarioTemplate.ts`: greedy-best-with-backtracking over the precondition vocabulary, strongest-fit wins ties; required roles must fill or the cast fails; optional roles skip) and exports the resulting **bound** `scenario.json` — so **the prototype loader is unchanged**. When the sim adopts runtime casting (the separate "Scenario Loading" epic):
-- a new optional input artifact `scenario-template.json` joins today's bound `scenario.json`;
-- the sim gains a **runtime caster** = the port of `castTemplate`, same precondition vocabulary (§3.8), evaluating against **live** persona + relationship + **real spatial proximity** (the one precondition the sim does better than the tool's `familiarity` proxy);
+### 5.7 Scenario-template casting (one synchronized contract — tool exports, sim casts)
+The full-game direction has the **engine cast templates at runtime** — bind a cast-agnostic `scenario-template.json` (§3.8) onto the live cast/office by precondition match. The **tool** does this at authoring time (`castTemplate` in `scenarioTemplate.ts`: greedy-best-with-backtracking over the precondition vocabulary, strongest-fit wins ties; required roles must fill or the cast fails; optional roles skip) and exports the resulting **bound** `scenario.json` — so **the prototype loader is unchanged**. **As of F4.1 the template library is also exported** (`scenario-template.json`, §3.8), so the sim's runtime caster ("Scenario Loading" epic — E30 generalize / E34) has its input artifact:
+- the input artifact `scenario-template.json` ships beside today's bound `scenario.json`;
+- the sim gains a **runtime caster** = the port of `castTemplate`, **the same precondition vocabulary (§3.8) — one contract, two evaluators**, evaluating against **live** persona + relationship + **real spatial proximity** (the one precondition the sim does better than the tool's `familiarity` proxy);
 - a bound `scenario.json` keeps loading as-is — it is the already-cast special case (single-candidate roles).
 
-Nothing in this section obligates a sim change to ship the current tool work.
+**Validation parity / drift check.** The precondition vocabulary in §3.8 is the single source of truth both casters implement; `validateScenarioTemplate` is the tool-side authoring gate and the sim's loader runs the equivalent structural check on ingest. The **shared fixture** is the exported library itself — `THE_OFFICE_ROMANCE` round-tripped through both casters against the same cast must produce the same role→agent assignment; a divergence is a contract drift. (The bound-`scenario.json` path obligates no sim change to ship tool work.)
 
 ---
 
@@ -448,6 +466,6 @@ Things the sim will likely need that the tool does **not** capture yet — decid
 ## 7. Compatibility rules
 
 - **Adding** a suggestion to a free-text vocabulary (drive, trait tag, KPI, location, activity) is **non-breaking** — it only affects authoring autocomplete, never validation or export shape. **Adding an activity badge** is likewise non-breaking: a new shared-atlas cell the sim shows for that `activity` or ignores (§3.9).
-- **Version gating:** `profile.json` and `scenario.json` carry `meta.schemaVersion` (currently **12**, the project schema version — v10 added the `departments.json` catalog §3.10 + the derived `org-structure.json` §3.11; v11 made persona `identity.department` a department-catalog **id**, mutable for the sim's transfer tier; v12 added the optional `company` root §3.12 — additive, so a pre-v12 project just has no company). `office-layout.json` carries its **own** payload version (now **3** — v2 added `rooms[].departmentId` + the `wings[]` block; v3 added the `connectivity[]` wing-adjacency graph, §3.4); every addition is additive, so the bumps are non-breaking. The sim version-gates on these — `scenario.json` gates a whole scenario package (the bundled `drives.json`/`traits.json`/`departments.json`/`org-structure.json` are resolved within that already-versioned context); `profile.json` gates the per-character visual-import path. Bare-array catalogs (and the derived `org-structure.json`) are intentionally unversioned — they never travel without a versioned `scenario.json` or `project.json`.
+- **Version gating:** `profile.json`, `scenario.json`, and `scenario-template.json` carry `meta.schemaVersion` (currently **12**, the project schema version — v10 added the `departments.json` catalog §3.10 + the derived `org-structure.json` §3.11; v11 made persona `identity.department` a department-catalog **id**, mutable for the sim's transfer tier; v12 added the optional `company` root §3.12 — additive, so a pre-v12 project just has no company). `office-layout.json` carries its **own** payload version (now **3** — v2 added `rooms[].departmentId` + the `wings[]` block; v3 added the `connectivity[]` wing-adjacency graph, §3.4); every addition is additive, so the bumps are non-breaking. The sim version-gates on these — `scenario.json` gates a whole scenario package (the bundled `drives.json`/`traits.json`/`departments.json`/`org-structure.json` are resolved within that already-versioned context); `profile.json` gates the per-character visual-import path. Bare-array catalogs (and the derived `org-structure.json`) are intentionally unversioned — they never travel without a versioned `scenario.json` or `project.json`.
 - **Renaming/removing a field** in §3 **is** breaking — bump `CURRENT_SCHEMA_VERSION` (which flows into `meta.schemaVersion`), add a migration step, and update the sim loader.
 - The sim should **fallback + log**, never hard-fail, on an unrecognized free-text id (drive, KPI, activity). That tolerance is what lets the tool ship a richer vocabulary without lockstep sim releases.

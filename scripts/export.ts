@@ -107,6 +107,7 @@ async function main() {
   await exportAll(project, {
     sink,
     rasterizer: createResvgRasterizer(),
+    scenarioTemplates: ROLE_TEMPLATES,
     onProgress: (done, total, label) => {
       const pct = Math.floor((done / total) * 100);
       if (pct !== lastPct) {
