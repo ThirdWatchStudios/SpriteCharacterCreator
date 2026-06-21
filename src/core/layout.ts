@@ -522,7 +522,15 @@ function doorwayRotation(scene: SceneState, x: number, y: number): SceneRotation
   return verticalRun && !horizontalRun ? 90 : 0;
 }
 
-function wallForRoom(room: RoomSpec, officeWall: string | null, glassWall: string | null): string | null {
+function wallForRoom(
+  room: RoomSpec,
+  officeWall: string | null,
+  glassWall: string | null,
+  themeWall?: (dep: string | undefined) => string | null,
+): string | null {
+  // A department's theme wall (F-themes) wins for its bullpen.
+  const themed = themeWall?.(room.departmentId);
+  if (themed) return themed;
   if (room.kind === 'manager-office' || room.kind === 'conference-room' || room.kind === 'focus-room') {
     return glassWall ?? officeWall;
   }
@@ -553,6 +561,7 @@ function drawRoomWalls(
   rooms: RoomSpec[],
   officeWall: string | null,
   glassWall: string | null,
+  themeWall?: (dep: string | undefined) => string | null,
 ): void {
   const maxX = scene.cols - 1;
   const maxY = scene.rows - 1;
@@ -562,7 +571,7 @@ function drawRoomWalls(
   wallLine(scene, maxX, 0, maxX, maxY, officeWall);
 
   for (const room of rooms) {
-    const wall = wallForRoom(room, officeWall, glassWall);
+    const wall = wallForRoom(room, officeWall, glassWall, themeWall);
     wallLine(scene, room.x, room.y, room.x + room.cols - 1, room.y, wall);
     wallLine(scene, room.x, room.y + room.rows - 1, room.x + room.cols - 1, room.y + room.rows - 1, wall);
     wallLine(scene, room.x, room.y, room.x, room.y + room.rows - 1, wall);
@@ -1125,6 +1134,20 @@ function furnishWingAmenities(scene: SceneState, project: ProjectState, room: Ro
   });
 }
 
+/**
+ * Per-bullpen desk styles (F-deskvariety) — picked per room so no two department
+ * wings read the same: dense rows, an open plan with a single comb + lounge space,
+ * a crammed bullpen, or a sparse half-empty floor. `spacing` is the column stride
+ * between pods (3 = back-to-back, 4 = an aisle between); `double` adds the bottom
+ * comb; `vacancy` is the empty-desk chance.
+ */
+const DESK_STYLES: Array<{ spacing: number; double: boolean; vacancy: number }> = [
+  { spacing: 3, double: true, vacancy: 0.12 }, // dense rows
+  { spacing: 4, double: false, vacancy: 0.2 }, // open plan (one comb + lounge)
+  { spacing: 3, double: true, vacancy: 0.05 }, // packed
+  { spacing: 4, double: true, vacancy: 0.35 }, // sparse / hot-desk
+];
+
 function buildCubicleComb(scene: SceneState, project: ProjectState, room: RoomSpec, rng: Rng): SeatCell[] {
   const seats: SeatCell[] = [];
   const cubicleWall =
@@ -1133,16 +1156,17 @@ function buildCubicleComb(scene: SceneState, project: ProjectState, room: RoomSp
   const width = box.x1 - box.x0 + 1;
   const height = box.y1 - box.y0 + 1;
   if (!cubicleWall || width < 4 || height < 3) return seats;
+  const style = pick(rng, DESK_STYLES);
 
   // One comb against the top wall, a mirrored one against the bottom when the
-  // room is deep enough. Room walls ARE the pods' backs and outer sides —
-  // never draw partitions adjacent to a parallel room wall, or the autotiler
-  // fuses them into a ladder of sealed mini-cells. Pods repeat as
-  // desk col / entry col / spine, starting right at the side wall.
+  // room is deep enough AND the style wants two. Room walls ARE the pods' backs
+  // and outer sides — never draw partitions adjacent to a parallel room wall, or
+  // the autotiler fuses them into a ladder of sealed mini-cells. Pods repeat as
+  // desk col / entry col / spine, strided by the style's spacing.
   const combs: Array<{ deskY: number; chairY: number; flipped: boolean }> = [
     { deskY: box.y0, chairY: box.y0 + 1, flipped: false },
   ];
-  if (height >= 5) combs.push({ deskY: box.y1, chairY: box.y1 - 1, flipped: true });
+  if (height >= 5 && style.double) combs.push({ deskY: box.y1, chairY: box.y1 - 1, flipped: true });
 
   for (const comb of combs) {
     const spineRows = [comb.deskY, comb.chairY];
@@ -1151,7 +1175,7 @@ function buildCubicleComb(scene: SceneState, project: ProjectState, room: RoomSp
     const doorAt = (x: number) => !wallAt(scene, x, backWallY);
 
     for (let p = 0; ; p++) {
-      const deskX = box.x0 + p * 3;
+      const deskX = box.x0 + p * style.spacing;
       if (deskX > box.x1) break;
       const entryX = deskX + 1 <= box.x1 ? deskX + 1 : undefined;
       const spineX = deskX + 2;
@@ -1164,7 +1188,7 @@ function buildCubicleComb(scene: SceneState, project: ProjectState, room: RoomSp
       // and skip the whole pod if the desk/chair would block a doorway throat
       // (a side/front entrance), so no coworker gets seated in a doorway
       if (reserved(deskX, comb.deskY) || reserved(deskX, comb.chairY)) continue;
-      if (chance(rng, 0.12)) continue; // the vacant cubicle sells the office
+      if (chance(rng, style.vacancy)) continue; // the vacant cubicle sells the office
       const rotation: SceneRotation = comb.flipped ? 180 : 0;
       addProp(scene, project, `cubicle-desk-${comb.deskY}-${p}`, 'prop-desk', 'desk', deskX, comb.deskY, rotation);
       if (chance(rng, 0.46)) {
@@ -1256,48 +1280,40 @@ function partitionRoomWidths(spanInner: number, n: number, rng: Rng): number[] {
   return w;
 }
 
+type Bay = { id: RoomId; kind: RoomId; label: string; departmentId: string | undefined };
+
 /**
- * Procedural **meandering-spine** office (F-procedural): a central corridor (the
- * spine) with department bullpens + the shared sim-bound rooms (manager office /
- * break / conference) **budding off both sides** at varied widths and depths, each
- * joined by a staggered single-tile doorway. Reception is the full-height entrance
- * at the left. The two sides tile independently (different counts ⇒ misaligned
- * walls), so the floorplan reads as a generated space, not a column of cubicles.
- * `management` maps to the manager office, never a bullpen. Seeded ⇒ deterministic.
+ * Lay one block: a horizontal corridor at `spineY` with its bays budding off both
+ * sides (top band rows 0..spineY, bottom spineY+2..end), tiled at varied widths
+ * with staggered single-tile doorways. Returns the rooms/doors and the block's
+ * right-edge column. Deterministic given the rng.
  */
-function composeWingLayout(project: ProjectState, wingDepartmentIds: string[], rng: Rng): ComposedLayout {
-  const rows = ROWS;
-  const startX = CORE_WIDTH - 1; // bays share reception's right wall
-  const labelOf = (id: string): string => project.departments?.find((d) => d.id === id)?.label ?? id;
-
-  // Bays: department bullpens (minus management) + the shared common rooms.
-  const deptBays = wingDepartmentIds
-    .filter((dep) => dep !== 'management')
-    .map((dep) => ({ id: `cubicle-farm@${dep}` as RoomId, kind: 'cubicle-farm' as RoomId, label: `${labelOf(dep)} bullpen`, departmentId: dep as string | undefined }));
-  const allBays = [...deptBays, ...COMPOSED_COMMON_BAYS.map((b) => ({ ...b, departmentId: undefined as string | undefined }))];
-  // Split across the two sides of the spine (alternate ⇒ depts interleave with common rooms).
-  const top = allBays.filter((_, i) => i % 2 === 0);
-  const bottom = allBays.filter((_, i) => i % 2 === 1);
-
-  // Both sides must reach the same office width: pick the inner span off the larger side.
-  const spanInner = Math.max(top.length, bottom.length) * (ROOM_BASE_W - 1);
-  const topW = partitionRoomWidths(spanInner, top.length, rng);
-  const bottomW = partitionRoomWidths(spanInner, bottom.length, rng);
-  const cols = CORE_WIDTH + spanInner; // = startX + spanInner + 1
-
+function layBlock(bays: Bay[], blockStartX: number, spineY: number, corridorId: string, rows: number, rng: Rng): {
+  rooms: RoomSpec[];
+  doors: Array<[number, number]>;
+  rightX: number;
+} {
+  const top = bays.filter((_, i) => i % 2 === 0);
+  const bottom = bays.filter((_, i) => i % 2 === 1);
+  const span = Math.max(top.length, bottom.length, 1) * (ROOM_BASE_W - 1);
+  const topW = partitionRoomWidths(span, top.length, rng);
+  const bottomW = partitionRoomWidths(span, bottom.length, rng);
   const rooms: RoomSpec[] = [
-    { id: 'reception', kind: 'reception', label: 'Reception', x: 0, y: 0, cols: CORE_WIDTH, rows },
-    { id: 'hallway', kind: 'hallway', label: 'Hallway', x: startX, y: SPINE_Y, cols: cols - startX, rows: 3 },
+    { id: corridorId, kind: 'hallway', label: 'Hallway', x: blockStartX, y: spineY, cols: span + 1, rows: 3 },
   ];
-  const doors: Array<[number, number]> = [[startX, SPINE_Y + 1]]; // reception → spine
-
-  // Lay a side's rooms left→right with inclusive overlap-by-1; door staggered per room.
-  const layRow = (bays: typeof top, widths: number[], y: number, height: number, doorY: number): void => {
-    let x = startX;
-    bays.forEach((bay, i) => {
+  const doors: Array<[number, number]> = [];
+  const lay = (side: Bay[], widths: number[], y: number, height: number, doorY: number): void => {
+    let x = blockStartX;
+    side.forEach((bay, i) => {
       const w = widths[i];
+      // Wing-to-wing door (F-crossdoors): sometimes punch a door through the shared
+      // vertical wall to the previous room, so paths run room→room, not only via the
+      // corridor — a connected graph rather than a comb of dead-ends.
+      if (i > 0 && rng() < 0.4) {
+        const dr = y + 1 + Math.floor(rng() * Math.max(1, height - 2));
+        doors.push([x, dr]); // x is the seam column shared with the previous room
+      }
       rooms.push({ ...bay, x, y, cols: w, rows: height });
-      // Stagger the doorway within the room's interior columns (deterministic).
       const lo = x + 1;
       const hi = x + w - 2;
       const doorX = hi > lo ? lo + Math.floor(rng() * (hi - lo + 1)) : x + Math.floor(w / 2);
@@ -1305,11 +1321,72 @@ function composeWingLayout(project: ProjectState, wingDepartmentIds: string[], r
       x += w - 1;
     });
   };
-  // Top band: rows 0..SPINE_Y (door on the SPINE_Y shared wall). Bottom: SPINE_Y+2..end.
-  layRow(top, topW, 0, SPINE_Y + 1, SPINE_Y);
-  layRow(bottom, bottomW, SPINE_Y + 2, rows - (SPINE_Y + 2), SPINE_Y + 2);
+  lay(top, topW, 0, spineY + 1, spineY);
+  lay(bottom, bottomW, spineY + 2, rows - (spineY + 2), spineY + 2);
+  return { rooms, doors, rightX: blockStartX + span };
+}
 
-  return { rooms, doors, cols, rows, templateId: 'composed-wings' };
+/**
+ * Procedural **meandering-spine** office (F-procedural): department bullpens + the
+ * shared sim-bound rooms (manager office / break / conference) **bud off both sides**
+ * of a corridor at varied widths/depths with staggered doorways. With ≥4 bays the
+ * spine **bends**: two blocks sit at different corridor heights joined by a
+ * full-height **cross corridor**, so the hallway steps (an S/Z spine) instead of
+ * running straight — reads like a generated floorplan, not a column of cubicles.
+ * Reception is the full-height left entrance; `management` maps to the manager
+ * office, never a bullpen. Seeded ⇒ deterministic.
+ */
+function composeWingLayout(project: ProjectState, wingDepartmentIds: string[], rng: Rng): ComposedLayout {
+  const rows = ROWS;
+  const startX = CORE_WIDTH - 1; // bays share reception's right wall
+  const labelOf = (id: string): string => project.departments?.find((d) => d.id === id)?.label ?? id;
+
+  const deptBays: Bay[] = wingDepartmentIds
+    .filter((dep) => dep !== 'management')
+    .map((dep) => ({ id: `cubicle-farm@${dep}` as RoomId, kind: 'cubicle-farm' as RoomId, label: `${labelOf(dep)} bullpen`, departmentId: dep }));
+  const allBays: Bay[] = [...deptBays, ...COMPOSED_COMMON_BAYS.map((b) => ({ ...b, departmentId: undefined }))];
+  // Sprinkle small non-bullpen rooms among the bays for room-type variety (F-subrooms):
+  // a quiet focus room, a copy room — interspersed at seeded positions, common-wing.
+  const extras: Bay[] = [];
+  if (rng() < 0.55) extras.push({ id: 'focus-room', kind: 'focus-room', label: 'Focus room', departmentId: undefined });
+  if (rng() < 0.4) extras.push({ id: 'copy-room', kind: 'copy-room', label: 'Copy room', departmentId: undefined });
+  for (const ex of extras) allBays.splice(Math.floor(rng() * (allBays.length + 1)), 0, ex);
+
+  const reception: RoomSpec = { id: 'reception', kind: 'reception', label: 'Reception', x: 0, y: 0, cols: CORE_WIDTH, rows };
+
+  // Small office: a single straight spine. Larger: split into two blocks at
+  // different corridor heights joined by a full-height cross corridor (the bend).
+  if (allBays.length < 4) {
+    const b = layBlock(allBays, startX, SPINE_Y, 'hallway', rows, rng);
+    return {
+      rooms: [reception, ...b.rooms],
+      doors: [[startX, SPINE_Y + 1], ...b.doors],
+      cols: b.rightX + 1,
+      rows,
+      templateId: 'composed-wings',
+    };
+  }
+
+  const split = Math.ceil(allBays.length / 2);
+  const [spineL, spineR] = rng() < 0.5 ? [5, 7] : [7, 5];
+  const left = layBlock(allBays.slice(0, split), startX, spineL, 'hallway', rows, rng);
+  const crossX = left.rightX; // full-height cross corridor sits here (3 wide)
+  const right = layBlock(allBays.slice(split), crossX + 2, spineR, 'hallway-east', rows, rng);
+  const crossHall: RoomSpec = { id: 'hallway-cross', kind: 'hallway', label: 'Hallway', x: crossX, y: 0, cols: 3, rows };
+
+  return {
+    rooms: [reception, crossHall, ...left.rooms, ...right.rooms],
+    doors: [
+      [startX, spineL + 1], // reception → left spine
+      [crossX, spineL + 1], // left spine → cross corridor
+      [crossX + 2, spineR + 1], // cross corridor → right spine
+      ...left.doors,
+      ...right.doors,
+    ],
+    cols: right.rightX + 1,
+    rows,
+    templateId: 'composed-wings',
+  };
 }
 
 export interface GenerateOfficeOptions {
@@ -1422,6 +1499,10 @@ export function generateOfficeLayout(
     const id = dep ? deptById.get(dep)?.theme?.floor : undefined;
     return id ? byPreferredId(project.floors, id)?.id ?? null : null;
   };
+  const themeWall = (dep: string | undefined): string | null => {
+    const id = dep ? deptById.get(dep)?.theme?.wall : undefined;
+    return id ? byPreferredId(project.walls, id)?.id ?? null : null;
+  };
   for (const room of rooms.filter((item) => item.kind !== 'hallway')) {
     fillFloor(scene, room.id, themeFloor(room.departmentId) ?? floorForRoom(room.kind, floorSet));
   }
@@ -1431,7 +1512,7 @@ export function generateOfficeLayout(
     fillFloor(scene, room.id, floorForRoom(room.kind, floorSet));
   }
 
-  drawRoomWalls(scene, rooms, officeWall, glassWall);
+  drawRoomWalls(scene, rooms, officeWall, glassWall, themeWall);
   const doorways = clearDoorways(scene, doors);
   // reserve the doorway throats before anything is furnished, so no desk or
   // idle coworker ends up plugging a doorway
@@ -1720,6 +1801,24 @@ function seatGeneratedPopulation(
   const takenByCharacter = (x: number, y: number): boolean =>
     scene.entities.some((e) => e.kind === 'character' && e.x === x && e.y === y);
 
+  // Open floor cells per wing, for standing fallback when desks run out (varied
+  // desk styles leave some wings short of chairs — the agent still belongs there).
+  const standByWing = new Map<string, Array<{ x: number; y: number }>>();
+  for (const cell of openCells(scene)) {
+    const wingId = wingOfRoom.get(roomAt(cell.x, cell.y));
+    if (wingId) (standByWing.get(wingId) ?? standByWing.set(wingId, []).get(wingId)!).push(cell);
+  }
+  const standCursor = new Map<string, number>();
+  const standFallback = (agent: CharacterRecipe, wingId: string): boolean => {
+    const cells = standByWing.get(wingId) ?? [];
+    let j = standCursor.get(wingId) ?? 0;
+    while (j < cells.length && takenByCharacter(cells[j].x, cells[j].y)) j++;
+    standCursor.set(wingId, j + 1);
+    if (j >= cells.length) return false;
+    addCharacter(scene, project, agent, cells[j].x, cells[j].y, pick(rng, AMBIENT_MOODS), pick(rng, FACINGS));
+    return true;
+  };
+
   const cursor = new Map<string, number>();
   for (const agent of population) {
     const wingId = wingIdForDept(wings, deptOf.get(agent.id) ?? '');
@@ -1729,7 +1828,12 @@ function seatGeneratedPopulation(
     let i = cursor.get(wingId) ?? 0;
     while (i < capacity && takenByCharacter(wingSeats[i].x, wingSeats[i].y)) i++;
     cursor.set(wingId, i + 1);
-    if (i >= capacity) continue; // over capacity — reported by validatePopulationOccupancy
+    if (i >= capacity) {
+      // Out of desks. In dense mode (golden) stand them in their own wing rather
+      // than drop them; when reserving spares (default), leave the headroom.
+      if (!reserveSpares) standFallback(agent, wingId);
+      continue;
+    }
     const seat = wingSeats[i];
     addCharacter(scene, project, agent, seat.x, seat.y, pick(rng, AMBIENT_MOODS), seat.facing);
   }

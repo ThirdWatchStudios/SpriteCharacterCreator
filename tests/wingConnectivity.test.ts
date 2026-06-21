@@ -46,12 +46,12 @@ describe('wing connectivity graph (Epic 1 / F1.3)', () => {
     const project = defaultProject();
     const { scene } = generateOfficeLayout(project, 6, 7, { wingDepartmentIds: ['sales', 'engineering', 'it'] });
     const edges = computeWingConnectivity(scene, project);
-    // each of the 3 department wings joins the common wing through its doorway
-    expect(edges).toHaveLength(3);
+    // Every department wing joins the common wing through its corridor doorway
+    // (wing-to-wing cross-doors may add further edges on top — so length ≥ 3).
+    expect(edges.length).toBeGreaterThanOrEqual(3);
     for (const dep of ['sales', 'engineering', 'it']) {
-      const edge = edges.find((e) => e.wings.includes(`wing-${dep}`));
-      expect(edge, `edge for wing-${dep}`).toBeDefined();
-      expect(edge!.wings).toContain('wing-common');
+      const edge = edges.find((e) => e.wings.includes(`wing-${dep}`) && e.wings.includes('wing-common'));
+      expect(edge, `edge for wing-${dep} → common`).toBeDefined();
       expect(edge!.doorways).toBeGreaterThan(0);
     }
   });

@@ -40,12 +40,14 @@ describe('golden office layouts (Epic 1 / F1.5)', () => {
     for (const config of GOLDEN_LAYOUT_CONFIGS) {
       const { scene } = generateOfficeLayout(project, 6, config.seed, { wingDepartmentIds: config.wingDepartmentIds });
       const json = sceneToLayoutJson(scene, project);
-      if (config.wingDepartmentIds?.length) {
-        // composed path: one wing per department + the common wing, an edge each.
-        expect(json.wings.length).toBe(config.wingDepartmentIds.length + 1);
-        expect(json.connectivity.length).toBe(config.wingDepartmentIds.length);
+      // Composed path: a wing per requested department + a common wing. Each
+      // department wing reaches common via its corridor doorway (≥ nDept edges);
+      // wing-to-wing cross-doors may add more, so the count is a lower bound.
+      const nDept = config.wingDepartmentIds?.length ?? 0;
+      if (nDept) {
+        expect(json.wings.length).toBe(nDept + 1);
+        expect(json.connectivity.length).toBeGreaterThanOrEqual(nDept);
       } else {
-        // hero template path: operations + management department wings + common.
         expect(json.wings.length).toBeGreaterThan(1);
         expect(json.connectivity.length).toBeGreaterThanOrEqual(json.wings.length - 1);
       }
