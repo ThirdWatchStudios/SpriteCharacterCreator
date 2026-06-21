@@ -1,5 +1,6 @@
 import type { PartDef, Slot } from '../core/types';
 import { rr, circle, ellipse, topCap } from '../core/geometry';
+import { UI_PALETTE } from '../data/uiPalette';
 
 /**
  * Part library. Conventions:
@@ -10,7 +11,7 @@ import { rr, circle, ellipse, topCap } from '../core/geometry';
  * - z order: body 10, outfit 20, body accessories 30, head 40, hair 50, face gear 60.
  */
 
-const INK = '#2C2C2A'; // eyes / neutral hardware, deliberately palette-independent
+const INK = UI_PALETTE.ink; // eyes / neutral hardware, deliberately palette-independent
 
 // ---------------------------------------------------------------------------
 // Bodies (anchor: body). Base capsule is filled with $outfitPrimary because in

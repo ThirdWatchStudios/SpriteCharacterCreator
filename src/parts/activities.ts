@@ -1,5 +1,6 @@
 import type { ShapeSpec } from '../core/types';
 import { circle } from '../core/geometry';
+import { UI_PALETTE } from '../data/uiPalette';
 
 /**
  * Activity badges — overhead status emotes that say *what* an agent is doing
@@ -49,7 +50,7 @@ export interface ActivityBadge {
   glyph: ShapeSpec[];
 }
 
-const GLYPH = '#FFFFFF';
+const GLYPH = UI_PALETTE.onColor;
 const gStroke = (d: string): ShapeSpec => ({ d, stroke: GLYPH, strokeWidth: 1.8, silhouette: false });
 const gThin = (d: string): ShapeSpec => ({ d, stroke: GLYPH, strokeWidth: 1.3, silhouette: false });
 const gFill = (d: string): ShapeSpec => ({ d, fill: GLYPH, silhouette: false });
@@ -68,7 +69,7 @@ export const ACTIVITY_BADGES: Record<Activity, ActivityBadge | null> = {
 
   // Monitor on a stand — "at the desk, working".
   work: {
-    color: '#4C84E0',
+    color: UI_PALETTE.emote.work,
     glyph: [
       gStroke('M -4.5 -4 L 4.5 -4 L 4.5 1.5 L -4.5 1.5 Z'),
       gStroke('M 0 1.5 L 0 3.6'),
@@ -78,13 +79,13 @@ export const ACTIVITY_BADGES: Record<Activity, ActivityBadge | null> = {
 
   // Speech bubble with a tail — "talking".
   talking: {
-    color: '#46C07A',
+    color: UI_PALETTE.emote.talking,
     glyph: [gStroke('M -4.6 -3 H 4.6 V 1.4 H -1.6 L -3.6 3.8 L -2.8 1.4 H -4.6 Z')],
   },
 
   // Two heads + shoulders — "in a meeting" (a group, distinct from 1:1 talking).
   meeting: {
-    color: '#9B6CF0',
+    color: UI_PALETTE.emote.meeting,
     glyph: [
       gFill(circle(-2.6, -1.8, 1.5)),
       gFill(circle(2.6, -1.8, 1.5)),
@@ -95,7 +96,7 @@ export const ACTIVITY_BADGES: Record<Activity, ActivityBadge | null> = {
 
   // Coffee cup with handle + steam — "on a break".
   break: {
-    color: '#E0A03A',
+    color: UI_PALETTE.emote.break,
     glyph: [
       gStroke('M -3.4 -1.2 H 2.6 V 1.4 Q 2.6 3.8 -0.4 3.8 Q -3.4 3.8 -3.4 1.4 Z'),
       gStroke('M 2.6 -0.4 Q 4.6 -0.4 4.6 1 Q 4.6 2.2 3 2.2'),
@@ -106,7 +107,7 @@ export const ACTIVITY_BADGES: Record<Activity, ActivityBadge | null> = {
 
   // Fork + knife — "at lunch".
   lunch: {
-    color: '#E0772F',
+    color: UI_PALETTE.emote.lunch,
     glyph: [
       gStroke('M -3 -4 L -3 4'),
       gStroke('M -4.6 -4 L -4.6 -1.6 Q -4.6 -0.6 -3 -0.6 Q -1.4 -0.6 -1.4 -1.6 L -1.4 -4'),
@@ -117,7 +118,7 @@ export const ACTIVITY_BADGES: Record<Activity, ActivityBadge | null> = {
 
   // Two z's — "idle".
   idle: {
-    color: '#8A9099',
+    color: UI_PALETTE.emote.idle,
     glyph: [
       gStroke('M -4 0.8 L -1.6 0.8 L -4 3.2 L -1.6 3.2'),
       gStroke('M -0.2 -3.8 L 3.8 -3.8 L -0.2 0.2 L 3.8 0.2'),
@@ -126,13 +127,13 @@ export const ACTIVITY_BADGES: Record<Activity, ActivityBadge | null> = {
 
   // Motion chevrons — "walking / in transit".
   walk: {
-    color: '#2FA98F',
+    color: UI_PALETTE.emote.walk,
     glyph: [gStroke('M -3.4 -4 L 0.6 0 L -3.4 4'), gStroke('M 0.6 -4 L 4.6 0 L 0.6 4')],
   },
 
   // Magnifier — "supervising / monitoring" (manager default).
   monitoring: {
-    color: '#5B8DEF',
+    color: UI_PALETTE.emote.monitoring,
     glyph: [gRing(-1, -1, 3), { d: 'M 1.2 1.2 L 4.4 4.4', stroke: GLYPH, strokeWidth: 2.2, silhouette: false }],
   },
 };

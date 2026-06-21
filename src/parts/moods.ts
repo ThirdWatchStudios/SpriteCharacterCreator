@@ -1,4 +1,5 @@
 import type { Facing, Mood, ShapeSpec } from '../core/types';
+import { UI_PALETTE } from '../data/uiPalette';
 
 /**
  * Mood face overlays — eyebrows and mouths drawn over the head (anchor:
@@ -10,7 +11,7 @@ import type { Facing, Mood, ShapeSpec } from '../core/types';
  * ink as the eyes, so they survive palette and outline changes untouched.
  */
 
-const INK = '#2C2C2A';
+const INK = UI_PALETTE.ink;
 
 const brow = (d: string): ShapeSpec => ({ d, stroke: INK, strokeWidth: 2, silhouette: false });
 const mouth = (d: string): ShapeSpec => ({ d, stroke: INK, strokeWidth: 2, silhouette: false });
@@ -92,7 +93,7 @@ export interface MoodEmote {
   glyph: ShapeSpec[];
 }
 
-const GLYPH = '#FFFFFF';
+const GLYPH = UI_PALETTE.onColor;
 const gStroke = (d: string): ShapeSpec => ({ d, stroke: GLYPH, strokeWidth: 1.8, silhouette: false });
 const gFill = (d: string): ShapeSpec => ({ d, fill: GLYPH, silhouette: false });
 const gDot = (cx: number, cy: number): ShapeSpec =>
@@ -103,26 +104,26 @@ export const MOOD_EMOTES: Record<Mood, MoodEmote | null> = {
 
   // Watching eye — almond lens with a pupil.
   suspicious: {
-    color: '#6E5BC4',
+    color: UI_PALETTE.emote.moodSuspicious,
     glyph: [gStroke('M -5 0 Q 0 -2.6 5 0 Q 0 2.6 -5 0 Z'), gDot(0, 0)],
   },
 
   // Question mark.
   curious: {
-    color: '#3E78C8',
+    color: UI_PALETTE.emote.moodCurious,
     glyph: [gStroke('M -2.6 -2.8 Q -2.6 -5.4 0 -5.4 Q 2.8 -5.4 2.8 -3 Q 2.8 -1 0 0.6 L 0 2.2'), gDot(0, 4.4)],
   },
 
   // Exclamation mark.
   defensive: {
-    color: '#E0A03A',
+    color: UI_PALETTE.emote.moodDefensive,
     glyph: [gStroke('M 0 -5.2 L 0 1.6'), gDot(0, 4.2)],
   },
 
   // Scowl — furrowed brows over a frown. The vein-pop (💢) doesn't read at
   // badge scale, but angry brows are unmistakable.
   hostile: {
-    color: '#CE4038',
+    color: UI_PALETTE.emote.moodHostile,
     glyph: [
       gStroke('M -5.5 -4.5 L -1 -1.5'),
       gStroke('M 5.5 -4.5 L 1 -1.5'),
@@ -132,7 +133,7 @@ export const MOOD_EMOTES: Record<Mood, MoodEmote | null> = {
 
   // Dizzy swirl.
   confused: {
-    color: '#2FA98F',
+    color: UI_PALETTE.emote.moodConfused,
     glyph: [gStroke('M 3.4 -1.2 Q 3.4 -4.4 0 -4.4 Q -4.4 -4.4 -4.4 0 Q -4.4 4.4 1 4.4 Q 5 4.4 5 -0.6')],
   },
 };

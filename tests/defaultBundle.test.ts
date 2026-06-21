@@ -51,6 +51,8 @@ describe('default bundle is a complete, sim-importable baseline', () => {
     'conversation-style.json',
     'activity-badges-atlas@1x.json',
     'mood-emotes-atlas@1x.json',
+    'theme.uss', // shared UI palette — UI Toolkit (docs/ui-art-plan.md)
+    'theme.json', // shared UI palette — uGUI / non-USS consumers
   ];
 
   // Per-entity systems — at least one folder of each must exist.
@@ -120,6 +122,19 @@ describe('default bundle is a complete, sim-importable baseline', () => {
         .filter((r: string) => r.startsWith('cubicle-farm')),
     );
     expect(coolerWings.size, 'department wings have no per-wing amenities').toBeGreaterThan(1);
+  });
+
+  it('emits a UI theme whose line color matches the exported outline', async () => {
+    const { json } = await exportPaths();
+    const theme = JSON.parse(json.get('theme.json')!);
+    const project = JSON.parse(json.get('project.json')!);
+    // The theme is generated from the same style, so --wc-line tracks the world.
+    expect(theme.palette.line, 'theme line color should equal the project outline').toBe(
+      project.style.outline.color,
+    );
+    expect(theme.palette.accent, 'theme is missing an accent color').toBeTruthy();
+    // theme.uss is the USS form of the same palette.
+    expect(json.get('theme.uss'), 'theme.uss missing accent var').toContain('--wc-accent:');
   });
 
   it('ships a generated supporting population (multiple departments, personas, relationships)', async () => {

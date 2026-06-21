@@ -28,6 +28,7 @@ import { serializeCompany } from './company';
 import { serializeScenarioTemplateLibrary, type ScenarioTemplate } from './scenarioTemplate';
 import { PROP_TEMPLATES } from '../props/templates';
 import { maskName } from '../tiles/templates';
+import { themeUss, themeJson } from '../data/uiPalette';
 
 /** Sheet frame order. West is baked as mirrored east for engine convenience. */
 const SHEET_FACINGS = ['south', 'east', 'north', 'west'] as const;
@@ -790,6 +791,13 @@ export async function exportAll(
   // Conversation style — the sim draws the connector between paired talking
   // agents from this (tool owns the look, sim owns pairing + placement).
   await write('conversation-style.json', JSON.stringify(conversationStyleJson(), null, 2));
+
+  // Shared UI theme — the single palette the framing UI resolves so chrome and
+  // world agree without sharing a pipeline (docs/ui-art-plan.md). theme.uss for
+  // UI Toolkit, theme.json for uGUI / non-USS consumers. `--wc-line` carries the
+  // project's actual outline color so the theme matches the world it ships with.
+  await write('theme.uss', themeUss(style));
+  await write('theme.json', themeJson(style));
 
   onProgress?.(total, total, 'writing');
   await write('project.json', JSON.stringify(project, null, 2));
