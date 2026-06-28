@@ -62,7 +62,7 @@ Coordinate convention: scene grids are row-major `[y][x]`; anchors/spawns carry 
 | `mood-emotes@Nx.png` + `mood-emotes-atlas@Nx.json` | `moodEmotesAtlas` | project | One **shared** strip of overhead mood bubbles (character-independent) — the emote half of a mood, split out of the sheet. Sim blits one above an agent keyed off mood (§3.9). |
 | `activity-badges@Nx.png` + `activity-badges-atlas@Nx.json` | `activityBadgesAtlas` | project | One **shared** strip of overhead status badges (character-independent). Sim blits one above an agent keyed off the routine `activity` string (§3.9). |
 | `conversation-style.json` | `conversationStyleJson` | project | Style for the linked-bubble conversation visual; sim draws it between two paired talking agents (§3.9). |
-| `overlay-style.json` | `overlayStyleJson` | project | **Floor-overlay look spec** (Epic 36) — the per-channel form/weight/dash/motion the **Shapes** floor layer reads to draw relationship arcs, pressure halos, info packets, and belief tints from sim state. Tool owns the look; Shapes owns the drawing. Colors reference theme `--wc-*` (§3.13). |
+| `overlay-style.json` | `overlayStyleJson` | project | **Floor-overlay look spec** (Epic 36) — the per-channel form/weight/dash/motion **plus the static-richness grammar** (`glow` bloom, directional `flow`, per-agent `endpoints`, emotion-keyed `jitter`) and a cross-channel `focus` model the **Shapes** floor layer reads to draw relationship arcs, pressure halos, info packets, and belief tints from sim state. Discipline preserved: state lines pop via static richness (glow/gradient/endpoints), animation stays reserved for events (`rules.motionEncodesEvents`). Tool owns the look; Shapes owns the drawing. Colors reference theme `--wc-*` (§3.13). |
 | `theme.uss` + `theme.json` | `themeUss` / `themeJson` | project | The **shared UI palette** as UI Toolkit `:root` custom properties (`--wc-*`) and a framework-neutral map. The single color source the framing UI AND the Shapes floor layer resolve so chrome and world agree without sharing a pipeline (§3.13). `--wc-line` carries the project's actual `style.outline.color`. |
 | `icons/<id>.svg` + `icons/<id>@Nx.png` + `icons/icons-manifest.json` | `composeIcon` / `iconsManifest` | project | **UI icon set** — framing-UI glyphs. Each icon ships a resolution-independent SVG (UI Toolkit `VectorImage`) **and** a PNG ladder (uGUI `Sprite`). `tintable` icons are white masks the framework recolors from `theme.uss`; `literal` icons ship final colors (§3.13). |
 | `office-layout.json` | `sceneToLayoutJson` | scene | Rooms, floors, walls, props, spawns, anchors, interaction anchors (§3.4). |
@@ -355,9 +355,29 @@ looks identical over anyone, so it ships once, not per character.
   "activities": ["work","talking","meeting","break","lunch","idle","walk","monitoring"],
   "frames": { "work": { "x": 0, "y": 0, "w": 256, "h": 256 }, "...": {} },
   "pivot": { "x": 0.5, "y": 0.5 },               // badge bubble center
+  // Per-id MOTION INTENT — how the sim should animate the badge, and where it sits
+  // in the salience hierarchy. The tool owns the vocabulary, so it owns the intent;
+  // the sim still owns the actual curves/timings (this is a recommendation, not a track).
+  "motion": {
+    "transient": false,                          // ongoing state, not an event flash
+    "byId": {
+      "work": { "intro": "fade-in", "loop": "none", "outro": "fade-out", "salienceTier": 1 },
+      "...": {}
+    }
+  },
   "meta": { "shared": true, "facingIndependent": true }
 }
 ```
+All four overhead atlases (`activity-badges`, `mood-emotes`, `prop-status-badges`,
+`attention-puffs`) now carry this `motion` block. `transient: true` marks the
+event-flash family (attention puffs); the state families are `false`. `salienceTier`
+(higher wins) is the authored importance the sim uses for its salience budget, draw
+order, and base scale — for attention puffs the tiers encode the §7 hierarchy with
+`attn-harvestable` at the top (and `loop: "shimmer"` + `outro: "hold"`, the player's
+call-to-action). **Legibility:** every badge cell is drawn with a light contrast halo
+behind the dark ink ring so it reads as a sticker against a busy floor, and the source
+art is scaled up; the sim still owns the on-floor screen-space size (a min-size clamp).
+
 Runtime convention: the sim reads each agent's current activity, looks up the
 matching frame, and blits it above the agent's head. **Placement:** because the
 badge is a *separate* sprite (unlike a mood emote, which is baked into the

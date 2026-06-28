@@ -83,6 +83,11 @@ data the Shapes layer reads: per channel { color (→ `--wc-*`), form, line weig
 motion (pulse/still), the "one dominant pressure only" rule }. Tool owns the look; Shapes owns
 the drawing.
 
+> **Enriched (2026-06-28):** the spec now also carries a static-richness grammar — `glow`
+> bloom, directional `flow`, per-agent `endpoints`, emotion-keyed `jitter` — plus a cross-channel
+> `focus` (bloom-the-selection / dim-the-rest) model, so relationship lines pop without violating
+> the motion-encodes-events rule. Game-side reader contract: **[shapes-overlay-reader-spec.md](shapes-overlay-reader-spec.md)**.
+
 ## Reconciliation with the speculative set (steps 5–6)
 
 | Shipped speculatively | Epic 36 verdict |

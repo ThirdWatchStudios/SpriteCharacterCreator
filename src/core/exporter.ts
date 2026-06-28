@@ -8,6 +8,7 @@ import {
   composeActivityBadge,
   composeCharacter,
   composeFloorTile,
+  composeAttentionPuff,
   composeIcon,
   composeMoodEmote,
   composeProp,
@@ -19,6 +20,8 @@ import {
 import { ACTIVITIES, ACTIVITY_BADGES } from '../parts/activities';
 import { MOOD_EMOTES } from '../parts/moods';
 import { PROP_STATUSES } from '../parts/propStatus';
+import { ATTENTION_PUFFS } from '../parts/attention';
+import { ACTIVITY_MOTION, MOOD_MOTION, PROP_STATUS_MOTION, ATTENTION_MOTION } from '../parts/overheadMotion';
 import { conversationStyleJson } from './conversation';
 import { sceneToLayoutJson } from './layout';
 import { composeSceneSvg } from './scene';
@@ -251,6 +254,8 @@ export function activityBadgesAtlas(style: StyleSheet, scale: number) {
     // Where to hang the badge on the agent: the per-facing aboveHead anchor in
     // each character atlas (.anchors.aboveHead). South value inlined for convenience.
     attach: { anchor: 'aboveHead', normalizedSouth: normalizedAboveHead().south },
+    // Motion intent per id (the sim owns the curves/timings; this is the recommendation).
+    motion: { transient: false, byId: ACTIVITY_MOTION },
     meta: {
       generator: 'sprite-character-creator',
       shared: true,
@@ -302,6 +307,7 @@ export function moodEmotesAtlas(style: StyleSheet, scale: number) {
     frames,
     pivot: { x: 0.5, y: 0.5 },
     attach: { anchor: 'aboveHead', normalizedSouth: normalizedAboveHead().south },
+    motion: { transient: false, byId: MOOD_MOTION },
     meta: {
       generator: 'sprite-character-creator',
       shared: true,
@@ -351,11 +357,73 @@ export function propStatusBadgesAtlas(style: StyleSheet, scale: number) {
     frames,
     // Bubble centered in its cell — the sim hangs it above the prop's top.
     pivot: { x: 0.5, y: 0.5 },
+    // Alert state: pops in and pulses (demanding attention is the point).
+    motion: { transient: false, byId: PROP_STATUS_MOTION },
     meta: {
       generator: 'sprite-character-creator',
       shared: true,
       propIndependent: true,
       note: "Selected at runtime by a prop's active tamper-state id; unknown ids draw nothing. Place above the tampered prop, like an agent's activity badge.",
+    },
+  };
+}
+
+/**
+ * Attention puffs: a single shared strip, one cell per puff (active-loop §7). The
+ * sim flashes the matching cell above an agent at the MOMENT a notable thing
+ * happens, keyed off the puff's stable id. Agent-independent — a harvestable
+ * beacon looks the same over anyone.
+ */
+function attentionPuffsDesc(style: StyleSheet, scale: number): SheetDesc {
+  const size = style.render.baseSize * scale;
+  return {
+    width: size * ATTENTION_PUFFS.length,
+    height: size,
+    pixelScale: renderScale(style),
+    cells: ATTENTION_PUFFS.map((puff, i) => ({
+      svg: composeAttentionPuff(puff, size),
+      dx: i * size,
+      dy: 0,
+      dw: size,
+      dh: size,
+    })),
+  };
+}
+
+export async function attentionPuffsPng(style: StyleSheet, scale: number): Promise<Blob> {
+  return asBlob(defaultRasterizer().rasterizeSheet(attentionPuffsDesc(style, scale)));
+}
+
+export function attentionPuffsAtlas(style: StyleSheet, scale: number) {
+  const size = style.render.baseSize * scale;
+  const frames: Record<string, { x: number; y: number; w: number; h: number }> = {};
+  ATTENTION_PUFFS.forEach((puff, i) => {
+    frames[puff] = { x: i * size, y: 0, w: size, h: size };
+  });
+  return {
+    kind: 'attention-puffs' as const,
+    frameSize: size,
+    scale,
+    puffs: [...ATTENTION_PUFFS],
+    frames,
+    // Cell-centered — the sim hangs it at the agent's aboveHead anchor, like the
+    // mood/activity badges, so a puff can stack with the ongoing-state badges.
+    pivot: { x: 0.5, y: 0.5 },
+    attach: { anchor: 'aboveHead', normalizedSouth: normalizedAboveHead().south },
+    // Transient events: all pop-and-fade; salienceTier is the §7 hierarchy, with
+    // harvestable top (shimmer + hold until captured). Sim owns the actual flash.
+    motion: { transient: true, byId: ATTENTION_MOTION },
+    meta: {
+      generator: 'sprite-character-creator',
+      shared: true,
+      facingIndependent: true,
+      // §7: the set is FIXED and FEW; harvestable is the top of the salience tier.
+      transient: true,
+      salienceTop: 'attn-harvestable',
+      note:
+        'Transient event flash selected at runtime by a stable puff id; unknown ids draw ' +
+        "nothing. The tool ships the static icon; the sim owns the flash/fade, the emission " +
+        'budget, magnitude-gating, and salience (scale/intensity by severity × relevance).',
     },
   };
 }
@@ -808,7 +876,7 @@ export async function exportAll(
     project.props.length * scales +
     (project.walls?.length ?? 0) * scales +
     (project.floors?.length ?? 0) * scales +
-    scales * 3 + // shared activity-badge + mood-emote + prop-status-badge atlas per scale
+    scales * 4 + // shared activity-badge + mood-emote + prop-status-badge + attention-puff atlas per scale
     ICONS.length + // one tick per UI icon (its SVG + PNG ladder)
     CURSORS.length; // one tick per cursor (PNG ladder)
   let done = 0;
@@ -896,6 +964,9 @@ export async function exportAll(
     await write(`prop-status-badges@${scale}x.png`, await png(propStatusBadgesDesc(style, scale)));
     await write(`prop-status-badges-atlas@${scale}x.json`, JSON.stringify(propStatusBadgesAtlas(style, scale), null, 2));
     tick('prop status badges');
+    await write(`attention-puffs@${scale}x.png`, await png(attentionPuffsDesc(style, scale)));
+    await write(`attention-puffs-atlas@${scale}x.json`, JSON.stringify(attentionPuffsAtlas(style, scale), null, 2));
+    tick('attention puffs');
   }
   // UI icon set — framing-UI glyphs (docs/ui-art-plan.md). Each icon emits a
   // resolution-independent SVG (UI Toolkit VectorImage) plus a non-pixelated PNG

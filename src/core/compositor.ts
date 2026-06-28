@@ -17,6 +17,7 @@ import { MOOD_EMOTES, MOOD_OVERLAYS } from '../parts/moods';
 import type { Activity } from '../parts/activities';
 import { ACTIVITY_BADGES } from '../parts/activities';
 import { PROP_STATUS_BADGES, type PropStatus } from '../parts/propStatus';
+import { ATTENTION_PUFF_ART, type AttentionPuff, type AttentionPuffArt } from '../parts/attention';
 import { getIcon } from '../parts/icons';
 import { PROP_TEMPLATES } from '../props/templates';
 import { FLOOR_TEMPLATES, WALL_TEMPLATES } from '../tiles/templates';
@@ -216,18 +217,41 @@ function renderPlaced(
 
 /** Style-neutral ink ringing the badge bubble — matches the face overlays. */
 const BADGE_INK = '#2C2C2A';
+/**
+ * A light contrast halo drawn BEHIND the dark ink ring, so the badge separates
+ * from whatever it floats over on a busy floor (a sticker outline). Universal:
+ * the white ring reads against both dark and light backgrounds. The sim never has
+ * to know the floor color — the legibility is baked into the cell.
+ */
+const BADGE_HALO = '#FFFFFF';
+/** Ink ring stroke + halo ring stroke (badge-local units). Halo > ink so it peeks out. */
+const BADGE_INK_STROKE = 1.5;
+const BADGE_HALO_STROKE = 4.5;
 
 /** Bubble radius and outer stroke half-width in badge-local units (pre-scale). */
 const BADGE_RADIUS = 8;
-const BADGE_STROKE_HALF = 0.75;
+/** Outermost reach from the bubble edge = half the widest (halo) ring. */
+const BADGE_STROKE_HALF = BADGE_HALO_STROKE / 2;
 /**
  * Uniform scale on the whole emote badge. The badge is the readability-at-scale
  * element (it carries the mood in tiny scene/poster sprites), so it's drawn well
  * larger than the source artwork. Bump this to make moods more legible.
  */
-const BADGE_SCALE = 1.6;
+const BADGE_SCALE = 1.9;
 /** Keep the scaled bubble's top edge this far below the canvas top (no clipping). */
 const BADGE_TOP_MARGIN = 2;
+
+/**
+ * Draw a path twice: a fat light HALO stroke first (peeks out as a contrast ring),
+ * then the real fill + crisp dark ink ring on top. Used for every overhead bubble
+ * and puff silhouette so they pop against a busy floor. `fill` may be 'none'.
+ */
+function haloedPath(d: string, fill: string, inkStroke = BADGE_INK_STROKE, haloStroke = BADGE_HALO_STROKE): string {
+  return (
+    `<path d="${d}" fill="none" stroke="${BADGE_HALO}" stroke-width="${haloStroke}" stroke-linejoin="round"/>` +
+    `<path d="${d}" fill="${fill}" stroke="${BADGE_INK}" stroke-width="${inkStroke}" stroke-linejoin="round"/>`
+  );
+}
 
 /**
  * A color + glyph pair drawn on the overhead bubble. Both mood emotes and
@@ -251,10 +275,12 @@ function emoteMarkup(emote: BadgeSpec, ax: number, ay: number): string {
   // (toward the head), which is the empty band above the face.
   const minCenter = BADGE_TOP_MARGIN + (BADGE_RADIUS + BADGE_STROKE_HALF) * BADGE_SCALE;
   const cy = Math.max(ay, minCenter);
+  // Tail (two thought dots) and bubble all carry the halo so the whole badge reads
+  // as one haloed sticker, not a haloed disc with bare tail dots.
   const tail =
-    `<path d="${circle(0.5, 8.6, 1.7)}" fill="${emote.color}" stroke="${BADGE_INK}" stroke-width="1.2"/>` +
-    `<path d="${circle(-0.8, 11.8, 1)}" fill="${emote.color}" stroke="${BADGE_INK}" stroke-width="1"/>`;
-  const bubble = `<path d="${circle(0, 0, BADGE_RADIUS)}" fill="${emote.color}" stroke="${BADGE_INK}" stroke-width="1.5" stroke-linejoin="round"/>`;
+    haloedPath(circle(0.5, 8.6, 1.7), emote.color, 1.2, 3.2) +
+    haloedPath(circle(-0.8, 11.8, 1), emote.color, 1, 2.6);
+  const bubble = haloedPath(circle(0, 0, BADGE_RADIUS), emote.color);
   const glyph = emote.glyph.map((s) => emitColorShape(s, identity)).join('');
   return `<g transform="translate(${ax} ${cy}) scale(${BADGE_SCALE})">${tail}${bubble}${glyph}</g>`;
 }
@@ -304,8 +330,8 @@ export function composeCharacter(
     const emote = MOOD_EMOTES[mood];
     const activity = opts.activity && opts.activity !== 'none' ? ACTIVITY_BADGES[opts.activity] : null;
     if (emote && activity) {
-      inner += emoteMarkup(activity, ax - 15, a.y);
-      inner += emoteMarkup(emote, ax + 15, a.y);
+      inner += emoteMarkup(activity, ax - 18, a.y);
+      inner += emoteMarkup(emote, ax + 18, a.y);
     } else if (emote) {
       inner += emoteMarkup(emote, ax, a.y);
     } else if (activity) {
@@ -354,6 +380,33 @@ export function composeMoodEmote(mood: Mood, pixelSize: number = CANVAS): string
 /** Shared-atlas cell for one prop tamper-status badge (floats above a tampered prop). */
 export function composePropStatusBadge(status: PropStatus, pixelSize: number = CANVAS): string {
   return composeOverheadEmote(PROP_STATUS_BADGES[status], pixelSize);
+}
+
+/**
+ * An attention puff: a per-category silhouette (spark / shuriken / round / gem)
+ * holding a white glyph, drawn at the same overhead anchor and scale as the emote
+ * badges so it stacks with them — but with NO thought-tail (a puff is an event
+ * flash centered on the agent, not a thought emanating from them). The top-tier
+ * `harvestable` puff also gets a soft colored beacon halo behind it. The flash /
+ * fade / scale-by-magnitude is sim-side; this is the static cell.
+ */
+function attentionPuffMarkup(art: AttentionPuffArt, ax: number, ay: number): string {
+  const identity: ResolveToken = (ref) => ref;
+  const minCenter = BADGE_TOP_MARGIN + (BADGE_RADIUS + BADGE_STROKE_HALF) * BADGE_SCALE;
+  const cy = Math.max(ay, minCenter);
+  const beacon = art.beacon
+    ? `<path d="${circle(0, 1.4, 11.5)}" fill="${art.color}" opacity="0.18"/>`
+    : '';
+  const shape = haloedPath(art.shape, art.color);
+  const glyph = art.glyph.map((s) => emitColorShape(s, identity)).join('');
+  return `<g transform="translate(${ax} ${cy}) scale(${BADGE_SCALE})">${beacon}${shape}${glyph}</g>`;
+}
+
+/** Shared-atlas cell for one attention puff (the transient event flash above an agent). */
+export function composeAttentionPuff(puff: AttentionPuff, pixelSize: number = CANVAS): string {
+  const art = ATTENTION_PUFF_ART[puff];
+  const inner = art ? attentionPuffMarkup(art, CANVAS / 2, CANVAS / 2) : '';
+  return svgWrap(inner, pixelSize);
 }
 
 // ---------------------------------------------------------------------------

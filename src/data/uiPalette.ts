@@ -37,6 +37,8 @@ const SEA_TEAL = '#3FA7C4'; // Third Watch brand accent — muted deep-sea teal;
                            // the deep-navy chrome field. Brand reversal (2026-06-27) of the old Epic 36
                            // brass-amber "corporate dark mode" accent; amber (#D69B4B) now survives only
                            // as the sim-side active/divider highlight, not the institutional accent.
+const BEACON_AMBER = '#D69B4B'; // the sim-side active/divider amber — reused as the harvestable puff's
+                                // beacon: the one warm call-to-action color on the cool floor.
 
 export const UI_PALETTE = {
   /** Near-black ink — eyes, hardware, bubble rings, and UI text. */
@@ -99,6 +101,19 @@ export const UI_PALETTE = {
     moodHostile: RED,
     moodConfused: TEAL,
   },
+  /**
+   * Attention-puff hues (active-loop §7) — the transient event register the sim
+   * flashes above an agent. Spread off the emote palette so a puff stacked over a
+   * mood/activity badge stays a distinct thing; the negative-event pair (emotion
+   * rose / conflict red) is split by SILHOUETTE, not just hue. `harvestable` is the
+   * lone warm beacon — the player's call-to-action — so it owns the brand amber.
+   */
+  attention: {
+    emotionSpike: ROSE,
+    conflict: RED,
+    information: TEAL_BLUE,
+    harvestable: BEACON_AMBER,
+  },
 } as const;
 
 /**
@@ -148,6 +163,10 @@ export function themeColors(style: StyleSheet): Record<string, string> {
     'emote-mood-defensive': UI_PALETTE.emote.moodDefensive,
     'emote-mood-hostile': UI_PALETTE.emote.moodHostile,
     'emote-mood-confused': UI_PALETTE.emote.moodConfused,
+    'attn-emotion-spike': UI_PALETTE.attention.emotionSpike,
+    'attn-conflict': UI_PALETTE.attention.conflict,
+    'attn-information': UI_PALETTE.attention.information,
+    'attn-harvestable': UI_PALETTE.attention.harvestable,
   };
 }
 

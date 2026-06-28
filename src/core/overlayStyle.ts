@@ -15,6 +15,53 @@
  * may repeat across them.
  */
 
+/**
+ * Layered bloom drawn UNDER the core stroke — a wide, soft, low-alpha pass that
+ * makes a thin vector line read against a busy floor. This is the single biggest
+ * "pop" lever, and it is STATIC (no motion), so it enriches state lines without
+ * violating the motion-encodes-events rule.
+ */
+export interface OverlayGlow {
+  /** Theme token for the underlay; omit to reuse the channel's own color. */
+  color?: string;
+  /** Underlay width as a multiple of the core stroke weight. */
+  widthMul: number;
+  /** Peak alpha of the bloom (0..1). */
+  alpha: number;
+}
+
+/**
+ * Directional treatment along an arc-line. `speedHz: 0` is a STILL gradient
+ * (direction without animation — safe for state lines); `speedHz > 0` travels
+ * and is therefore reserved for event/active channels per the motion rule.
+ */
+export interface OverlayFlow {
+  /** Which way the gradient/pips point: who-trusts-whom, which way info moved. */
+  direction: 'a-to-b' | 'b-to-a' | 'bidirectional';
+  /** Travel speed in arc-lengths/sec. 0 = static gradient, no animation. */
+  speedHz: number;
+  /** Optional pips riding the arc (only meaningful when speedHz > 0). */
+  pip?: { radius: number; spacingMul: number; color?: string };
+}
+
+/** Per-agent anchor so a tie reads as a BOND between two people, not a stray stroke. */
+export interface OverlayEndpoints {
+  cap: 'pip' | 'ring' | 'none';
+  radius: number;
+  /** Omit to reuse the channel color. */
+  color?: string;
+}
+
+/**
+ * Emotion-keyed agitation — high-frequency wobble that encodes HEAT (an active,
+ * intensifying tie), distinct from event motion. Reserved for escalated/hostile
+ * channels; calm state lines leave this unset and stay still.
+ */
+export interface OverlayJitter {
+  ampPx: number;
+  freqHz: number;
+}
+
 export interface OverlayChannel {
   /** Human-readable concept from the Visual Language table. */
   concept: string;
@@ -28,6 +75,21 @@ export interface OverlayChannel {
     | 'scan-framing';
   /** Motion discipline: stillness encodes state, motion encodes events. */
   motion: 'still' | 'pulse' | 'single-pulse' | 'dash-offset' | 'travels-path' | 'scanline';
+  /** Soft bloom under the core stroke (static richness — the main legibility lever). */
+  glow?: OverlayGlow;
+  /** Directional gradient / traveling pips along an arc-line. */
+  flow?: OverlayFlow;
+  /** Per-agent anchors so a tie reads as a bond between two people. */
+  endpoints?: OverlayEndpoints;
+  /** Emotion-keyed agitation (heat) for active/escalated ties. */
+  jitter?: OverlayJitter;
+  /**
+   * Per-channel focus override. When the sim has a selection, relevant edges
+   * bloom (focusWeightMul) and irrelevant ones recede (dimAlpha). Omit to use
+   * the global `focus` defaults from overlayStyleJson.
+   */
+  focusWeightMul?: number;
+  dimAlpha?: number;
   [extra: string]: unknown;
 }
 
@@ -40,20 +102,32 @@ export const DEFAULT_OVERLAY_STYLE: Record<string, OverlayChannel> = {
     concept: 'Trust',
     form: 'arc-line',
     color: '--wc-trust',
+    // Pure state → stays still. Its "pop" is all static: a soft bloom, a
+    // directional gradient (no travel), and pips anchored on both agents so the
+    // tie reads as a bond. Strength still drives weight.
     motion: 'still',
     weightByStrength: true,
     minWeight: 1.5,
     maxWeight: 6,
     dash: null,
+    glow: { color: '--wc-trust', widthMul: 3.5, alpha: 0.22 },
+    flow: { direction: 'bidirectional', speedHz: 0 },
+    endpoints: { cap: 'pip', radius: 2.5, color: '--wc-trust' },
   },
   suspicion: {
     concept: 'Suspicion / conflict',
     form: 'arc-line',
     color: '--wc-suspicion',
     escalateColor: '--wc-hostility',
+    // Semi-active tie: a scrolling dash reads as wariness. As it escalates toward
+    // hostility the sim cross-fades to escalateColor and applies the jitter (heat).
     motion: 'dash-offset',
     weight: 2.5,
     dash: [6, 4],
+    glow: { color: '--wc-suspicion', widthMul: 3, alpha: 0.18 },
+    flow: { direction: 'a-to-b', speedHz: 0.6, pip: { radius: 1.5, spacingMul: 4 } },
+    endpoints: { cap: 'ring', radius: 3, color: '--wc-hostility' },
+    jitter: { ampPx: 1.2, freqHz: 7 },
   },
   belief: {
     concept: 'Belief drift',
@@ -105,6 +179,18 @@ export function overlayStyleJson(channels: Record<string, OverlayChannel> = DEFA
     rules: {
       motionEncodesEvents: true, // motion = events, stillness = state
       oneDominantPressurePerAgent: true,
+    },
+    /**
+     * Focus model: the floor only "pops" when it stops competing with itself.
+     * When the sim has a selection, edges touching it bloom (focusWeightMul) and
+     * everything else recedes (dimAlpha). Sim owns the selection state; these are
+     * the tweakable art-direction values. A channel may override via its own
+     * focusWeightMul / dimAlpha.
+     */
+    focus: {
+      focusWeightMul: 1.6,
+      dimAlpha: 0.18,
+      fadeMs: 180,
     },
     channels,
     meta: {

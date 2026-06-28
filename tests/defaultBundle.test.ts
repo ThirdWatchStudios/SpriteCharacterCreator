@@ -52,6 +52,7 @@ describe('default bundle is a complete, sim-importable baseline', () => {
     'conversation-style.json',
     'activity-badges-atlas@1x.json',
     'mood-emotes-atlas@1x.json',
+    'attention-puffs-atlas@1x.json', // transient event-flash atlas (active-loop §7)
     'theme.uss', // shared UI palette — UI Toolkit (docs/ui-art-plan.md)
     'theme.json', // shared UI palette — uGUI / non-USS consumers
     'overlay-style.json', // floor-overlay look spec for the Shapes layer (Epic 36)
@@ -178,6 +179,34 @@ describe('default bundle is a complete, sim-importable baseline', () => {
       const refs = JSON.stringify(ch);
       expect(refs.includes('--wc-'), `overlay channel ${name} should reference a --wc-* token`).toBe(true);
     }
+    // Cross-channel focus model — the "bloom the selection, dim the rest" lever.
+    expect(overlay.focus.focusWeightMul).toBeGreaterThan(1);
+    expect(overlay.focus.dimAlpha).toBeLessThan(1);
+    // Relationship state lines carry static richness (glow + endpoints) so they
+    // read without animation — motion stays reserved for events (the rule above).
+    expect(overlay.channels.trust.motion).toBe('still');
+    expect(overlay.channels.trust.glow.alpha).toBeGreaterThan(0);
+    expect(overlay.channels.trust.endpoints.cap).not.toBe('none');
+  });
+
+  it('ships overhead-badge motion intent so the sim animates them consistently', async () => {
+    const { json } = await exportPaths();
+    const activity = JSON.parse(json.get('activity-badges-atlas@1x.json')!);
+    const attention = JSON.parse(json.get('attention-puffs-atlas@1x.json')!);
+    // Ongoing state badges carry intent but are NOT transient (no flash); every
+    // badged id has an intro/loop/outro + salience tier.
+    expect(activity.motion.transient).toBe(false);
+    for (const intent of Object.values<Record<string, unknown>>(activity.motion.byId)) {
+      expect(intent.intro).toBeTruthy();
+      expect(intent.salienceTier).toBeGreaterThan(0);
+    }
+    // Attention puffs are transient events, and harvestable sits at the top of the
+    // salience hierarchy (§7) — the player's call-to-action.
+    expect(attention.motion.transient).toBe(true);
+    const tiers = attention.motion.byId;
+    const top = Math.max(...Object.values<{ salienceTier: number }>(tiers).map((i) => i.salienceTier));
+    expect(tiers['attn-harvestable'].salienceTier).toBe(top);
+    expect(tiers['attn-harvestable'].loop).toBe('shimmer');
   });
 
   it('emits the UI icon set as both SVG (UI Toolkit) and PNG (uGUI) with a manifest', async () => {
