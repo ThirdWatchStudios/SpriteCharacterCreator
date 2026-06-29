@@ -2,6 +2,7 @@ import type { ProjectState } from './types';
 import { CURRENT_SCHEMA_VERSION } from './types';
 import { DEFAULT_BEHAVIORS, DEFAULT_DEPARTMENTS, DEFAULT_DRIVES, DEFAULT_FLOORS, DEFAULT_PROFILES, DEFAULT_PROPS, DEFAULT_RELATIONSHIP_TYPES, DEFAULT_SCENARIOS, DEFAULT_STYLE, DEFAULT_STYLE_PRESETS, DEFAULT_TRAITS, DEFAULT_WALLS } from '../data/defaults';
 import { mapDepartmentNameToId, slugifyDepartment } from './department';
+import { ensurePresence } from './profile';
 
 // Re-export so callers can keep importing the version from the migration module.
 export { CURRENT_SCHEMA_VERSION } from './types';
@@ -103,8 +104,23 @@ export function migrateProject(raw: unknown): ProjectState | null {
   // exists so every project ships a behavior vocabulary.
   backfillV13(project as ProjectState);
 
+  // v13 → v14: the per-character `presence` layer (how a body occupies space —
+  // docs/presence-profile.md). Derived from the spine, so a pre-v14 profile gets a
+  // coherent default for free; authored spine values re-derive into presence.
+  // Additive — nothing references presence channels yet (the sim consumes them).
+  backfillV14(project as ProjectState);
+
+  // v14 → v15: the optional per-character `presenceMoods` map (how a body expresses
+  // each mood, §5.8). Purely additive — a pre-v15 profile simply has no map and the
+  // sim applies no mood modulation; nothing to backfill, just the version bump below.
+
   project.version = CURRENT_SCHEMA_VERSION;
   return project as ProjectState;
+}
+
+/** v14 step: attach the spine-derived `presence` layer to any profile lacking it. */
+function backfillV14(project: ProjectState): void {
+  for (const profile of project.profiles ?? []) ensurePresence(profile);
 }
 
 /** v11 step: rewrite persona `identity.department` free-text → catalog id (idempotent). */

@@ -5,6 +5,11 @@ import {
   clampProfile,
   createDefaultProfile,
   deriveAxes,
+  derivePresence,
+  ensurePresence,
+  PRESENCE_CHANNELS,
+  PRESENCE_STEADY_STATE,
+  PRESENCE_TRANSITION,
   serializeProfile,
   validateProfile,
   type FormativeEvent,
@@ -109,6 +114,97 @@ describe('character profiles', () => {
   });
 });
 
+describe('presence layer (how a body occupies space)', () => {
+  it('the two registers partition the presence channels exactly (no drift)', () => {
+    const union = [...PRESENCE_STEADY_STATE, ...PRESENCE_TRANSITION].sort();
+    expect(union).toEqual([...PRESENCE_CHANNELS].sort());
+    // disjoint
+    expect(new Set(union).size).toBe(PRESENCE_CHANNELS.length);
+  });
+
+  it('createDefaultProfile seeds every presence channel in range and validates', () => {
+    const p = createDefaultProfile(DEFAULT_CAST[0]);
+    for (const c of PRESENCE_CHANNELS) {
+      expect(p.presence[c].value).toBeGreaterThanOrEqual(0);
+      expect(p.presence[c].value).toBeLessThanOrEqual(100);
+    }
+    expect(validateProfile(p, { agentIds })).toEqual([]);
+  });
+
+  it('derives presence from the spine and is idempotent', () => {
+    const p = createDefaultProfile(DEFAULT_CAST[0]);
+    p.personality.ocean.neuroticism = 90;
+    p.personality.ocean.conscientiousness = 20;
+    applyDerived(p);
+    const expected = derivePresence(p.personality.ocean, p.personality.axes);
+    // Anxious + undisciplined → restless and second-guessing.
+    expect(p.presence.restlessness.value).toBe(expected.restlessness);
+    expect(p.presence.commitment.value).toBe(expected.commitment);
+    expect(p.presence.restlessness.value).toBeGreaterThan(60);
+    expect(p.presence.commitment.value).toBeLessThan(40);
+    const before = p.presence.latency.value;
+    applyDerived(p);
+    expect(p.presence.latency.value).toBe(before);
+  });
+
+  it('two different spines produce different presence (the long-term-vision case)', () => {
+    const brisk = createDefaultProfile(DEFAULT_CAST[0]);
+    brisk.personality.ocean.extraversion = 90;
+    brisk.personality.axes.ambition = 90;
+    applyDerived(brisk);
+    const shy = createDefaultProfile(DEFAULT_CAST[0]);
+    shy.personality.ocean.extraversion = 10;
+    shy.personality.ocean.neuroticism = 85;
+    applyDerived(shy);
+    expect(brisk.presence.gaitSpeed.value).toBeGreaterThan(shy.presence.gaitSpeed.value);
+    expect(shy.presence.latency.value).toBeGreaterThan(brisk.presence.latency.value);
+    expect(shy.presence.personalSpace.value).toBeGreaterThan(brisk.presence.personalSpace.value);
+  });
+
+  it('does not clobber a hand-authored presence channel', () => {
+    const p = createDefaultProfile(DEFAULT_CAST[0]);
+    p.presence.commitment = { value: 12, authored: true };
+    p.personality.ocean.neuroticism = 0; // would otherwise push commitment high
+    applyDerived(p);
+    expect(p.presence.commitment.value).toBe(12);
+  });
+
+  it('clampProfile pulls out-of-range presence values back into scale', () => {
+    const p = createDefaultProfile(DEFAULT_CAST[0]);
+    p.presence.gaitSpeed.value = 999;
+    p.presence.latency.value = -50;
+    clampProfile(p);
+    expect(p.presence.gaitSpeed.value).toBe(100);
+    expect(p.presence.latency.value).toBe(0);
+  });
+
+  it('serializeProfile resolves presence to plain numbers (no Derived wrappers)', () => {
+    const carl = DEFAULT_PROFILES.find((p) => p.agentId === 'carl')!;
+    const out = serializeProfile(carl) as any;
+    for (const c of PRESENCE_CHANNELS) expect(typeof out.presence[c]).toBe('number');
+    // The resolved values are bare numbers — no Derived wrapper survives export.
+    expect(JSON.stringify(out.presence).includes('"authored"')).toBe(false);
+  });
+
+  it('ensurePresence backfills a profile that predates the layer, derived from spine', () => {
+    const p = createDefaultProfile(DEFAULT_CAST[0]) as any;
+    p.personality.ocean.openness = 95;
+    p.personality.ocean.extraversion = 95;
+    delete p.presence;
+    ensurePresence(p);
+    const expected = derivePresence(p.personality.ocean, p.personality.axes);
+    expect(p.presence.attentiveness.value).toBe(expected.attentiveness);
+    expect(p.presence.attentiveness.value).toBeGreaterThan(70); // curious + outgoing
+  });
+
+  it('ensurePresence is a no-op when presence already exists (never clobbers)', () => {
+    const p = createDefaultProfile(DEFAULT_CAST[0]);
+    p.presence.expressiveness = { value: 3, authored: true };
+    ensurePresence(p);
+    expect(p.presence.expressiveness.value).toBe(3);
+  });
+});
+
 describe('formative-event apply engine', () => {
   const ev = (effects: FormativeEvent['effects']): FormativeEvent => ({
     id: 'e',
@@ -210,5 +306,15 @@ describe('profiles migration (v2 → v3)', () => {
     const migrated = migrateProject(proj)! as any;
     expect('startingBeliefs' in migrated.profiles[0]).toBe(false);
     expect('startingKnowledge' in migrated.profiles[0]).toBe(false);
+  });
+
+  it('v14 backfills the presence layer on profiles that predate it', () => {
+    const proj = defaultProject() as any;
+    proj.version = 13;
+    for (const p of proj.profiles) delete p.presence;
+    const migrated = migrateProject(proj)! as any;
+    for (const p of migrated.profiles) {
+      for (const c of PRESENCE_CHANNELS) expect(typeof p.presence[c].value).toBe('number');
+    }
   });
 });

@@ -293,8 +293,14 @@ export interface ProjectState {
  * package is built around); additive, so the step only bumps the version.
  * v13 added the reusable `behaviors` catalog (workplace behaviors — observable
  * actions the sim selects under pressure); seeded from DEFAULT_BEHAVIORS, additive.
+ * v14 added the per-character `presence` layer (steady-state + transition-signature
+ * motion dispositions — how a body occupies space, docs/presence-profile.md);
+ * derived from the personality spine, so old saves get a coherent default for free.
+ * v15 added the optional per-character `presenceMoods` map (how a body physically
+ * expresses each mood — sparse deltas over the baseline presence, §5.8); additive,
+ * absent ⇒ no mood-specific modulation, so the step only bumps the version.
  */
-export const CURRENT_SCHEMA_VERSION = 13;
+export const CURRENT_SCHEMA_VERSION = 15;
 
 /** Design-space canvas size. Parts are authored against this; never changes. */
 export const CANVAS = 128;

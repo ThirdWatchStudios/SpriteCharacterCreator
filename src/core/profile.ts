@@ -22,7 +22,7 @@
  */
 import type { CharacterRecipe } from './types';
 import type { Mood } from './types';
-import { CURRENT_SCHEMA_VERSION } from './types';
+import { CURRENT_SCHEMA_VERSION, MOODS } from './types';
 import { ACTIVITIES } from '../parts/activities';
 
 // --- scale helpers ----------------------------------------------------------
@@ -350,6 +350,98 @@ export const REACTION_CATEGORIES = [
 ] as const;
 export type ReactionCategory = (typeof REACTION_CATEGORIES)[number];
 
+// --- presence (Epic 29: how a body occupies space) --------------------------
+
+/**
+ * Presence channels — the physical-expression layer (see docs/presence-profile.md).
+ * The sim authors *what* a body does; the presence profile authors *how* it does
+ * it ("adverbs, never verbs"). Each channel is a 0–100 disposition derived from
+ * the personality spine by default and sticky once hand-authored — the same
+ * derive-a-base-then-author pattern as the reaction tendencies and derived axes.
+ *
+ * Two registers:
+ *   - steady-state (always-on baseline): gaitSpeed, gaitControl, restlessness,
+ *     personalSpace, expressiveness.
+ *   - transition signatures (fired at the seams between sim verbs — arrival, exit,
+ *     noticing, hesitation): commitment, latency, attentiveness.
+ *
+ * These are renderer-agnostic *intent*, not animation clips (cf.
+ * parts/overheadMotion.ts): a channel targets a named rig anchor and simply goes
+ * dormant if the active rig lacks it. The sim owns the actual curves/timing and
+ * the pairwise resolution (whose personalSpace "wins" when two bodies meet). The
+ * tool never emits a verb or a "when". See CONTRACT.md.
+ */
+export const PRESENCE_CHANNELS = [
+  // steady-state
+  'gaitSpeed',
+  'gaitControl',
+  'restlessness',
+  'personalSpace',
+  'expressiveness',
+  // transition signatures
+  'commitment',
+  'latency',
+  'attentiveness',
+] as const;
+export type PresenceChannel = (typeof PRESENCE_CHANNELS)[number];
+
+/**
+ * The two registers (CONTRACT.md §5.8). Steady-state is the always-on baseline;
+ * transition signatures fire at the seams between sim events (arrival, exit,
+ * noticing, hesitation). Together they partition PRESENCE_CHANNELS — the UI groups
+ * by these, and presencePartitionIsExhaustive() (tested) guards against drift.
+ */
+export const PRESENCE_STEADY_STATE: PresenceChannel[] = [
+  'gaitSpeed',
+  'gaitControl',
+  'restlessness',
+  'personalSpace',
+  'expressiveness',
+];
+export const PRESENCE_TRANSITION: PresenceChannel[] = ['commitment', 'latency', 'attentiveness'];
+
+/**
+ * Per-mood physical-expression deltas over the baseline presence (CONTRACT.md §5.8).
+ * The sim owns the current mood; this map answers *how this body expresses it* — the
+ * sim adds the current mood's deltas on top of the resolved presence numbers. Sparse:
+ * only non-zero channels are stored, and `normal` is the baseline (never an entry).
+ * The point is per-character variation: one body paces when hostile (+restlessness),
+ * another freezes (−restlessness) — same mood, opposite deltas. Authored, not derived
+ * (deltas are bipolar, −100..100); kept beside `presence` and exported in profile.json.
+ */
+export type PresenceMoodMap = Partial<Record<Mood, Partial<Record<PresenceChannel, number>>>>;
+
+/** The moods a presence map can modulate — every mood except the `normal` baseline. */
+export const MODULATED_MOODS: Mood[] = MOODS.filter((m) => m !== 'normal');
+
+export const PRESENCE_LABELS: Record<PresenceChannel, string> = {
+  gaitSpeed: 'Gait speed',
+  gaitControl: 'Gait control',
+  restlessness: 'Restlessness',
+  personalSpace: 'Personal space',
+  expressiveness: 'Expressiveness',
+  commitment: 'Commitment',
+  latency: 'Latency',
+  attentiveness: 'Attentiveness',
+};
+
+/**
+ * A reusable presence preset — signed deltas folded over the spine-derived
+ * baseline (the "derive a base, then author on top" step for the body layer).
+ * Presets are an authoring-time convenience (like the persona archetypes in
+ * data/personaArchetypes.ts), NOT a project catalog or an exported artifact: the
+ * sim only ever sees the resolved presence numbers, never which preset produced
+ * them — the same way it never sees which archetype generated a persona. Only the
+ * channels a preset cares about are listed; the rest keep deriving from the spine.
+ * See applyPresencePreset and data/presencePresets.ts.
+ */
+export interface PresencePreset {
+  id: string;
+  label: string;
+  description: string;
+  deltas: Partial<Record<PresenceChannel, number>>;
+}
+
 // --- routine (Epic 20) ------------------------------------------------------
 
 export const ON_BLOCKED_LOCATION = [
@@ -468,6 +560,12 @@ export interface CharacterProfile {
   relationships: Relationship[];
   formativeEvents: FormativeEvent[];
   reactionTendencies: Record<ReactionCategory, Derived>;
+  /** Physical-expression dispositions (how this body occupies space). Derived from
+   *  the spine, sticky once authored; resolved to plain numbers on export. */
+  presence: Record<PresenceChannel, Derived>;
+  /** Per-mood presence deltas — how this body physically expresses each mood (§5.8).
+   *  Optional + sparse; absent ⇒ the body expresses every mood the same way. */
+  presenceMoods?: PresenceMoodMap;
   routine: RoutineBlock[];
   temperament: Temperament;
   spriteBinding: SpriteBinding;
@@ -510,6 +608,37 @@ export function deriveVolatility(ocean: Record<OceanAxis, number>, temper: numbe
 }
 
 /**
+ * Compute the presence dispositions from the spine. Starting heuristics — tunable
+ * exactly like the reaction tendencies, and explicitly NOT a contract the sim
+ * re-runs: the sim consumes the resolved numbers, never the formula. Mirrors the
+ * derive-a-base-then-author principle so two different personas automatically move
+ * differently before anyone touches a slider.
+ */
+export function derivePresence(
+  ocean: Record<OceanAxis, number>,
+  axes: Record<PrimaryGameAxis, number>,
+): Record<PresenceChannel, number> {
+  return {
+    // Brisk, confident walkers read as outgoing + driven.
+    gaitSpeed: avg(ocean.extraversion, axes.ambition),
+    // Crisp, controlled stops/starts read as disciplined + calm.
+    gaitControl: avg(ocean.conscientiousness, 100 - ocean.neuroticism),
+    // Idle fidget energy: anxious + energetic + undisciplined.
+    restlessness: avg(ocean.neuroticism, ocean.extraversion, 100 - ocean.conscientiousness),
+    // Default standing distance: prickly + introverted + guarded keep more space.
+    personalSpace: avg(100 - ocean.agreeableness, 100 - ocean.extraversion, ocean.neuroticism),
+    // Gesture frequency + size: outgoing + open + uninhibited.
+    expressiveness: avg(ocean.extraversion, ocean.openness, 100 - ocean.neuroticism),
+    // Follow-through vs second-guessing (the "Carl" knob): decisive = calm + conscientious + driven.
+    commitment: avg(100 - ocean.neuroticism, ocean.conscientiousness, axes.ambition),
+    // Pause/linger length at transitions: anxious + introverted hesitate longer.
+    latency: avg(ocean.neuroticism, 100 - ocean.extraversion),
+    // Head-turn-to-notice / glance toward events: curious + outgoing.
+    attentiveness: avg(ocean.openness, ocean.extraversion),
+  };
+}
+
+/**
  * Recompute every derived field that hasn't been hand-authored. Mutates and
  * returns the profile. Run on create, after spine edits, and before export.
  */
@@ -527,7 +656,106 @@ export function applyDerived(p: CharacterProfile): CharacterProfile {
   if (!p.temperament.volatility.authored) {
     p.temperament.volatility.value = deriveVolatility(ocean, temper);
   }
+  const pres = derivePresence(ocean, axes);
+  for (const key of PRESENCE_CHANNELS) {
+    if (!p.presence[key].authored) p.presence[key].value = pres[key];
+  }
   return p;
+}
+
+/**
+ * Attach a spine-derived presence layer to a profile that predates it (migration
+ * helper, v14). No-op if presence already exists, so it never clobbers authored
+ * channels; otherwise seeds neutral wrappers and re-derives from the spine.
+ */
+export function ensurePresence(p: CharacterProfile): CharacterProfile {
+  if (!(p as { presence?: unknown }).presence) {
+    p.presence = blankPresence();
+    applyDerived(p);
+  }
+  return p;
+}
+
+export interface PresencePresetReport {
+  applied: Array<{ channel: PresenceChannel; delta: number; value: number }>;
+}
+
+/**
+ * Fold a presence preset's deltas over the current spine-derived baseline — the
+ * `derive → preset → override` authoring step for the body layer. The baseline is
+ * refreshed first (so deltas land on the up-to-date derivation), then each touched
+ * channel is clamped and marked `authored` so the preset sticks through later
+ * re-derivation and survives export (which re-runs applyDerived). One-shot, like
+ * applyFormativeEffects: applying a second preset stacks on the first (its deltas
+ * fold over already-authored channels), and untouched channels keep deriving from
+ * the spine. Mutates the profile; returns what changed.
+ */
+export function applyPresencePreset(p: CharacterProfile, preset: PresencePreset): PresencePresetReport {
+  applyDerived(p); // bring every non-authored channel to its current spine baseline
+  const applied: PresencePresetReport['applied'] = [];
+  for (const channel of PRESENCE_CHANNELS) {
+    const delta = preset.deltas[channel];
+    if (!delta) continue; // skip 0 / undefined — a no-op channel
+    const value = clampUnit(p.presence[channel].value + delta);
+    p.presence[channel] = { value, authored: true };
+    applied.push({ channel, delta, value });
+  }
+  return { applied };
+}
+
+// --- per-mood presence modulation (§5.8) ------------------------------------
+
+/** Set (or clear, when 0) one channel's delta for one mood, pruning empties. */
+export function setPresenceMood(
+  p: CharacterProfile,
+  mood: Mood,
+  channel: PresenceChannel,
+  delta: number,
+): void {
+  const map = (p.presenceMoods ??= {});
+  if (!delta) {
+    const entry = map[mood];
+    if (entry) {
+      delete entry[channel];
+      if (Object.keys(entry).length === 0) delete map[mood];
+    }
+    if (Object.keys(map).length === 0) delete p.presenceMoods;
+    return;
+  }
+  (map[mood] ??= {})[channel] = clampBipolar(delta);
+}
+
+/** Replace a mood's whole delta set (the "fill typical" / preset action), pruning zeros. */
+export function setPresenceMoodMap(
+  p: CharacterProfile,
+  mood: Mood,
+  deltas: Partial<Record<PresenceChannel, number>>,
+): void {
+  clearPresenceMood(p, mood);
+  for (const channel of PRESENCE_CHANNELS) setPresenceMood(p, mood, channel, deltas[channel] ?? 0);
+}
+
+/** Remove all deltas for a mood, pruning the map when it empties. */
+export function clearPresenceMood(p: CharacterProfile, mood: Mood): void {
+  if (!p.presenceMoods) return;
+  delete p.presenceMoods[mood];
+  if (Object.keys(p.presenceMoods).length === 0) delete p.presenceMoods;
+}
+
+/** Canonical, prune-empty copy of a mood map: clamps deltas, drops 0s/empty moods. */
+export function normalizePresenceMoods(map: PresenceMoodMap | undefined): PresenceMoodMap {
+  const out: PresenceMoodMap = {};
+  for (const mood of MODULATED_MOODS) {
+    const entry = map?.[mood];
+    if (!entry) continue;
+    const cleaned: Partial<Record<PresenceChannel, number>> = {};
+    for (const channel of PRESENCE_CHANNELS) {
+      const d = entry[channel];
+      if (d) cleaned[channel] = clampBipolar(d);
+    }
+    if (Object.keys(cleaned).length) out[mood] = cleaned;
+  }
+  return out;
 }
 
 /**
@@ -604,6 +832,12 @@ const blankReactions = (): Record<ReactionCategory, Derived> =>
     Derived
   >;
 
+const blankPresence = (): Record<PresenceChannel, Derived> =>
+  Object.fromEntries(PRESENCE_CHANNELS.map((c) => [c, derived(50)])) as Record<
+    PresenceChannel,
+    Derived
+  >;
+
 /** A neutral profile for a recipe — all sliders mid, derived computed, lists empty. */
 export function createDefaultProfile(recipe: CharacterRecipe): CharacterProfile {
   const profile: CharacterProfile = {
@@ -631,6 +865,7 @@ export function createDefaultProfile(recipe: CharacterRecipe): CharacterProfile 
     relationships: [],
     formativeEvents: [],
     reactionTendencies: blankReactions(),
+    presence: blankPresence(),
     routine: [],
     temperament: { baselineSocialState: 'normal', volatility: derived(50) },
     spriteBinding: {
@@ -702,6 +937,14 @@ export function validateProfile(p: CharacterProfile, ctx: ValidationContext): st
   }
 
   for (const c of REACTION_CATEGORIES) unit(`reactionTendencies.${c}`, p.reactionTendencies[c]?.value);
+  for (const c of PRESENCE_CHANNELS) unit(`presence.${c}`, p.presence[c]?.value);
+  for (const mood of MODULATED_MOODS) {
+    const entry = p.presenceMoods?.[mood];
+    if (!entry) continue;
+    for (const c of PRESENCE_CHANNELS) {
+      if (entry[c] !== undefined) bip(`presenceMoods.${mood}.${c}`, entry[c]!);
+    }
+  }
   unit('temperament.volatility', p.temperament.volatility?.value);
 
   for (const fe of p.formativeEvents) {
@@ -729,6 +972,12 @@ export function clampProfile(p: CharacterProfile): CharacterProfile {
     r.affinity = clampBipolar(r.affinity);
   }
   for (const c of REACTION_CATEGORIES) p.reactionTendencies[c].value = clampUnit(p.reactionTendencies[c].value);
+  for (const c of PRESENCE_CHANNELS) p.presence[c].value = clampUnit(p.presence[c].value);
+  if (p.presenceMoods) {
+    const norm = normalizePresenceMoods(p.presenceMoods);
+    if (Object.keys(norm).length) p.presenceMoods = norm;
+    else delete p.presenceMoods;
+  }
   p.temperament.volatility.value = clampUnit(p.temperament.volatility.value);
   return p;
 }
@@ -897,6 +1146,14 @@ export function serializeProfile(input: CharacterProfile): unknown {
     reactionTendencies: Object.fromEntries(
       REACTION_CATEGORIES.map((c) => [c, p.reactionTendencies[c].value]),
     ),
+    presence: Object.fromEntries(
+      PRESENCE_CHANNELS.map((c) => [c, p.presence[c].value]),
+    ),
+    // Per-mood presence deltas (§5.8) — sparse; omitted entirely when none authored.
+    ...(() => {
+      const moods = normalizePresenceMoods(p.presenceMoods);
+      return Object.keys(moods).length ? { presenceMoods: moods } : {};
+    })(),
     routine: p.routine,
     temperament: {
       baselineSocialState: p.temperament.baselineSocialState,

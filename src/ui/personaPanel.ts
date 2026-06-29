@@ -22,8 +22,13 @@ import {
   NEEDS,
   NEED_LABELS,
   OBJECTIVE_STATUSES,
+  MODULATED_MOODS,
   OCEAN_AXES,
   ON_BLOCKED_LOCATION,
+  PRESENCE_CHANNELS,
+  PRESENCE_LABELS,
+  PRESENCE_STEADY_STATE,
+  PRESENCE_TRANSITION,
   PRIMARY_GAME_AXES,
   PRONOUNS,
   REACTION_CATEGORIES,
@@ -33,8 +38,12 @@ import {
   SUBJECT_CATALOG,
   applyDerived,
   applyFormativeEffects,
+  applyPresencePreset,
+  clearPresenceMood,
   createDefaultProfile,
   serializeProfile,
+  setPresenceMood,
+  setPresenceMoodMap,
   suggestedTraitTags,
   validateProfile,
   type CharacterProfile,
@@ -45,13 +54,20 @@ import {
   type FormativeTargetKind,
   type OceanAxis,
   type OnBlockedLocation,
+  type PresenceChannel,
   type PrimaryGameAxis,
   type ReactionCategory,
   type Relationship,
 } from '../core/profile';
+import type { Mood } from '../core/types';
+import { PRESENCE_PRESETS } from '../data/presencePresets';
+import { moodExpressionDefault } from '../data/presenceMoodDefaults';
 import { generateRoutine, resolveRoutineContext } from '../core/routineGenerator';
 import { button, clear, el, labeled, select, slider } from './dom';
-import { collapsibleSection as section, enumField, num, tagEditor, textField, uid } from './controls';
+import { collapsibleSection as section, enumField, num, tagEditor, textField, uid, viewTabs } from './controls';
+
+/** Which mood the presence mood-expression editor is focused on (one at a time). */
+let activePresenceMood: Mood = MODULATED_MOODS[0];
 
 /** Department-catalog select options (F3.1): id-valued, with a custom fallback. */
 function departmentOptions(current: string): Array<{ value: string; label: string }> {
@@ -389,6 +405,91 @@ function reactionsSection(p: CharacterProfile): HTMLElement {
   return section('Reaction tendencies', ...rows);
 }
 
+/**
+ * Presence — the physical-expression layer (how this body occupies space). Each
+ * channel derives from the spine and is sticky once nudged, exactly like the
+ * reaction tendencies / derived axes. Presets stamp a body-language lean over the
+ * derived baseline; per-channel "use derived" clears the override.
+ */
+function presenceSection(p: CharacterProfile): HTMLElement {
+  const channelRow = (c: PresenceChannel): HTMLElement => {
+    const d = p.presence[c];
+    return labeled(
+      `${PRESENCE_LABELS[c]}${d.authored ? ' (overridden)' : ' (derived)'}`,
+      el(
+        'span',
+        { className: 'derived-row' },
+        slider(d.value, 0, 100, 1, (v) => edit(() => { d.value = v; d.authored = true; })),
+        button(d.authored ? 'use derived' : '—', () => edit(() => { d.authored = false; applyDerived(p); }, 'structure'), 'tag-remove'),
+      ),
+    );
+  };
+
+  const presetButtons = PRESENCE_PRESETS.map((preset) =>
+    el(
+      'button',
+      {
+        className: 'btn',
+        title: preset.description,
+        onClick: () => edit(() => applyPresencePreset(p, preset), 'structure'),
+      },
+      preset.label,
+    ),
+  );
+
+  return section(
+    'Presence',
+    el('p', { className: 'hint' }, 'How this body occupies space — derived from the spine, sticky once nudged. Authors the manner of motion (the sim owns what/when).'),
+    el('h4', {}, 'Presets'),
+    el('div', { className: 'btn-row' }, ...presetButtons),
+    el('p', { className: 'hint' }, 'A preset folds a body-language lean over the derived baseline; stack or hand-tune below.'),
+    el('h4', {}, 'Steady-state'),
+    ...PRESENCE_STEADY_STATE.map(channelRow),
+    el('h4', {}, 'Transition signatures'),
+    ...PRESENCE_TRANSITION.map(channelRow),
+  );
+}
+
+/**
+ * Mood expression — how this body physically expresses each mood, as deltas over its
+ * baseline presence (CONTRACT §5.8). The sim owns the current mood; this says what it
+ * looks like. One mood at a time; "fill typical" stamps a starting template to vary,
+ * since the point is that the same mood looks different on different people.
+ */
+function moodExpressionSection(p: CharacterProfile): HTMLElement {
+  if (!MODULATED_MOODS.includes(activePresenceMood)) activePresenceMood = MODULATED_MOODS[0];
+  const mood = activePresenceMood;
+  const entry = p.presenceMoods?.[mood] ?? {};
+  const activeCount = (m: Mood) => Object.keys(p.presenceMoods?.[m] ?? {}).length;
+
+  // Bipolar delta sliders for the focused mood; 0 = no change from baseline.
+  const channelRow = (c: PresenceChannel): HTMLElement =>
+    num(
+      PRESENCE_LABELS[c],
+      entry[c] ?? 0,
+      (v) => edit(() => setPresenceMood(p, mood, c, v), 'structure'),
+      -50,
+      50,
+    );
+
+  return section(
+    'Mood expression',
+    el('p', { className: 'hint' }, 'How this body physically expresses each mood — deltas over its baseline presence. The sim applies the current mood’s deltas on top; absent = no change.'),
+    viewTabs(
+      mood,
+      MODULATED_MOODS.map((m) => ({ id: m, label: `${m}${activeCount(m) ? ` (${activeCount(m)})` : ''}` })),
+      (id) => { activePresenceMood = id as Mood; store.mutateUi(() => {}); },
+    ),
+    el(
+      'div',
+      { className: 'btn-row' },
+      el('button', { className: 'btn', title: `Stamp the typical ${mood} body language to vary`, onClick: () => edit(() => setPresenceMoodMap(p, mood, moodExpressionDefault(mood)), 'structure') }, 'Fill typical'),
+      button('Clear mood', () => edit(() => clearPresenceMood(p, mood), 'structure'), 'tag-remove'),
+    ),
+    ...PRESENCE_CHANNELS.map(channelRow),
+  );
+}
+
 function temperamentSection(p: CharacterProfile): HTMLElement {
   const t = p.temperament;
   return section(
@@ -657,6 +758,8 @@ export function renderPersonaControls(container: HTMLElement): void {
     skillsSection(profile),
     relationshipsSection(profile),
     reactionsSection(profile),
+    presenceSection(profile),
+    moodExpressionSection(profile),
     routineSection(profile),
     temperamentSection(profile),
     formativeSection(profile),

@@ -22,6 +22,7 @@ pin down what data we must capture here so the sim has what it needs.
 | Status & interaction visuals (moods, activity badges, conversation style) | **Tool** | Tool owns the *vocabulary + art*; the sim *selects + places* at runtime — moods by behavioral state, activity badges by routine `activity`, the conversation connector by its own agent pairing (§3.9). None are baked into recipes. |
 | Personality spine (OCEAN, game axes) | **Tool** | Authored. |
 | Derived personality fields (temper, grudge-holding, reaction tendencies, volatility) | **Tool** | Computed here — see §4. The sim consumes the numbers; it does not re-derive them. |
+| **Presence** — physical-expression dispositions (how a body occupies space: gait, restlessness, personal space, expressiveness, commitment, latency, attentiveness) | **Tool** | Derived from the spine (§4), sticky once authored; resolved to plain numbers on export (§3.2). The tool authors the **adverbs** (how a body moves), never the **verbs** (what it does / when). The sim owns the curves/timing, the per-emotion modulation, and the **pairwise resolution** when two bodies meet — see §5.8. |
 | Needs, preferences, skills, baseline relationships, routine, formative events | **Tool** | Authored / exported. Mostly inert metadata here (not computed on). |
 | Drive catalog (structured, reusable; `amplifiesNeeds`) | **Tool** | Project-level catalog (§3.5); personas reference by id. The need coupling is tool-authored data the sim acts on. |
 | Trait catalog (structured, reusable; `biasesReactions`) | **Tool** | Project-level catalog (§3.6); persona `traitTags` are ids into it. Reaction nudges are tool-authored data the sim applies on top of the spine-derived tendencies. |
@@ -134,13 +135,20 @@ All numeric ranges are `0–100` unless noted. `affinity` is bipolar `-100..100`
   ],
   "reactionTendencies": { "confront": 0, "gossip": 0, "withdraw": 0, "verify": 0,
                           "reassure": 0, "escalate": 0, "ignore": 0 },          // DERIVED (§4)
+  "presence": {                                 // physical expression — DERIVED (§4); "how a body occupies space"
+    "gaitSpeed": 0, "gaitControl": 0, "restlessness": 0, "personalSpace": 0, "expressiveness": 0,  // steady-state
+    "commitment": 0, "latency": 0, "attentiveness": 0                                               // transition signatures
+  },
+  "presenceMoods": {                            // OPTIONAL, sparse — per-mood deltas over baseline presence (§5.8); omitted when none authored
+    "hostile": { "restlessness": 20, "personalSpace": -20, "gaitSpeed": 15 }   // bipolar deltas; sim adds these when the agent's mood = hostile
+  },
   "routine": [ { "startTime": "09:00", "endTime": "12:00", "locationId": "",
                  "activity": "work", "onBlockedLocation": "reroute_to_fallback|wait_in_hallway|return_to_desk|skip_block" } ],
   "temperament": { "baselineSocialState": "normal|suspicious|curious|defensive|hostile|confused",
                    "volatility": 0 },           // volatility DERIVED (§4)
   "spriteBinding": { "layerAtlasId": "", "characterConfigId": "<agentId>",
                      "fallbackSpriteId": null, "paletteSource": "default-from-recipe|override" },
-  "meta": { "generator": "sprite-character-creator", "schema": "character_model.md", "schemaVersion": 9 }
+  "meta": { "generator": "sprite-character-creator", "schema": "character_model.md", "schemaVersion": 15 }
 }
 ```
 
@@ -521,9 +529,19 @@ escalate        = avg( ambition, conscientiousness )
 ignore          = avg( 100 − extraversion, 100 − neuroticism )
 
 volatility      = avg( neuroticism, temper )
+
+# presence — physical-expression dispositions (§3.2). Starting heuristics, tunable.
+gaitSpeed       = avg( extraversion, ambition )
+gaitControl     = avg( conscientiousness, 100 − neuroticism )
+restlessness    = avg( neuroticism, extraversion, 100 − conscientiousness )
+personalSpace   = avg( 100 − agreeableness, 100 − extraversion, neuroticism )
+expressiveness  = avg( extraversion, openness, 100 − neuroticism )
+commitment      = avg( 100 − neuroticism, conscientiousness, ambition )
+latency         = avg( neuroticism, 100 − extraversion )
+attentiveness   = avg( openness, extraversion )
 ```
 
-Inputs are **only** OCEAN + the four primary game axes (ambition, integrity, loyalty, discretion). **Drives, trait tags, needs, preferences, skills, and objectives feed nothing here** — they are authored → exported, and given meaning by the sim.
+Inputs are **only** OCEAN + the four primary game axes (ambition, integrity, loyalty, discretion). **Drives, trait tags, needs, preferences, skills, and objectives feed nothing here** — they are authored → exported, and given meaning by the sim. The presence block is the physical-expression sibling of the reaction tendencies: same derive-then-author-sticky pattern, resolved to plain numbers on export, never re-derived by the sim.
 
 ---
 
@@ -562,6 +580,18 @@ The full-game direction has the **engine cast templates at runtime** — bind a 
 - a bound `scenario.json` keeps loading as-is — it is the already-cast special case (single-candidate roles).
 
 **Validation parity / drift check.** The precondition vocabulary in §3.8 is the single source of truth both casters implement; `validateScenarioTemplate` is the tool-side authoring gate and the sim's loader runs the equivalent structural check on ingest. The **shared fixture** is the exported library itself — `THE_OFFICE_ROMANCE` round-tripped through both casters against the same cast must produce the same role→agent assignment; a divergence is a contract drift. (The bound-`scenario.json` path obligates no sim change to ship tool work.)
+
+### 5.8 Presence realization (the body layer — design sketch, NOT implemented here)
+
+`profile.json.presence` (§3.2) is a set of **dispositions**, not animations — 0–100 numbers that say *how* a body occupies space, never *what* it does or *when*. The four-layer model: **recipe** = what you look like, **persona** = who you are, **presence** = how you occupy space, **sim** = what you actually do. Recipe/persona/presence are **priors over a person**; the sim is the world that **samples** them. What the sim owns:
+
+- **Curves & timing.** Presence channels are renderer-agnostic intent (cf. the badge motion-intent vocabulary, §3.9). The sim maps each number onto its actual rig: `gaitSpeed`→locomotion rate, `gaitControl`→start/stop easing, `restlessness`→idle micro-motion amplitude, `expressiveness`→gesture frequency/size, `attentiveness`→head-turn-to-notice. A channel whose rig anchor a pack doesn't expose simply goes **dormant** — no error.
+- **Two registers.** *Steady-state* (gait/restlessness/personalSpace/expressiveness) is always-on; *transition signatures* (commitment/latency/attentiveness) fire at the **seams between sim events** the sim already raises — `conversation-ended`, `path-arrived`, `agent-passed-within-N`. Presence decorates those gaps; it does not invent events.
+- **Per-mood modulation — `profile.json.presenceMoods` (§3.2).** Current mood is sim-owned; this per-character map answers *how this body expresses it*. Keyed by **mood** (the shared §3.9 vocabulary — `suspicious/curious/defensive/hostile/confused`; `normal` is the baseline and never appears), each entry is a sparse set of **bipolar deltas** (−100..100) over the resolved baseline `presence`. **The sim adds the current mood's deltas to the baseline presence** before realizing motion (clamp to 0–100). The map is per-character on purpose: one body paces when hostile (`restlessness +20`), another freezes (`restlessness −20`) — same mood, opposite delta. Optional + sparse: **absent ⇒ apply no modulation** (the body expresses every mood the same way). If the sim's internal emotion model is richer than the six moods, it maps emotion → mood (which it already does to pick the overlay) and reuses that key — no new vocabulary.
+- **Pairwise resolution is sim-owned.** When two bodies meet, **neither `personalSpace` "wins" in the tool** — each profile authors a *preference*; the sim resolves the staged distance from the pair (situational ⇒ a verb ⇒ sim's). The tool never authors "the gap between Bob and Linda."
+- **⚠️ Non-progress motion is legal — the pathfinder must not scrub it.** Low `commitment` means a body may **start a motion, stop, turn back, and resume** (second-guessing); high `latency` means it **pauses/lingers** before acting. These produce frames where the agent is *not progressing toward its goal* and may briefly move *away* from it. **The sim must treat dithering, hesitation, and lingering as expression, not as a failed/abandoned action** — i.e. presence may add non-progress motion without invalidating the sim's chosen action. If pathfinding "corrects" the body straight back onto its path, the most human behavior (the "Carl" signature) is erased. This is the one presence channel that needs explicit sim buy-in before consumption.
+
+**Recommended first integration:** prove **one steady-state channel end-to-end** (`gaitSpeed` → locomotion rate) — cheapest, most visible at zoom — before wiring transition signatures or the commitment/dithering loop. See docs/presence-profile.md.
 
 ---
 
